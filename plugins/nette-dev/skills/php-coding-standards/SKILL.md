@@ -1,13 +1,13 @@
 ---
 name: php-coding-standards
-description: 'Invoke BEFORE writing or modifying any PHP code. Provides coding standards and naming conventions for Nette repos: TABs, single quotes, strict_types, PSR-12 modifications, use statement ordering. Use this whenever creating, modifying, or refactoring any PHP code - even small bug fixes or one-line changes.'
+description: 'Invoke BEFORE writing or modifying any PHP code. Provides coding standards and naming conventions for Nette repos: TABs, single quotes, strict_types, PER Coding Style modifications, use statement ordering. Use this whenever creating, modifying, or refactoring any PHP code - even small bug fixes or one-line changes.'
 ---
 
 ## PHP Coding Standards
 
-### Using nette/coding-standard
+### Using DressCode
 
-Install globally using `/php-fixer:install-php-fixer`. After installation, PHP files are automatically fixed when edited - see the `php-auto-fixer` skill for editing workflow rules (especially `use` statement ordering).
+The Nette repositories are checked by [DressCode](https://github.com/dg/dresscode) with the `dresscode.neon` in their root. Install it globally using `/php-fixer:install-php-fixer`; after that, PHP files are automatically fixed when edited, by that configuration - see the `php-auto-fixer` skill for editing workflow rules (especially `use` statement ordering).
 
 ### General Rules
 - Every PHP file must include `declare(strict_types=1)`
@@ -45,7 +45,7 @@ Install globally using `/php-fixer:install-php-fixer`. After installation, PHP f
 
 ### Formatting
 - Use TABs for indentation everywhere (PHP, JS, HTML, CSS/SCSS, NEON, Latte, ...)
-- PHP follows Nette Coding Standard (based on PSR-12) with these modifications:
+- PHP follows the Nette coding standard (PER Coding Style) with these modifications:
   - No space before parentheses in arrow functions: `fn($a) => $b`
   - No blank lines required between different `use` import types
   - When parameters span multiple lines, return type and opening brace go on separate lines:
@@ -69,6 +69,7 @@ public function example(
 
 ### Global Functions and Constants
 - Write global functions/constants without leading backslash: `count($arr)` not `\count($arr)`
+- Leave `use function` and `use const` imports to DressCode, which adds and removes them
 
 ### Code Style Preferences
 - Uses DOM API with HTML5 parser Lexbor for HTML processing

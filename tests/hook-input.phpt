@@ -35,8 +35,12 @@ test('both independently installed plugins have the same adapter', function () {
 	);
 });
 
-test('extracts destinations, skips deletions and does not mistake hunk text for headers', function () {
-	Assert::same(['new.php', 'renamed.php', 'last.json'], patchFiles(implode("\r\n", [
+test('extracts destinations with their sections, skips deletions and does not mistake hunk text for headers', function () {
+	Assert::same([
+		['new.php', "*** Add File: new.php\n+*** Update File: fake.php\n *** Add File: also-fake.php"],
+		['renamed.php', "*** Update File: old.php\n*** Move to: renamed.php\n@@\n-*** Move to: fake-rename.php"],
+		['last.json', "*** Add File: last.json\n+{}"],
+	], patchFiles(implode("\r\n", [
 		'*** Begin Patch',
 		'*** Add File: new.php',
 		'+*** Update File: fake.php',
@@ -103,7 +107,7 @@ $file = readHookFile(__FILE__, ['php']);
 if ($file === '') {
 	exit(0);
 }
-file_put_contents(__DIR__ . '/calls.jsonl', json_encode([basename($file), ini_get('precision')]) . "\n", FILE_APPEND);
+file_put_contents(__DIR__ . '/calls.jsonl', json_encode([basename($file), ini_get('precision'), readHookInput()['session_id'] ?? null, readHookInput()['tool_name'] ?? null, readHookInput()['cwd'] ?? null, readHookInput()['tool_input']['command'] ?? null]) . "\n", FILE_APPEND);
 if (basename($file) === 'fail.php') {
 	fwrite(STDERR, "Mock failure on $file\n");
 	exit(2);
@@ -140,6 +144,29 @@ test('preserves the explicit PHP ini in child processes', function () use ($root
 		Assert::same('9', json_decode($line, true)[1]);
 	}
 });
+
+test('passes the session id to child processes', function () use ($root, $mock) {
+	unlink("$root/calls.jsonl");
+	$result = runHookScript($mock, ['session_id' => 'abc'] + patchEvent($root, "*** Update File: first.php\n*** Update File: second.php"));
+	Assert::same(0, $result['exitCode'], $result['stderr']);
+	foreach (file("$root/calls.jsonl") as $line) {
+		Assert::same('abc', json_decode($line, true)[2]);
+	}
+});
+
+test('passes each child process its file as a patch of the sections that edited it', function () use ($root, $mock) {
+	unlink("$root/calls.jsonl");
+	$result = runHookScript($mock, patchEvent($root, "*** Update File: first.php\n@@\n-a\n+b\n*** Update File: second.php\n@@\n+c\n*** Update File: first.php\n@@\n+d"));
+	Assert::same(0, $result['exitCode'], $result['stderr']);
+	Assert::same([
+		['first.php', 'apply_patch', $root, "*** Begin Patch\n*** Update File: first.php\n@@\n-a\n+b\n*** Update File: first.php\n@@\n+d\n*** End Patch"],
+		['second.php', 'apply_patch', $root, "*** Begin Patch\n*** Update File: second.php\n@@\n+c\n*** End Patch"],
+	], array_map(function ($line) {
+		$call = json_decode($line, true);
+		return [$call[0], ...array_slice($call, 3)];
+	}, file("$root/calls.jsonl")));
+});
+
 
 test('all JSON files in a patch use the existing JSON validator', function () use ($root) {
 	file_put_contents("$root/bad.json", '{broken');

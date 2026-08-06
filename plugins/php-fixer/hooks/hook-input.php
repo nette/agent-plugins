@@ -11,10 +11,7 @@
  */
 function readHookFile(string $script, array $extensions): string
 {
-	$input = json_decode(file_get_contents('php://stdin'), true);
-	if (!is_array($input)) {
-		return '';
-	}
+	$input = readHookInput();
 	$file = $input['tool_input']['file_path'] ?? null;
 	if (is_string($file)) {
 		return $file;
@@ -31,19 +28,18 @@ function readHookFile(string $script, array $extensions): string
 		exit(2);
 	}
 	$files = [];
-	foreach (patchFiles($input['tool_input']['command']) as $file) {
+	foreach (patchFiles($input['tool_input']['command']) as [$file, $section]) {
 		$file = str_replace('\\', '/', $file);
 		if (!str_starts_with($file, '/') && !preg_match('~^[A-Za-z]:/~', $file)) {
 			$file = "$cwd/$file";
 		}
 		// Do not resolve symlinks: configuration belongs to the edited path.
 		if (in_array(pathinfo($file, PATHINFO_EXTENSION), $extensions, true) && is_file($file)) {
-			$files[] = $file;
+			$files[$file][] = $section;
 		}
 	}
-	$files = array_values(array_unique($files));
 	if (count($files) < 2) {
-		return $files[0] ?? '';
+		return (string) array_key_first($files);
 	}
 
 	runHookFiles($script, $files, $cwd);
@@ -51,30 +47,54 @@ function readHookFile(string $script, array $extensions): string
 }
 
 
-/** Returns the surviving paths from an apply_patch command, including rename destinations. */
+/** Returns the decoded JSON input of the hook, read from stdin once. */
+function readHookInput(): array
+{
+	static $input;
+	if ($input === null) {
+		$input = json_decode((string) file_get_contents('php://stdin'), true);
+		$input = is_array($input) ? $input : [];
+	}
+	return $input;
+}
+
+
+/**
+ * Returns the surviving paths from an apply_patch command, including rename destinations, each with its section of the patch.
+ * @return list<array{string, string}>
+ */
 function patchFiles(string $patch): array
 {
-	$paths = [];
+	$files = [];
 	$path = null;
+	$section = [];
 	foreach (explode("\n", str_replace("\r\n", "\n", $patch)) as $line) {
 		// Hunk lines start with a space, + or -, so content cannot masquerade as headers.
 		if (preg_match('~^\*\*\* (Add|Update|Delete) File: (.+)$~D', $line, $match)) {
 			if ($path !== null) {
-				$paths[] = $path;
+				$files[] = [$path, implode("\n", $section)];
 			}
 			$path = $match[1] === 'Delete' ? null : $match[2];
+			$section = [$line];
 		} elseif ($path !== null && str_starts_with($line, '*** Move to: ')) {
 			$path = substr($line, strlen('*** Move to: '));
+			$section[] = $line;
+		} elseif ($path !== null && $line !== '*** End Patch') {
+			$section[] = $line;
 		}
 	}
 	if ($path !== null) {
-		$paths[] = $path;
+		$files[] = [$path, implode("\n", $section)];
 	}
-	return $paths;
+	return $files;
 }
 
 
-/** Runs the existing single-file hook and combines feedback without losing later failures. */
+/**
+ * Runs the existing single-file hook and combines feedback without losing later failures. Each run gets
+ * its file as a one-file patch of the sections that edited it.
+ * @param  array<string, list<string>>  $files
+ */
 function runHookFiles(string $script, array $files, string $cwd): void
 {
 	$command = [PHP_BINARY];
@@ -87,7 +107,7 @@ function runHookFiles(string $script, array $files, string $cwd): void
 	$command[] = $script;
 	$context = [];
 	$errors = [];
-	foreach ($files as $file) {
+	foreach ($files as $file => $sections) {
 		// File-backed output avoids pipe deadlocks for large linter reports.
 		$stdout = tmpfile();
 		$stderr = tmpfile();
@@ -102,7 +122,15 @@ function runHookFiles(string $script, array $files, string $cwd): void
 			fclose($stderr);
 			continue;
 		}
-		fwrite($pipes[0], json_encode(['tool_input' => ['file_path' => $file]], JSON_INVALID_UTF8_SUBSTITUTE));
+		fwrite($pipes[0], json_encode([
+			'session_id' => readHookInput()['session_id'] ?? null,
+			'tool_name' => 'apply_patch',
+			'cwd' => $cwd,
+			'tool_input' => [
+				'file_path' => $file,
+				'command' => "*** Begin Patch\n" . implode("\n", $sections) . "\n*** End Patch",
+			],
+		], JSON_INVALID_UTF8_SUBSTITUTE));
 		fclose($pipes[0]);
 		$exitCode = proc_close($process);
 		rewind($stdout);

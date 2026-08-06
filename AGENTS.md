@@ -9,7 +9,7 @@ This repository contains plugins for the Nette Framework ecosystem, shared by Cl
 - **`plugins/nette/`** - For developers building Nette Framework applications (skills only)
 - **`plugins/nette-lint/`** - Automatic validation hooks for PHP, Latte, NEON and JavaScript/TypeScript
 - **`plugins/nette-dev/`** - For Nette Framework contributors (coding standards and conventions)
-- **`plugins/php-fixer/`** - Optional automatic PHP style fixing using nette/coding-standard
+- **`plugins/php-fixer/`** - Optional automatic PHP style fixing using DressCode
 
 ## Plugin Structure
 
@@ -22,7 +22,7 @@ Some plugins also include:
 - `docs/` - Pages of the Nette documentation converted to Markdown (`nette`, `nette-dev`). Generated, never edited by hand: it holds exactly the pages the plugin's skills link to, and it is regenerated from the `nette/docs` repository by the maintainer's local build step.
 
 Duplicated across plugins:
-- `hooks/hook-input.php` - Adapts Claude Code `tool_input.file_path` and Codex `apply_patch` (`tool_input.command`, relative to event `cwd`) to the single-file hooks. Direct edits and one-file patches run without a subprocess. Multi-file patches run only matching extensions, preserve the PHP ini, and aggregate errors and rewrite feedback. Do not resolve symlinks when finding per-project configuration. Keep both copies identical; `tests/hook-input.phpt` checks this.
+- `hooks/hook-input.php` - Adapts Claude Code `tool_input.file_path` and Codex `apply_patch` (`tool_input.command`, relative to event `cwd`) to the single-file hooks. Direct edits and one-file patches run without a subprocess. Multi-file patches run only matching extensions, preserve the PHP ini and the `session_id`, hand each child its file as a one-file patch of the sections that edited it, and aggregate errors and rewrite feedback. `readHookInput()` gives the whole decoded input. Do not resolve symlinks when finding per-project configuration. Keep both copies identical; `tests/hook-input.phpt` checks this.
 - `hooks/hook-config.php` - Helper required by each plugin's hooks (`require __DIR__ . '/hook-config.php'`). Reads the project's `.nette-claude.json` and locates project tools/configs via `findUpwards()`. Plugins install **independently** (each into its own `cache/<marketplace>/<plugin>/<version>/` directory - a sibling `shared/` folder is NOT copied), so this file is **copied** into every hook-carrying plugin (`nette-lint`, `php-fixer`). Keep the copies in sync.
 
 ## Testing Plugins Locally
@@ -47,23 +47,27 @@ For hook plugins, review and trust their definitions with `/hooks`. Run the PHP 
 Standalone PHP scripts run on PostToolUse (`Edit|Write`, which also matches Codex `apply_patch`). Shell-based edits are not covered. Each one:
 1. Reads JSON input from stdin through `readHookFile()` in `hook-input.php`; multi-file patches are dispatched to the same script with individual `file_path` inputs
 2. Checks the file extension and skips non-matching files (exit 0)
-3. Skips paths excluded in the project's `.nette-claude.json` via `isExcluded()` from the plugin's own `hooks/hook-config.php`
-4. Locates its project tool/config (`latte-lint`, `vendor/bin/neon-lint`, ESLint config) via `findUpwards()` - searched upwards from the edited file, so monorepo sessions rooted above the app directory work too; the search stops one level above the nearest `.git` root
+3. Skips paths excluded in the project's `.nette-claude.json` via `isExcluded()` from the plugin's own `hooks/hook-config.php` (`fix-php-style` excepted, it follows `dresscode.neon`)
+4. Locates its project tool/config (`latte-lint`, `vendor/bin/neon-lint`, `vendor/bin/dresscode`, ESLint config) via `findUpwards()` - searched upwards from the edited file, so monorepo sessions rooted above the app directory work too; the search stops one level above the nearest `.git` root
 5. Runs its tool, then exits 0 on success or exit 2 on error (with stderr output)
 
 Hooks run **in parallel and in non-deterministic order**, so each must be robust on its own - do not rely on one hook running before another. For example `fix-php-style` runs `php -l` itself and silently skips invalid PHP instead of depending on `lint-php`.
 
+`fix-php-style` runs DressCode, the project's copy or the global one, configured by the project's `dresscode.neon` alone and by `--use nette` without one. How it runs, what it relies on in DressCode and the decisions behind it are in `docs/php-fixer.md`; read it before changing the hook.
+
 ### Per-project configuration: `.nette-claude.json`
 
-Read exclusively by the hooks, looked up upwards from the edited file (like `.gitignore`). Each top-level key is a hook name (`lint-php`, `lint-latte`, `lint-neon`, `lint-json`, `lint-js`, `fix-php-style`) with an `exclude` list of gitignore-like patterns resolved relative to the config directory. `lint-json` additionally accepts a `jsonc` list marking extra files as JSONC (comments + trailing commas allowed):
+Read exclusively by the lint hooks, looked up upwards from the edited file (like `.gitignore`). Each top-level key is a hook name (`lint-php`, `lint-latte`, `lint-neon`, `lint-json`, `lint-js`) with an `exclude` list of gitignore-like patterns resolved relative to the config directory. `lint-json` additionally accepts a `jsonc` list marking extra files as JSONC (comments + trailing commas allowed):
 
 ```json
 {
-	"fix-php-style": {
+	"lint-neon": {
 		"exclude": ["fixtures*"]
 	}
 }
 ```
+
+`fix-php-style` does not read this file: exclusions, rules and options of the fixer belong to `dresscode.neon`.
 
 ## Skill Files
 
