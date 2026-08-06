@@ -103,7 +103,7 @@ $file = readHookFile(__FILE__, ['php']);
 if ($file === '') {
 	exit(0);
 }
-file_put_contents(__DIR__ . '/calls.jsonl', json_encode([basename($file), ini_get('precision')]) . "\n", FILE_APPEND);
+file_put_contents(__DIR__ . '/calls.jsonl', json_encode([basename($file), ini_get('precision'), readHookInput()['session_id'] ?? null]) . "\n", FILE_APPEND);
 if (basename($file) === 'fail.php') {
 	fwrite(STDERR, "Mock failure on $file\n");
 	exit(2);
@@ -138,6 +138,15 @@ test('preserves the explicit PHP ini in child processes', function () use ($root
 	Assert::same(0, $result['exitCode'], $result['stderr']);
 	foreach (file("$root/calls.jsonl") as $line) {
 		Assert::same('9', json_decode($line, true)[1]);
+	}
+});
+
+test('passes the session id to child processes', function () use ($root, $mock) {
+	unlink("$root/calls.jsonl");
+	$result = runHookScript($mock, ['session_id' => 'abc'] + patchEvent($root, "*** Update File: first.php\n*** Update File: second.php"));
+	Assert::same(0, $result['exitCode'], $result['stderr']);
+	foreach (file("$root/calls.jsonl") as $line) {
+		Assert::same('abc', json_decode($line, true)[2]);
 	}
 });
 

@@ -67,7 +67,7 @@ test('isExcluded finds config upwards and honours the hook name', function () {
 	$root = createTempStructure([
 		'.nette-claude.json' => json_encode([
 			'lint-neon' => ['exclude' => ['fixtures']],
-			'fix-php-style' => ['exclude' => ['tests/temp/**']],
+			'lint-php' => ['exclude' => ['tests/temp/**']],
 		]),
 		'app/fixtures/bad.neon' => 'x',
 		'app/config/app.neon' => 'x',
@@ -79,12 +79,12 @@ test('isExcluded finds config upwards and honours the hook name', function () {
 	Assert::true(isExcluded($root . '/app/fixtures/bad.neon', 'lint-neon'));
 	Assert::false(isExcluded($root . '/app/config/app.neon', 'lint-neon'));
 
-	// hook isolation: the fixtures rule does not apply to fix-php-style
-	Assert::false(isExcluded($root . '/app/fixtures/whatever.php', 'fix-php-style'));
+	// hook isolation: the fixtures rule does not apply to lint-php
+	Assert::false(isExcluded($root . '/app/fixtures/whatever.php', 'lint-php'));
 
-	// fix-php-style: tests/temp/** relative to the config directory
-	Assert::true(isExcluded($root . '/tests/temp/foo.php', 'fix-php-style'));
-	Assert::false(isExcluded($root . '/src/Model.php', 'fix-php-style'));
+	// lint-php: tests/temp/** relative to the config directory
+	Assert::true(isExcluded($root . '/tests/temp/foo.php', 'lint-php'));
+	Assert::false(isExcluded($root . '/src/Model.php', 'lint-php'));
 
 	// hook without any config section -> not excluded
 	Assert::false(isExcluded($root . '/app/fixtures/bad.neon', 'lint-latte'));
@@ -95,18 +95,18 @@ test('isExcluded returns false when no config exists', function () {
 	$root = createTempStructure([
 		'src/Model.php' => '<?php',
 	]);
-	Assert::false(isExcluded($root . '/src/Model.php', 'fix-php-style'));
+	Assert::false(isExcluded($root . '/src/Model.php', 'lint-php'));
 });
 
 
 test('malformed config is tolerated without warnings', function () {
 	// invalid JSON, non-array section and non-array exclude must all yield false, no warnings
-	foreach (['{ this is not json', '[]', '{"fix-php-style": "nope"}', '{"fix-php-style": {"exclude": "nope"}}', '{"fix-php-style": {"exclude": [["x"], 123]}}', ''] as $i => $json) {
+	foreach (['{ this is not json', '[]', '{"lint-php": "nope"}', '{"lint-php": {"exclude": "nope"}}', '{"lint-php": {"exclude": [["x"], 123]}}', ''] as $i => $json) {
 		$root = createTempStructure([
 			'.nette-claude.json' => $json,
 			'src/x.php' => '<?php',
 		]);
-		Assert::false(isExcluded($root . '/src/x.php', 'fix-php-style'), "case $i");
+		Assert::false(isExcluded($root . '/src/x.php', 'lint-php'), "case $i");
 	}
 });
 

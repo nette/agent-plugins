@@ -11,10 +11,7 @@
  */
 function readHookFile(string $script, array $extensions): string
 {
-	$input = json_decode(file_get_contents('php://stdin'), true);
-	if (!is_array($input)) {
-		return '';
-	}
+	$input = readHookInput();
 	$file = $input['tool_input']['file_path'] ?? null;
 	if (is_string($file)) {
 		return $file;
@@ -48,6 +45,18 @@ function readHookFile(string $script, array $extensions): string
 
 	runHookFiles($script, $files, $cwd);
 	exit(0);
+}
+
+
+/** Returns the decoded JSON input of the hook, read from stdin once. */
+function readHookInput(): array
+{
+	static $input;
+	if ($input === null) {
+		$input = json_decode((string) file_get_contents('php://stdin'), true);
+		$input = is_array($input) ? $input : [];
+	}
+	return $input;
 }
 
 
@@ -102,7 +111,10 @@ function runHookFiles(string $script, array $files, string $cwd): void
 			fclose($stderr);
 			continue;
 		}
-		fwrite($pipes[0], json_encode(['tool_input' => ['file_path' => $file]], JSON_INVALID_UTF8_SUBSTITUTE));
+		fwrite($pipes[0], json_encode([
+			'session_id' => readHookInput()['session_id'] ?? null,
+			'tool_input' => ['file_path' => $file],
+		], JSON_INVALID_UTF8_SUBSTITUTE));
 		fclose($pipes[0]);
 		$exitCode = proc_close($process);
 		rewind($stdout);

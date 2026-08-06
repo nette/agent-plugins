@@ -66,7 +66,7 @@ codex plugin add nette-dev@nette
 codex plugin add php-fixer@nette
 ```
 
-Start a new session after installation. For `php-fixer`, explicitly select the `install-php-fixer` skill to install `nette/coding-standard` globally if it is not installed yet.
+Start a new session after installation. For `php-fixer`, explicitly select the `install-php-fixer` skill to install DressCode if it is not available in your project or globally.
 
 For automatic validation and fixing, open `/hooks` in Codex CLI and review and trust the installed hook definitions. Installing a plugin alone does not trust its hooks. Changed definitions require another review. See [Codex hook setup](https://learn.chatgpt.com/docs/hooks).
 
@@ -74,7 +74,7 @@ The existing `.claude-plugin/marketplace.json` and plugin manifests are supporte
 
 ### Requirements and edit coverage
 
-Skills need no PHP installation. Hooks require PHP 8.0+ on `PATH`, plus the relevant project tools listed below.
+Skills need no PHP installation. Hooks require PHP 8.0+ on `PATH`, plus the relevant project tools listed below. DressCode requires PHP 8.4+.
 
 Hooks run after Claude Code `Edit`/`Write` and Codex `apply_patch` calls. Codex patches may change multiple files: each matching file is checked, renamed files are checked at their destination, and deleted files are skipped. Changes made through shell commands or other tools do not trigger these hooks; run the appropriate project checks explicitly for those edits.
 
@@ -129,7 +129,9 @@ Coding standards and conventions for contributing to the Nette Framework itself.
 
 ### `php-fixer` – Automatic PHP Style Fixing
 
-Optional plugin that automatically fixes PHP code style after supported edits using [nette/coding-standard](https://github.com/nette/coding-standard).
+Optional plugin that automatically fixes PHP code style after supported edits using [DressCode](https://github.com/dg/dresscode): by the project's `dresscode.neon` when there is one, by the Nette coding standard otherwise.
+
+Upgrading from version 1, which used `nette/coding-standard`: the fixer keeps formatting with it until DressCode is installed, and the agent offers the migration (the `migrate-to-dresscode` skill). It installs DressCode, into the project when the project uses PHPStan, globally otherwise, and creates `dresscode.neon`.
 
 ## Configuration
 
@@ -141,7 +143,7 @@ To exclude certain paths (typically `fixtures` folders with intentionally broken
 
 ```json
 {
-	"fix-php-style": {
+	"lint-neon": {
 		"exclude": ["fixtures*"]
 	},
 	"lint-latte": {
@@ -150,7 +152,9 @@ To exclude certain paths (typically `fixtures` folders with intentionally broken
 }
 ```
 
-Available hooks: `lint-php` (`.php/.phpt`), `lint-latte` (`.latte`), `lint-neon` (`.neon`), `lint-json` (`.json/.jsonc`), `lint-js` (`.js/.ts`), `fix-php-style` (`.php/.phpt`).
+Available hooks: `lint-php` (`.php/.phpt`), `lint-latte` (`.latte`), `lint-neon` (`.neon`), `lint-json` (`.json/.jsonc`), `lint-js` (`.js/.ts`).
+
+The PHP fixer of `php-fixer` is not configured here: it follows the project's `dresscode.neon`, including its `excludePaths`, and uses the Nette coding standard when the project has none.
 
 `lint-json` treats `.jsonc`, `tsconfig*.json`, `jsconfig*.json`, `devcontainer.json` and anything under `.vscode/` as JSONC (comments and trailing commas allowed). To mark additional files as JSONC, add a `jsonc` list of the same gitignore-like patterns:
 

@@ -8,23 +8,21 @@ require __DIR__ . '/bootstrap.php';
 $root = str_replace('\\', '/', __DIR__ . '/temp/fixer patch');
 @mkdir($root, recursive: true);
 Helpers::purge($root);
-mkdir("$root/composer/vendor/bin", recursive: true);
+mkdir("$root/vendor/bin", recursive: true);
 mkdir("$root/.git");
-file_put_contents("$root/composer/vendor/bin/ecs", <<<'PHP'
-#!/usr/bin/env php
+file_put_contents("$root/dresscode.neon", "use: nette\n");
+file_put_contents("$root/vendor/bin/dresscode", <<<'PHP'
 <?php
-// A global ECS stand-in: exercise the real hook, independently of a global installation.
+// A local Composer tool stand-in: exercise the real hook, independently of a global installation.
 $file = $argv[2];
 file_put_contents(__DIR__ . '/calls.jsonl', json_encode([$argv, getcwd()]) . "\n", FILE_APPEND);
 if (basename($file) === 'failure.php') {
 	echo "Remaining style violation in $file\n";
 	exit(1);
 }
-file_put_contents($file, "<?php\n// fixed\n");
+file_put_contents($file, "<?php\n// rewritten\n");
+echo "$file  rewritten\n";
 PHP);
-chmod("$root/composer/vendor/bin/ecs", 0755);
-file_put_contents("$root/composer/vendor/bin/ecs.bat", "@php \"%~dp0ecs\" %*\r\n");
-putenv("COMPOSER_HOME=$root/composer");
 foreach (['one.php', 'two.php', 'failure.php', 'excluded.php'] as $file) {
 	file_put_contents("$root/$file", '<?php echo 1;');
 }
@@ -41,37 +39,46 @@ function fixerPatch(string $root, array $files): array
 	];
 }
 
-test('real fixer hook runs ECS on every file of the patch', function () use ($root, $script) {
+test('real fixer hook runs the project tool and aggregates rewrite notices', function () use ($root, $script) {
 	$result = runHookScript($script, fixerPatch($root, ['one.php', 'two.php']));
 	Assert::same(0, $result['exitCode'], $result['stderr']);
-	Assert::same('', $result['stdout']);
+	$context = json_decode($result['stdout'], true)['hookSpecificOutput']['additionalContext'];
 	foreach (['one.php', 'two.php'] as $file) {
-		Assert::contains('// fixed', file_get_contents("$root/$file"));
+		Assert::contains("DressCode reformatted $root/$file", $context);
+		Assert::contains('// rewritten', file_get_contents("$root/$file"));
 	}
-	$files = [];
-	foreach (file("$root/composer/vendor/bin/calls.jsonl") as $line) {
-		[$args] = json_decode($line, true);
-		Assert::same('fix', $args[1]);
-		Assert::contains('--config-file', $args);
-		$files[] = str_replace('\\', '/', $args[2]);
+	foreach (file("$root/vendor/bin/calls.jsonl") as $line) {
+		[$args, $cwd] = json_decode($line, true);
+		Assert::same($root, str_replace('\\', '/', $cwd));
+		Assert::contains('--skip-excluded', $args);
+		Assert::contains('mistakes.debugOutput=keep', $args);
+		Assert::notContains('--use', $args);
 	}
-	Assert::same(["$root/one.php", "$root/two.php"], $files);
 });
 
-test('failure is reported and excluded files are untouched', function () use ($root, $script) {
-	file_put_contents("$root/two.php", '<?php echo 1;');
-	file_put_contents("$root/.nette-claude.json", '{"fix-php-style":{"exclude":["excluded.php"]}}');
-	$result = runHookScript($script, fixerPatch($root, ['failure.php', 'two.php', 'excluded.php']));
+test('mixed failure and rewrite are both reported', function () use ($root, $script) {
+	$result = runHookScript($script, fixerPatch($root, ['failure.php', 'two.php']));
 	Assert::same(2, $result['exitCode']);
-	Assert::contains("Could not fix all coding standard issues in $root/failure.php", $result['stderr']);
+	Assert::contains('DressCode could not fix everything', $result['stderr']);
 	Assert::contains('Remaining style violation', $result['stderr']);
-	Assert::contains('// fixed', file_get_contents("$root/two.php"));
-	Assert::same('<?php echo 1;', file_get_contents("$root/excluded.php"));
+	Assert::contains("DressCode reformatted $root/two.php", $result['stderr']);
 });
 
-test('Claude Code single-file edit keeps its original shape', function () use ($root, $script) {
+
+test('the fix-php-style section of .nette-claude.json excludes nothing', function () use ($root, $script) {
+	file_put_contents("$root/.nette-claude.json", '{"fix-php-style":{"exclude":["excluded.php"]}}');
+	$result = runHookScript($script, ['tool_input' => ['file_path' => "$root/excluded.php"]]);
+	unlink("$root/.nette-claude.json");
+	Assert::same(0, $result['exitCode'], $result['stderr']);
+	Assert::contains('// rewritten', file_get_contents("$root/excluded.php"));
+});
+
+test('Claude Code single-file feedback keeps its original shape', function () use ($root, $script) {
 	$result = runHookScript($script, ['tool_input' => ['file_path' => "$root/one.php"]]);
 	Assert::same(0, $result['exitCode']);
 	Assert::same('', $result['stderr']);
-	Assert::same('', $result['stdout']);
+	Assert::same(['hookSpecificOutput' => [
+		'hookEventName' => 'PostToolUse',
+		'additionalContext' => "DressCode reformatted $root/one.php after your edit. Read it again before editing it further.",
+	]], json_decode($result['stdout'], true));
 });

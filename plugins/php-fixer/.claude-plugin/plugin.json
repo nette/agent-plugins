@@ -1,9 +1,9 @@
 {
 	"name": "php-fixer",
-	"version": "1.4.0",
-	"description": "Automatic PHP coding style fixer using nette/coding-standard",
+	"version": "2.0.0",
+	"description": "Automatic PHP coding style fixer using DressCode",
 	"author": {"name": "David Grudl"},
 	"repository": "https://github.com/nette/agent-plugins",
 	"license": "MIT",
-	"keywords": ["php", "coding-standards", "fixer"]
+	"keywords": ["php", "coding-standards", "fixer", "dresscode"]
 }

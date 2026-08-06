@@ -26,13 +26,13 @@ Each hook plugin must contain its own copy of `hook-input.php` and `hook-config.
 
 Verified on Windows with PHP 8.5.4, Codex CLI 0.156.1 and Claude Code 2.1.281:
 
-- Codex added the existing local `.claude-plugin` marketplace and installed all four plugins without `.codex-plugin` manifests, using an isolated `CODEX_HOME`.
+- Codex added the existing local `.claude-plugin` marketplace and installed all four plugins without `.codex-plugin` manifests, using an isolated `CODEX_HOME` under `tests/temp`.
 - Codex app-server `skills/list` loaded all 24 bundled skills without errors. `hooks/list` loaded all six command hooks without errors or warnings and expanded their plugin-root paths. Hooks were correctly marked as untrusted before review.
-- All six expanded commands returned by `hooks/list` were executed directly with a two-file patch payload. The PHP fixer reformatted both files with the globally installed ECS. This checks the installed scripts and command quoting, not the client's trust or model loop.
+- All six expanded commands returned by `hooks/list` were executed directly with a two-file patch payload. The PHP fixer returned rewrite notices for both files using the local test tool. This checks the installed scripts and command quoting, not the client's trust or model loop.
 - Claude Code `plugin validate` accepted the marketplace, all four plugins, and the changed skill directory.
 - The optional Python skill validator could not run because the local `python3` wrapper points to a missing `python` executable; client loading and Claude's skill validation were used instead.
 - PHP regression tests cover both input formats, multi-file patches, rename destinations, deletion, irrelevant extensions, paths with spaces, relative and absolute paths, duplicate paths, exclusions, PHP ini propagation, JSONC, and aggregated errors/rewrite notices.
-- The real `fix-php-style.php` is exercised with a stand-in for the global ECS installation (`COMPOSER_HOME`); the stand-in tests do not claim to validate the coding standard's rules.
+- The real `fix-php-style.php` is exercised with a local Composer-tool stand-in. Tests requiring an actual global DressCode installation skip when it is absent; the stand-in tests do not claim to validate DressCode's formatting rules.
 
 Run the regression suite:
 
@@ -51,7 +51,7 @@ codex plugin add nette-dev@nette
 codex plugin add php-fixer@nette
 ```
 
-Before an interactive editing check, review the installed hooks with `/hooks`. Try a patch changing two PHP files, including one syntax error, then a rename and a style-only change. Confirm the assistant receives every diagnostic.
+Before an interactive editing check, review the installed hooks with `/hooks`. Try a patch changing two PHP files, including one syntax error, then a rename and a style-only change. Confirm the assistant receives every diagnostic and re-reads files rewritten by the fixer.
 
 ## Bundled documentation
 
@@ -70,7 +70,7 @@ Verified on Windows with Claude Code 2.1.282 and Codex CLI 0.154.0:
 - Shell-based writes and arbitrary MCP edits do not match these hooks. Run project checks explicitly after those edits. Do not infer changed files by parsing arbitrary shell commands or lint unrelated pre-existing working-tree changes.
 - Codex requires trust of the current hook definitions; installation alone does not enable execution. Administrative settings may also disable hooks.
 - Older Codex releases, Linux/macOS client execution, and hosted environments were not verified here. Hosted installation alone does not provision PHP or project tools.
-- Hooks can run concurrently. Each hook must remain independent; the fixer still checks PHP syntax itself before running ECS.
+- Hooks can run concurrently. Each hook must remain independent; the fixer still checks PHP syntax itself before running DressCode.
 - `.nette-claude.json` remains the shared configuration filename for backward compatibility.
 - How far an interactive "allow for this session" answer reaches in Claude Code (the file, its directory, or the whole plugin) was not verified; the `Read(...)` rule above avoids depending on it. Codex's resolution of a skill's relative `../../docs/` link was checked by reading the file directly, not through an installed skill.
 
