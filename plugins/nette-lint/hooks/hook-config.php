@@ -38,36 +38,40 @@ function findUpwards(string $filePath, callable $check): ?string
 
 
 /**
- * Searches for .nette-claude.json upwards from the edited file and decides
- * whether the path is excluded from the given hook.
+ * Searches for .nette-claude.json upwards from the edited file (like .gitignore)
+ * and returns the given hook's section together with the config directory, as
+ * [section, configDir]. Returns [[], null] when there is no config for the hook.
  */
-function isExcluded(string $filePath, string $hookName): bool
+function hookConfig(string $filePath, string $hookName): array
 {
-	// 1) find the nearest .nette-claude.json towards the filesystem root
 	$dir = str_replace('\\', '/', dirname($filePath));
-	$configFile = null;
-	while (true) {
-		if (is_file($dir . '/.nette-claude.json')) {
-			$configFile = $dir . '/.nette-claude.json';
-			break;
-		}
+	while (!is_file($dir . '/.nette-claude.json')) {
 		$parent = dirname($dir);
 		if ($parent === $dir) {
-			return false;
+			return [[], null];
 		}
 		$dir = $parent;
 	}
 
-	// 2) load the patterns for the given hook (tolerate malformed config)
-	$config = json_decode((string) @file_get_contents($configFile), true);
+	// tolerate a malformed config
+	$config = json_decode((string) @file_get_contents($dir . '/.nette-claude.json'), true);
 	$section = is_array($config) ? ($config[$hookName] ?? null) : null;
-	$patterns = is_array($section) ? ($section['exclude'] ?? null) : null;
-	if (!is_array($patterns)) {
+	return [is_array($section) ? $section : [], $dir];
+}
+
+
+/**
+ * Decides whether the path is excluded from the given hook.
+ */
+function isExcluded(string $filePath, string $hookName): bool
+{
+	[$section, $base] = hookConfig($filePath, $hookName);
+	$patterns = $section['exclude'] ?? null;
+	if ($base === null || !is_array($patterns)) {
 		return false;
 	}
 
-	// 3) path relative to the config directory
-	$base = str_replace('\\', '/', dirname($configFile));
+	// path relative to the config directory
 	$path = str_replace('\\', '/', $filePath);
 	$rel = ltrim(substr($path, strlen($base)), '/');
 

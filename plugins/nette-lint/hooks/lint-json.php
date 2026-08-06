@@ -75,48 +75,19 @@ function isJsonc(string $filePath): bool
 		return true;
 	}
 
-	foreach (jsoncPatterns($filePath) as [$rel, $pattern]) {
-		if (matchesPattern($pattern, $rel)) {
+	[$section, $configDir] = hookConfig($filePath, 'lint-json');
+	$patterns = $section['jsonc'] ?? null;
+	if ($configDir === null || !is_array($patterns)) {
+		return false;
+	}
+
+	$rel = ltrim(substr($path, strlen($configDir)), '/');
+	foreach ($patterns as $pattern) {
+		if (is_string($pattern) && matchesPattern($pattern, $rel)) {
 			return true;
 		}
 	}
 	return false;
-}
-
-
-/**
- * Reads the "jsonc" glob list from the nearest .nette-claude.json (looked up
- * upwards like .gitignore) and returns [relativePath, pattern] pairs.
- */
-function jsoncPatterns(string $filePath): array
-{
-	$dir = str_replace('\\', '/', dirname($filePath));
-	while (true) {
-		if (is_file($dir . '/.nette-claude.json')) {
-			break;
-		}
-		$parent = dirname($dir);
-		if ($parent === $dir) {
-			return [];
-		}
-		$dir = $parent;
-	}
-
-	$config = json_decode((string) @file_get_contents($dir . '/.nette-claude.json'), true);
-	$section = is_array($config) ? ($config['lint-json'] ?? null) : null;
-	$patterns = is_array($section) ? ($section['jsonc'] ?? null) : null;
-	if (!is_array($patterns)) {
-		return [];
-	}
-
-	$rel = ltrim(substr(str_replace('\\', '/', $filePath), strlen($dir)), '/');
-	$out = [];
-	foreach ($patterns as $pattern) {
-		if (is_string($pattern)) {
-			$out[] = [$rel, $pattern];
-		}
-	}
-	return $out;
 }
 
 
