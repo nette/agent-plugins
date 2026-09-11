@@ -1,0 +1,30 @@
+{
+	"name": "nette-dev",
+	"version": "1.2.0",
+	"description": "Coding standards and conventions for Nette Framework contributors",
+	"author": {
+		"name": "David Grudl"
+	},
+	"keywords": [
+		"php",
+		"nette",
+		"coding-standards",
+		"phpdoc",
+		"contributor"
+	],
+	"skills": "./skills/",
+	"interface": {
+		"displayName": "Nette Contributor Tools",
+		"shortDescription": "Coding conventions for Nette contributors",
+		"developerName": "David Grudl",
+		"category": "Developer Tools",
+		"longDescription": "Coding standards and conventions for Nette Framework contributors",
+		"defaultPrompt": [
+			"Use $phpstan-analysis to investigate PHPStan errors in this project."
+		],
+		"capabilities": [
+			"Read",
+			"Write"
+		]
+	}
+}

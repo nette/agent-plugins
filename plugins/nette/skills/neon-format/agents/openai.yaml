@@ -1,0 +1,3 @@
+interface:
+  display_name: "NEON Format"
+  short_description: "Write and validate NEON configuration files"

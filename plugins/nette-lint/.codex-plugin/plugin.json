@@ -1,0 +1,30 @@
+{
+	"name": "nette-lint",
+	"version": "1.1.0",
+	"description": "Automatic validation of PHP, Latte, NEON and JavaScript/TypeScript files after each edit. These hooks target Claude Code Edit/Write events; Codex hook compatibility is not verified.",
+	"author": {
+		"name": "David Grudl"
+	},
+	"keywords": [
+		"php",
+		"nette",
+		"latte",
+		"neon",
+		"lint",
+		"validation"
+	],
+	"interface": {
+		"displayName": "Nette Lint",
+		"shortDescription": "File validation hooks for Claude Code",
+		"developerName": "David Grudl",
+		"category": "Developer Tools",
+		"longDescription": "Automatic validation of PHP, Latte, NEON and JavaScript/TypeScript files after each edit. These hooks target Claude Code Edit/Write events; Codex hook compatibility is not verified.",
+		"defaultPrompt": [
+			"Explain the bundled lint hooks and how to run equivalent project checks manually."
+		],
+		"capabilities": [
+			"Read",
+			"Write"
+		]
+	}
+}

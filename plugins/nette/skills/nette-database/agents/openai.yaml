@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette Database"
+  short_description: "Work with Nette Explorer, entities and queries"

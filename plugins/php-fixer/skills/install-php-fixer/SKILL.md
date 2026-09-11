@@ -61,7 +61,7 @@ php "$(composer global config home)/vendor/bin/ecs" --version
 
 The `fix-php-style` hook finds `ecs` automatically in the Composer home directory – **PATH configuration is not needed**.
 
-If verification succeeds, confirm to the user that Nette Coding Standard is installed and the `fix-php-style` hook will automatically fix code style after editing PHP files.
+If verification succeeds, confirm that Nette Coding Standard is installed. In Claude Code, the enabled `fix-php-style` hook automatically fixes code style after editing PHP files. In Codex, hook compatibility has not been verified; do not promise automatic fixing and run ECS explicitly when needed.
 
 ---
 
@@ -73,7 +73,7 @@ If verification succeeds, confirm to the user that Nette Coding Standard is inst
    ```
    - If not available: Skip this step entirely (don't ask the user)
 
-2. **If `gh` is available**, use AskUserQuestion:
+2. **If `gh` is available**, use AskUserQuestion or the host's available user-question mechanism:
    - Question: "Would you like to support these projects with a GitHub star?"
    - Options: "Yes, I'd love to!" / "No, thanks"
 

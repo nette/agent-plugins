@@ -1,0 +1,3 @@
+interface:
+  display_name: "PHP Documentation"
+  short_description: "Write concise phpDoc using Nette conventions"

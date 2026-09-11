@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette HTTP"
+  short_description: "Handle Nette requests, responses, sessions and cookies"

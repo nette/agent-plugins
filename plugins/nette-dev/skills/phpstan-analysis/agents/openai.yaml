@@ -1,0 +1,3 @@
+interface:
+  display_name: "PHPStan Analysis"
+  short_description: "Resolve PHPStan errors and maintain type tests"

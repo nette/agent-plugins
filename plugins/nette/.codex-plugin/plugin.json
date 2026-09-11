@@ -1,0 +1,35 @@
+{
+	"name": "nette",
+	"version": "1.2.0",
+	"description": "Conventions and best practices for Nette Framework, Latte templating engine, and NEON configuration format",
+	"author": {
+		"name": "David Grudl"
+	},
+	"keywords": [
+		"php",
+		"nette",
+		"latte",
+		"neon",
+		"framework",
+		"mvc",
+		"templates",
+		"forms",
+		"database",
+		"di"
+	],
+	"skills": "./skills/",
+	"interface": {
+		"displayName": "Nette Framework",
+		"shortDescription": "Nette, Latte and NEON development skills",
+		"developerName": "David Grudl",
+		"category": "Developer Tools",
+		"longDescription": "Conventions and best practices for Nette Framework, Latte templating engine, and NEON configuration format",
+		"defaultPrompt": [
+			"Use $nette-architecture to review my Nette application structure."
+		],
+		"capabilities": [
+			"Read",
+			"Write"
+		]
+	}
+}
