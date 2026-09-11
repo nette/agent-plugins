@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette Security"
+  short_description: "Implement Nette authentication and authorization"

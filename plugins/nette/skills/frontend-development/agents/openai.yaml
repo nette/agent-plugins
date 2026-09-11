@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette Frontend Development"
+  short_description: "Build Nette frontends with Vite, Naja and Tailwind"

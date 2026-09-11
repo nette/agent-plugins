@@ -1,0 +1,6 @@
+interface:
+  display_name: "Install PHP Fixer"
+  short_description: "Install the global Nette coding standard and ECS"
+
+policy:
+  allow_implicit_invocation: false

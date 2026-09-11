@@ -5,6 +5,10 @@ description: "CRITICAL: Read BEFORE writing or modifying any PHP file. A PostToo
 
 # PHP Auto-Fixer
 
+## Host compatibility
+
+The automatic behavior below assumes the Claude Code `Edit|Write` hook is active. In Codex, hook compatibility has not been verified: check whether the fixer actually ran, and run the project's coding-standard command explicitly when needed. Keep imports and their uses in the same edit in either host.
+
 A PostToolUse hook runs `ecs fix` on every PHP file after each Edit or Write operation. The file is automatically reformatted and cleaned up - no manual formatting needed.
 
 ## Editing Order for `use` Statements
@@ -86,4 +90,4 @@ Patterns are gitignore-like, relative to the config file: a pattern without a sl
 
 ## Installation
 
-If the fixer is not installed, run `/php-fixer:install-php-fixer`.
+If the fixer is not installed, run `/php-fixer:install-php-fixer` in Claude Code or invoke `$install-php-fixer` in Codex.

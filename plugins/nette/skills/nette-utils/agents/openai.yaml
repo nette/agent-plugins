@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette Utils"
+  short_description: "Use Nette utilities for strings, files and collections"

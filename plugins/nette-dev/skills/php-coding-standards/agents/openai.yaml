@@ -1,0 +1,3 @@
+interface:
+  display_name: "PHP Coding Standards"
+  short_description: "Apply Nette PHP formatting and naming conventions"

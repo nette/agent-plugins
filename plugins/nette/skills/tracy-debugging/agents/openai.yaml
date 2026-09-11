@@ -1,0 +1,3 @@
+interface:
+  display_name: "Tracy Debugging"
+  short_description: "Debug PHP errors with Tracy BlueScreen and Tracy Bar"

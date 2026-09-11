@@ -1,0 +1,28 @@
+{
+	"name": "php-fixer",
+	"version": "1.1.0",
+	"description": "Nette coding standard installation and PHP fixer guidance. Automatic fixing hooks target Claude Code; Codex hook compatibility is not verified.",
+	"author": {
+		"name": "David Grudl"
+	},
+	"keywords": [
+		"php",
+		"coding-standards",
+		"fixer"
+	],
+	"skills": "./skills/",
+	"interface": {
+		"displayName": "PHP Fixer",
+		"shortDescription": "Nette coding standard setup and fixer guidance",
+		"developerName": "David Grudl",
+		"category": "Developer Tools",
+		"longDescription": "Nette coding standard installation and PHP fixer guidance. Automatic fixing hooks target Claude Code; Codex hook compatibility is not verified.",
+		"defaultPrompt": [
+			"Use $install-php-fixer to set up the Nette coding standard."
+		],
+		"capabilities": [
+			"Read",
+			"Write"
+		]
+	}
+}

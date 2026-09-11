@@ -1,0 +1,3 @@
+interface:
+  display_name: "Latte Templates"
+  short_description: "Create Latte templates, layouts and snippets"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette Schema"
+  short_description: "Validate and normalize data with Nette Schema"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "PHP Auto-Fixer"
+  short_description: "Keep PHP imports safe during automatic style fixing"

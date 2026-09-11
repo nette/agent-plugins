@@ -1,10 +1,14 @@
-# Nette Plugins for Claude Code
+# Nette Plugins for Claude Code and Codex
 
 Plugins for [Claude Code](https://claude.com/product/claude-code) – the AI-powered coding assistant by Anthropic. These plugins give Claude deep knowledge of the Nette Framework ecosystem, including best practices, coding conventions, and automatic file validation.
+
+The same skills are also available in OpenAI Codex, with dedicated plugin manifests and skill UI metadata. Automatic validation and fixing hooks currently target Claude Code; their compatibility with Codex has not been verified.
 
 <img width="1536" height="601" alt="image" src="https://github.com/user-attachments/assets/8b9443b6-9f37-418d-9212-3f4fd4356961" />
 
 ## Installation
+
+### Claude Code
 
 First, add the Nette marketplace to Claude Code (and enable auto-update):
 
@@ -36,6 +40,35 @@ For automatic PHP code style fixing:
 /plugin install php-fixer@nette
 /install-php-fixer
 ```
+
+### Codex
+
+From a local checkout of this repository, register the marketplace:
+
+```bash
+codex plugin marketplace add /absolute/path/to/claude-code
+```
+
+The marketplace name comes from the catalog's `name` field and is `nette`, regardless of the checkout directory or Git branch. To list and install plugins from the CLI:
+
+```bash
+codex plugin list --marketplace nette --available --json
+codex plugin add nette@nette --json
+```
+
+Use `codex plugin marketplace list --json` to check registered marketplace names. Filtering by an unregistered name returns an empty plugin list.
+
+Open the plugin directory in the Codex app, select the `nette` marketplace, and install `nette` for application development or `nette-dev` for framework contributions. Start a new conversation after installation.
+
+Codex can reuse the existing `.claude-plugin/marketplace.json`; no second catalog is needed. Each plugin has a `.codex-plugin/plugin.json` manifest, and each skill has `agents/openai.yaml` with its display name and short description. Both assistants share the original `SKILL.md` files and references.
+
+For example, ask Codex to use `$nette-forms` to build a form or `$phpstan-analysis` to investigate a PHPStan error. The `php-fixer` plugin also provides `$install-php-fixer`, which remains explicitly invoked only.
+
+The install skill preserves Claude Code's `disable-model-invocation: true` and declares Codex's `policy.allow_implicit_invocation: false` in `agents/openai.yaml`. The bundled Codex plugin validator rejects the former flag, so `php-fixer` still requires an installation check in the target Codex client. The `nette`, `nette-dev`, and `nette-lint` manifests pass that validator.
+
+The `nette-lint` plugin contains only hooks, with no skills. Its hooks and the automatic fixer use Claude Code's `Edit|Write` events and input format. Installing metadata does not adapt those events to Codex tools; do not assume validation or formatting runs automatically in Codex. Run the relevant project tools explicitly when needed.
+
+See the [OpenAI plugin documentation](https://developers.openai.com/plugins/build/plugins) for supported clients, marketplace setup, and hook requirements.
 
 ## Plugins
 

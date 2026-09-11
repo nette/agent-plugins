@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nette Commit Messages"
+  short_description: "Write commits using Nette repository conventions"
