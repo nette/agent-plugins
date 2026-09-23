@@ -28,7 +28,7 @@ Duplicated across plugins:
 Enable plugins in development:
 ```bash
 # In a project directory, add this repo as a local plugin source
-claude code --plugin /path-to/claude-code/plugins/nette
+claude code --plugin /path-to/agent-plugins/plugins/nette
 ```
 
 ## Hook Scripts
@@ -71,6 +71,6 @@ Detailed reference documentation goes into the `references/` subdirectory within
 Plugins are published via the marketplace configuration in `.claude-plugin/marketplace.json`. Users install with:
 
 ```
-/plugin marketplace add nette/claude-code
+/plugin marketplace add nette/agent-plugins
 /plugin install nette@nette
 ```

@@ -9,7 +9,7 @@ Plugins for [Claude Code](https://claude.com/product/claude-code) – the AI-pow
 First, add the Nette marketplace to Claude Code (and enable auto-update):
 
 ```
-/plugin marketplace add nette/claude-code
+/plugin marketplace add nette/agent-plugins
 ```
 
 Then install the plugin:

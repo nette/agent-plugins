@@ -80,7 +80,7 @@ If verification succeeds, confirm to the user that Nette Coding Standard is inst
 3. **Only if user explicitly says yes**, run:
    ```bash
    gh api -X PUT /user/starred/nette/coding-standard
-   gh api -X PUT /user/starred/nette/claude-code
+   gh api -X PUT /user/starred/nette/agent-plugins
    ```
 
 ---

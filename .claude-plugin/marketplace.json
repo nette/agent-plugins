@@ -10,25 +10,25 @@
 			"name": "nette",
 			"source": "./plugins/nette",
 			"category": "development",
-			"homepage": "https://ai.nette.org/en/claude-code"
+			"homepage": "https://ai.nette.org/en/agent-plugins"
 		},
 		{
 			"name": "nette-lint",
 			"source": "./plugins/nette-lint",
 			"category": "development",
-			"homepage": "https://ai.nette.org/en/claude-code"
+			"homepage": "https://ai.nette.org/en/agent-plugins"
 		},
 		{
 			"name": "nette-dev",
 			"source": "./plugins/nette-dev",
 			"category": "development",
-			"homepage": "https://ai.nette.org/en/claude-code"
+			"homepage": "https://ai.nette.org/en/agent-plugins"
 		},
 		{
 			"name": "php-fixer",
 			"source": "./plugins/php-fixer",
 			"category": "development",
-			"homepage": "https://ai.nette.org/en/claude-code"
+			"homepage": "https://ai.nette.org/en/agent-plugins"
 		}
 	]
 }

@@ -1,5 +1,5 @@
 {
-	"name": "nette/claude-code",
+	"name": "nette/agent-plugins",
 	"description": "Claude Code plugins for Nette Framework",
 	"require-dev": {
 		"nette/tester": "^2.5"
