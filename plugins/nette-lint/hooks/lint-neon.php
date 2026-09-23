@@ -4,8 +4,8 @@
  * PostToolUse hook: Validate NEON files after editing
  */
 
-$input = json_decode(file_get_contents('php://stdin'));
-$filePath = $input->tool_input->file_path ?? '';
+require __DIR__ . '/hook-input.php';
+$filePath = readHookFile(__FILE__, ['neon']);
 
 // Skip if not a NEON file
 if (pathinfo($filePath, PATHINFO_EXTENSION) !== 'neon' || !file_exists($filePath)) {

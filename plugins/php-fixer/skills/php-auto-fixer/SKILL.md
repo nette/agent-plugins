@@ -1,11 +1,11 @@
 ---
 name: php-auto-fixer
-description: "CRITICAL: Read BEFORE writing or modifying any PHP file. A PostToolUse hook automatically runs nette/coding-standard (ECS) on every PHP file after each Edit or Write. The fixer removes unused `use` statements - so never add `use` statements in a separate edit before the code that references them. Always include `use` imports in the same edit as the referencing code, or add the code first then `use` statements. This skill should be used whenever creating new PHP files, editing existing PHP code, adding methods, refactoring, or fixing bugs in PHP - even for small one-line changes."
+description: "CRITICAL: Read BEFORE writing or modifying any PHP file. A PostToolUse hook automatically runs nette/coding-standard (ECS) on PHP files after Claude Code Edit/Write or Codex apply_patch (when hooks are enabled and trusted). The fixer removes unused `use` statements - so never add `use` statements in a separate edit before the code that references them. Always include `use` imports in the same edit as the referencing code, or add the code first then `use` statements. This skill should be used whenever creating new PHP files, editing existing PHP code, adding methods, refactoring, or fixing bugs in PHP - even for small one-line changes."
 ---
 
 # PHP Auto-Fixer
 
-A PostToolUse hook runs `ecs fix` on every PHP file after each Edit or Write operation. The file is automatically reformatted and cleaned up - no manual formatting needed.
+A PostToolUse hook runs `ecs fix` after Claude Code `Edit`/`Write` or Codex `apply_patch` operations. A patch may edit multiple PHP files; the hook processes each one. In Codex, hooks must first be reviewed and trusted via `/hooks`. Edits made through shell commands are not covered, so run the project's fixer explicitly after those edits.
 
 ## Editing Order for `use` Statements
 
@@ -55,7 +55,7 @@ When adding code that references several new classes, include all their `use` st
 - Fixes indentation, spacing, and line breaks
 - Enforces PSR-12 with Nette modifications (e.g., no space before parentheses in arrow functions)
 
-Do not manually fix formatting - the fixer handles it automatically after every edit.
+When the hook is active, let the fixer handle formatting. If the hook is unavailable or the edit was made through the shell, run the project's fixer explicitly.
 
 ## What Not to Do
 
@@ -72,7 +72,7 @@ The hook exits with an error when ECS cannot auto-fix all issues. Common causes:
 
 ## Excluding Paths
 
-To stop the fixer from touching certain paths (e.g. `fixtures` folders), add a `.nette-claude.json` file to the project root. It is shared by all Nette Claude Code hooks; each top-level key is a hook name:
+To stop the fixer from touching certain paths (e.g. `fixtures` folders), add a `.nette-claude.json` file to the project root. It is shared by all Nette hooks in both Claude Code and Codex; each top-level key is a hook name:
 
 ```json
 {
@@ -86,4 +86,4 @@ Patterns are gitignore-like, relative to the config file: a pattern without a sl
 
 ## Installation
 
-If the fixer is not installed, run `/php-fixer:install-php-fixer`.
+If the fixer is not installed, use the `install-php-fixer` skill explicitly (`/php-fixer:install-php-fixer` in Claude Code, or select the skill in Codex).

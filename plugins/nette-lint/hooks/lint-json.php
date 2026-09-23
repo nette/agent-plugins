@@ -23,8 +23,8 @@ require __DIR__ . '/jsonlint/Undefined.php';
 require __DIR__ . '/jsonlint/Lexer.php';
 require __DIR__ . '/jsonlint/JsonParser.php';
 
-$input = json_decode(file_get_contents('php://stdin'));
-$filePath = $input->tool_input->file_path ?? '';
+require __DIR__ . '/hook-input.php';
+$filePath = readHookFile(__FILE__, ['json', 'jsonc']);
 
 // Skip if not a JSON/JSONC file
 if (!in_array(pathinfo($filePath, PATHINFO_EXTENSION), ['json', 'jsonc'], true) || !file_exists($filePath)) {

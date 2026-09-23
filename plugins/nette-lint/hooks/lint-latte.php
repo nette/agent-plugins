@@ -5,8 +5,8 @@
  * Only runs if project has custom latte-lint script (searched upwards from the edited file)
  */
 
-$input = json_decode(file_get_contents('php://stdin'));
-$filePath = $input->tool_input->file_path ?? '';
+require __DIR__ . '/hook-input.php';
+$filePath = readHookFile(__FILE__, ['latte']);
 
 // Skip if not a Latte file
 if (pathinfo($filePath, PATHINFO_EXTENSION) !== 'latte' || !file_exists($filePath)) {

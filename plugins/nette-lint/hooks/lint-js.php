@@ -5,8 +5,8 @@
  * Only runs if project has ESLint configured (config searched upwards from the edited file)
  */
 
-$input = json_decode(file_get_contents('php://stdin'));
-$filePath = $input->tool_input->file_path ?? '';
+require __DIR__ . '/hook-input.php';
+$filePath = readHookFile(__FILE__, ['js', 'ts', 'mjs', 'mts']);
 
 // Skip if not a JS/TS file
 if (!preg_match('~\.(js|ts|mjs|mts)$~', $filePath) || !file_exists($filePath)) {

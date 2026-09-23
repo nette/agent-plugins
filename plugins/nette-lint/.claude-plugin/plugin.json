@@ -1,7 +1,7 @@
 {
 	"name": "nette-lint",
 	"version": "1.1.0",
-	"description": "Automatic validation of PHP, Latte, NEON and JavaScript/TypeScript files after each edit",
+	"description": "Automatic validation of PHP, Latte, NEON, JSON and JavaScript/TypeScript files after edits in Claude Code and Codex",
 	"author": {"name": "David Grudl"},
 	"keywords": ["php", "nette", "latte", "neon", "lint", "validation"]
 }

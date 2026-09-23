@@ -6,10 +6,10 @@ Tester\Environment::setup();
 Tester\Environment::setupFunctions();
 
 
-function runHookScript(string $scriptPath, array $input): array
+function runHookScript(string $scriptPath, array $input, array $phpOptions = []): array
 {
 	$process = proc_open(
-		'php ' . escapeshellarg($scriptPath),
+		[PHP_BINARY, ...$phpOptions, $scriptPath],
 		[
 			0 => ['pipe', 'r'], // stdin
 			1 => ['pipe', 'w'], // stdout

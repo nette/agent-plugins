@@ -7,7 +7,9 @@ disable-model-invocation: true
 
 # Install Nette Coding Standard
 
-Install the `nette/coding-standard` package globally to enable automatic PHP code style checking and fixing.
+Install the `nette/coding-standard` package globally for automatic PHP code style checking and fixing after supported edits.
+
+Use this skill only when explicitly requested. Run commands with the client's available shell tool and ask questions through its available question tool or chat. In Codex, the plugin's hooks must also be reviewed and trusted via `/hooks` before automatic fixing runs. Hooks cover Claude Code `Edit`/`Write` and Codex `apply_patch`, not edits made through shell commands.
 
 ---
 
@@ -27,7 +29,7 @@ Install the `nette/coding-standard` package globally to enable automatic PHP cod
 
 3. **Detect existing installation**
    ```bash
-   composer global show nette/coding-standard 2>/dev/null
+   composer global show nette/coding-standard
    ```
    - If already installed: Inform user and ask if they want to update (same install command updates to latest).
 
@@ -52,11 +54,14 @@ Install the `nette/coding-standard` package globally to enable automatic PHP cod
 Run `ecs` from the Composer global bin directory to verify it works:
 
 ```bash
-# Unix
-$(composer global config home)/vendor/bin/ecs --version
-
-# Windows
+# Bash
 php "$(composer global config home)/vendor/bin/ecs" --version
+```
+
+```powershell
+# PowerShell
+$composerDir = composer global config home
+php "$composerDir/vendor/bin/ecs" --version
 ```
 
 The `fix-php-style` hook finds `ecs` automatically in the Composer home directory – **PATH configuration is not needed**.
@@ -73,7 +78,7 @@ If verification succeeds, confirm to the user that Nette Coding Standard is inst
    ```
    - If not available: Skip this step entirely (don't ask the user)
 
-2. **If `gh` is available**, use AskUserQuestion:
+2. **If `gh` is available**, ask the user:
    - Question: "Would you like to support these projects with a GitHub star?"
    - Options: "Yes, I'd love to!" / "No, thanks"
 

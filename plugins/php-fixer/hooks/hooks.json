@@ -7,7 +7,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "php ${CLAUDE_PLUGIN_ROOT}/hooks/fix-php-style.php"
+						"command": "php \"${CLAUDE_PLUGIN_ROOT}/hooks/fix-php-style.php\""
 					}
 				]
 			}

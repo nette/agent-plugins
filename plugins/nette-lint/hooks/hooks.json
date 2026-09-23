@@ -7,23 +7,23 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "php ${CLAUDE_PLUGIN_ROOT}/hooks/lint-php.php"
+						"command": "php \"${CLAUDE_PLUGIN_ROOT}/hooks/lint-php.php\""
 					},
 					{
 						"type": "command",
-						"command": "php ${CLAUDE_PLUGIN_ROOT}/hooks/lint-latte.php"
+						"command": "php \"${CLAUDE_PLUGIN_ROOT}/hooks/lint-latte.php\""
 					},
 					{
 						"type": "command",
-						"command": "php ${CLAUDE_PLUGIN_ROOT}/hooks/lint-neon.php"
+						"command": "php \"${CLAUDE_PLUGIN_ROOT}/hooks/lint-neon.php\""
 					},
 					{
 						"type": "command",
-						"command": "php ${CLAUDE_PLUGIN_ROOT}/hooks/lint-json.php"
+						"command": "php \"${CLAUDE_PLUGIN_ROOT}/hooks/lint-json.php\""
 					},
 					{
 						"type": "command",
-						"command": "php ${CLAUDE_PLUGIN_ROOT}/hooks/lint-js.php"
+						"command": "php \"${CLAUDE_PLUGIN_ROOT}/hooks/lint-js.php\""
 					}
 				]
 			}

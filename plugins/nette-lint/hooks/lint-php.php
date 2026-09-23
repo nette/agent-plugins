@@ -4,8 +4,8 @@
  * PostToolUse hook: Validate PHP syntax after editing
  */
 
-$input = json_decode(file_get_contents('php://stdin'));
-$filePath = $input->tool_input->file_path ?? '';
+require __DIR__ . '/hook-input.php';
+$filePath = readHookFile(__FILE__, ['php', 'phpt']);
 
 // Skip if not a PHP file
 if (!in_array(pathinfo($filePath, PATHINFO_EXTENSION), ['php', 'phpt'], true) || !file_exists($filePath)) {

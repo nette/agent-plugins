@@ -1,7 +1,7 @@
 {
 	"$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
 	"name": "nette",
-	"description": "Official Claude Code plugins for Nette Framework ecosystem - conventions, best practices, and development tools for PHP developers",
+	"description": "Official Claude Code and Codex plugins for Nette Framework ecosystem - conventions, best practices, and development tools for PHP developers",
 	"owner": {
 		"name": "Nette Foundation"
 	},
