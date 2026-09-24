@@ -3,5 +3,7 @@
 	"version": "1.3.0",
 	"description": "Automatic validation of PHP, Latte, NEON, JSON and JavaScript/TypeScript files after edits in Claude Code and Codex",
 	"author": {"name": "David Grudl"},
+	"repository": "https://github.com/nette/agent-plugins",
+	"license": "MIT",
 	"keywords": ["php", "nette", "latte", "neon", "lint", "validation"]
 }

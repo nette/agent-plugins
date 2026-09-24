@@ -165,3 +165,11 @@ Skills are automatically activated based on conversation context. For example:
 - Ask about "form validation" → activates `nette-forms`
 - Ask about "Latte templates" → activates `latte-templates`
 - Etc..
+
+## Privacy
+
+The plugins collect no data. They run locally and have no servers, telemetry or analytics. See the [privacy policy](https://ai.nette.org/en/privacy-policy).
+
+## License
+
+MIT, see [license.md](license.md).

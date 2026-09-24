@@ -3,6 +3,8 @@
 	"version": "1.2.0",
 	"description": "Coding standards and conventions for Nette Framework contributors",
 	"author": {"name": "David Grudl"},
+	"repository": "https://github.com/nette/agent-plugins",
+	"license": "MIT",
 	"keywords": ["php", "nette", "coding-standards", "phpdoc", "contributor"],
 	"skills": "./skills/"
 }

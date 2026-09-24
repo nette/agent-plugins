@@ -3,6 +3,8 @@
 	"version": "1.2.0",
 	"description": "Conventions and best practices for Nette Framework, Latte templating engine, and NEON configuration format",
 	"author": {"name": "David Grudl"},
+	"repository": "https://github.com/nette/agent-plugins",
+	"license": "MIT",
 	"keywords": ["php", "nette", "latte", "neon", "framework", "mvc", "templates", "forms", "database", "di"],
 	"skills": "./skills/"
 }
