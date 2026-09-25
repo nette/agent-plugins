@@ -5,8 +5,6 @@ description: Provides frontend development guidelines for Nette. Use when workin
 
 ## Frontend Development
 
-Frontend built with modern tooling and seamlessly integrated with Nette backend through Nette Assets.
-
 See [the Nette Assets reference](references/assets.md) for asset management.
 See [the Vite integration guide](references/vite.md) for build configuration.
 
@@ -31,45 +29,12 @@ See [the Vite integration guide](references/vite.md) for build configuration.
 - Use single quotes for strings unless containing apostrophes (CSS, SCSS, JavaScript)
 
 
-### Entry Point Decision Matrix
-
-**Use separate entry points when:**
-- Different user contexts with distinct dependencies (frontend vs admin)
-- Bundle size optimization is critical
-
-**Example strategy:**
-```javascript
-// assets/front.js - Public website (custom design)
-import './css/front.scss';
-import './js/components/product-gallery.js';
-
-// assets/admin.js - Administration (Bootstrap-based)
-import 'bootstrap/dist/css/bootstrap.css';
-import './css/admin.scss';
-```
-
-### Organization Patterns
-
-**File-per-component approach:**
-```
-assets/js/
-├── components/
-│   ├── product-form.js     ← Reusable form component
-│   ├── image-gallery.js    ← Product image viewer
-├── pages/
-│   ├── blog.css            ← Page-specific enhancements
-│   └── checkout.css        ← Multi-step checkout flow
-└── utils/
-    ├── ajax.js            ← AJAX utilities
-    └── validation.js      ← Form validation helpers
-```
-
 ### Nette Assets Integration Patterns
 
 **Basic asset loading**
 ```latte
 {* Loads complete bundle with all dependencies *}
-{asset 'front.js'}
+{asset 'app.js'}
 ```
 
 **Configuration**
@@ -100,7 +65,7 @@ window.appConfig = {
 	csrfToken: {$csrfToken}
 };
 </script>
-{asset 'front.js'}
+{asset 'app.js'}
 ```
 
 Latte automatically applies context-sensitive escaping – values inside `<script>` are JSON-encoded, so strings get quoted and `null` stays `null`.
@@ -232,7 +197,7 @@ When using Tailwind CSS, configure it to scan Latte templates for class names:
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Assets](https://doc.nette.org/en/assets) – Nette Assets documentation
 - [Naja](https://naja.js.org/) – AJAX library for Nette

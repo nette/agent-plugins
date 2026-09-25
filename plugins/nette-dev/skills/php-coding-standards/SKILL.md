@@ -68,19 +68,9 @@ public function example(
 
 ### Global Functions and Constants
 - Write global functions/constants without leading backslash: `count($arr)` not `\count($arr)`
-- For compiler-optimizable functions, add `use function` at the file beginning:
-  ```php
-  use Nette;
-  use function count, is_array, is_scalar, sprintf;
-  ```
-- Occasionally import constants that may help the compiler:
-  ```php
-  use const PHP_OS_FAMILY;
-  ```
 
 ### Code Style Preferences
 - Uses DOM API with HTML5 parser Lexbor for HTML processing
-- Use try/catch for external operations (file I/O, network, database)
 - Prefer modern PHP syntax and concise expressions:
   - Example: `if (is_array($response['data'] ?? null))` instead of `if (isset($response['data']) && is_array($response['data']))`
 - Use named arguments for boolean parameters whose meaning isn't obvious from context (e.g., `is_a($obj, $class, allow_string: true)`), but not when the method name makes it clear (e.g., `setReadonly(true)`)

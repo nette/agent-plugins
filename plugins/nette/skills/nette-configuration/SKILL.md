@@ -54,7 +54,7 @@ services:
 	- App\Model\PohodaImporter(pohoda: @pohoda)
 ```
 
-When manually specifying parameters, use **named parameters** if not the first parameter:
+When manually specifying arguments, pass them **by name**; only a single argument that is the constructor's first may stay positional. Positional arguments break when the constructor signature changes:
 
 ```neon
 services:
@@ -280,21 +280,20 @@ security:
 		username: password
 ```
 
-### Anti-Patterns to Avoid
+### What Needs Registering
 
-**Don't name services unnecessarily** – named services create coupling; when you rename the class, you must also update every `@name` reference. Only name when you need `@serviceName` references.
+Only classes that need injection or are injected elsewhere. Presenters are registered automatically (Nette scans them by `IPresenter`); component factory interfaces are **not**: list them in `services:`, or let a `search:` section find them (it picks up interfaces with a single `create()` or `get()` method).
 
-**Don't register every class** – only register classes that need injection or are injected elsewhere. Presenters are registered automatically (Nette scans them by `IPresenter`); components and their factory interfaces are **not** and must be registered explicitly.
+### Secrets
 
-**Don't hardcode secrets** – use parameters and load them from environment-specific config files (env.local.neon) that are gitignored.
+Credentials do not belong in committed config files, but where they live is the project's decision. Follow the convention the project already has; when it has none, offer the user the options instead of picking one:
 
-**Don't use positional parameters** – use named parameters when mixing with autowiring. Positional arguments break when the constructor signature changes.
-
-**Don't bypass autowiring without reason** – Nette DI handles dependencies automatically. Manual wiring is only needed for ambiguous types (multiple implementations of the same interface).
+- a gitignored NEON file holding them as parameters (`secrets.neon`, or one file per environment such as `env.local.neon`), included from `common.neon` and referenced as `%dbPassword%`
+- environment variables, exposed in `Bootstrap` by `$this->configurator->addDynamicParameters(['env' => getenv()])` and referenced as `%env.DB_PASSWORD%`; as dynamic parameters they are read at runtime, not frozen into the compiled container
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [DI Services](https://doc.nette.org/en/dependency-injection/services) – service registration and autowiring
 - [DI Configuration](https://doc.nette.org/en/dependency-injection/configuration) – config file format

@@ -209,7 +209,7 @@ protected function createComponentLikeControl(): Multiplier
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Components](https://doc.nette.org/en/application/components) – factories, signals, persistent parameters
 - [AJAX & Snippets](https://doc.nette.org/en/application/ajax) – redrawing, payload, snippet areas

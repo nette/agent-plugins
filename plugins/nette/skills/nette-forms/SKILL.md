@@ -65,7 +65,7 @@ class ProductPresenter extends BasePresenter
 		private ProductFacade $facade,
 	) {}
 
-	public function actionEdit(int $id = null): void
+	public function actionEdit(?int $id = null): void
 	{
 		if ($id) {
 			$product = $this->facade->getProduct($id);
@@ -232,6 +232,8 @@ $form->addPassword('password2')
 	->addRule($form::Equal, 'Passwords must match', $form['password']);
 ```
 
+Mark every required field with `setRequired()`. Rules added by `addRule()` run only when the control is filled, so an empty field passes them all and its empty value reaches `onSuccess`.
+
 See [the complete validation reference](references/validation.md) for all rules and conditions.
 
 ### Conditional Validation
@@ -315,26 +317,19 @@ private function productFormSucceeded(Form $form, \stdClass $data): void
 {
 	try {
 		$this->facade->save($data);
-		$this->redirect('default');
 	} catch (DuplicateEntryException) {
 		$form['email']->addError('Email already exists.');
-	} catch (\Exception $e) {
-		$form->addError('An error occurred.');
+		return;
 	}
+	$this->redirect('default');
 }
 ```
 
-### Anti-Patterns to Avoid
-
-- **Don't put business logic in form handlers** – use services/facades. Form handlers should only coordinate (call service, flash message, redirect), not implement business rules.
-- **Don't create forms in action methods** – use `createComponent*` factory. Nette lazy-creates components, so the form only builds when actually needed.
-- **Don't set defaults in templates** – use `$form->setDefaults()` in `action*` method. Template manipulation of form state breaks separation of concerns.
-- **Don't skip setRequired()** – always mark required fields explicitly. Without it, empty strings pass validation silently and cause bugs downstream.
-- **Don't validate twice** – form validation handles both client and server side automatically. Manual checking in the handler duplicates work.
+`redirect()` works by throwing `AbortException` (a `\LogicException`), so keep it outside the `try`: a catch-all `\Exception` there would swallow the redirect.
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Forms](https://doc.nette.org/en/forms) – complete forms guide
 - [Controls](https://doc.nette.org/en/forms/controls) – all form controls

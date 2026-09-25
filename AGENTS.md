@@ -78,6 +78,8 @@ Detailed reference documentation goes into the `references/` subdirectory within
 
 Keep skill bodies portable between clients. Preserve manual-only installation using Claude Code's `disable-model-invocation` and Codex's `agents/openai.yaml` policy. Do not assume a particular shell syntax or client-specific tool name in shared instructions.
 
+Where projects legitimately differ (where secrets live, how the app is deployed), a skill does not prescribe one way: it tells the model to follow the project's existing convention and, when there is none, to offer the user the options. Nette's own conventions (directory structure, database schema, the frontend stack) remain prescriptive.
+
 ## Publishing
 
 Both clients use the marketplace configuration in `.claude-plugin/marketplace.json`. Claude Code users install with:

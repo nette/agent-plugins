@@ -144,8 +144,6 @@ public function getProductsInCategory(int $categoryId): Selection
 }
 ```
 
-**Benefits:** Reusable base queries, clear evolution of filtering logic, easy testing. Full IDE support, type safety, clear contracts.
-
 ### Relationship Navigation
 
 **Use colon notation for efficient joins:**
@@ -241,10 +239,6 @@ Nested `transaction()` calls are counted, and only the outermost one actually co
 
 **Don't create separate Repository classes** – in Nette, services combine data access with business logic. A separate repository layer adds indirection without benefit because Nette Database Explorer already provides a clean query API. The service IS the repository.
 
-**Don't use Selection API for complex queries** – raw SQL is cleaner for analytics, reporting, and recursive queries. Selection API excels at CRUD and simple filtering; forcing complex JOINs through it creates hard-to-read code.
-
-**Don't fetch more data than needed** – use appropriate fetching methods (`fetchPairs` for dropdowns, `count('*')` for pagination) and SELECT only required columns for large datasets.
-
 ### Error Handling
 
 **Transform database errors to business exceptions:**
@@ -316,7 +310,7 @@ services:
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [SQL way](https://doc.nette.org/en/database/sql-way) – SQL queries and Connection API
 - [Database Explorer](https://doc.nette.org/en/database/explorer) – Selection/ActiveRow API

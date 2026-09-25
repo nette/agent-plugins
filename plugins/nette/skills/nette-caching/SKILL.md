@@ -109,7 +109,7 @@ concurrent requests for a cold key block until the first has generated it. Swapp
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Caching](https://doc.nette.org/en/caching) – dependencies, journal, storages, `{cache}`
 - [Caching Upgrading](https://doc.nette.org/en/caching/upgrading) – renamed constants and interfaces

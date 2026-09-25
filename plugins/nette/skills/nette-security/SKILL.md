@@ -171,7 +171,7 @@ public function getGuestIdentity(): ?IIdentity { return new SimpleIdentity('gues
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Authentication](https://doc.nette.org/en/security/authentication) – login, identity, storage, IdentityHandler
 - [Authorization](https://doc.nette.org/en/security/authorization) – roles, resources, Permission ACL

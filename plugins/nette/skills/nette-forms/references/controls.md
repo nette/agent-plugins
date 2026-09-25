@@ -91,7 +91,7 @@ $form->addDateTime('event_start', 'Event Start:');
 
 ## Selection Controls
 
-### addSelect(string $name, $label = null, array $items = null): SelectBox
+### addSelect(string $name, $label = null, ?array $items = null, ?int $size = null): SelectBox
 
 Dropdown select.
 
@@ -120,7 +120,7 @@ $form->addSelect('category', 'Category:', [
 ]);
 ```
 
-### addMultiSelect(string $name, $label = null, array $items = null): MultiSelectBox
+### addMultiSelect(string $name, $label = null, ?array $items = null, ?int $size = null): MultiSelectBox
 
 Multiple selection (Ctrl+click).
 
@@ -130,7 +130,7 @@ $form->addMultiSelect('tags', 'Tags:', $tagOptions)
 	->addRule($form::MaxLength, 'Maximum %d tags', 5);
 ```
 
-### addRadioList(string $name, $label = null, array $items = null): RadioList
+### addRadioList(string $name, $label = null, ?array $items = null): RadioList
 
 Radio button group.
 
@@ -143,7 +143,7 @@ $form->addRadioList('gender', 'Gender:', [
 	->setRequired();
 ```
 
-### addCheckboxList(string $name, $label = null, array $items = null): CheckboxList
+### addCheckboxList(string $name, $label = null, ?array $items = null): CheckboxList
 
 Multiple checkboxes.
 
@@ -267,7 +267,7 @@ $form->addButton('preview', 'Preview')
 	->setHtmlAttribute('data-action', 'preview');
 ```
 
-### addImageButton(string $name, string $src = null, string $alt = null): ImageButton
+### addImageButton(string $name, ?string $src = null, ?string $alt = null): ImageButton
 
 Image submit button.
 

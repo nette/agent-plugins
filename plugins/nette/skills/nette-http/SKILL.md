@@ -173,7 +173,7 @@ When generating links or asset paths by hand, prefix with `getBasePath()` – a 
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [HTTP Request](https://doc.nette.org/en/http/request) – Request, RequestFactory, isFrom, uploads, FileUpload
 - [HTTP Response](https://doc.nette.org/en/http/response) – Response, headers, cookies

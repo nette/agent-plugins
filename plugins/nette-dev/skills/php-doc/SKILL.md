@@ -22,7 +22,6 @@ Write documentation when:
 
 ### Writing Style
 - Always American English (color, not colour; behavior, not behaviour)
-- Be concise and direct - avoid unnecessary words
 - Start method descriptions with 3rd person singular present tense verb: Returns, Formats, Checks, Creates, Converts, Sets
 - Skip phrases like "Class that...", "Interface for...", "Method that..."
 - Don't duplicate method lists or implementation details in class docblocks
@@ -78,11 +77,11 @@ protected Explorer $context;
 ### Parameters and Return Values
 - Prefer `?Type` over `Type|null` for nullable types
 - Only document parameters when adding information beyond PHP types
-- Use two-space alignment for readability in multi-param blocks:
+- Order the tags `@param`, `@return`, `@throws`; the tag name `@param` is followed by two spaces, every other tag name by one:
   ```php
   /**
+   * @param  mixed  $var  description here
    * @return string  primary column sequence name
-   * @param  mixed   $var  description here
    */
   ```
 

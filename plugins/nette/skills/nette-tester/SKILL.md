@@ -80,7 +80,7 @@ In the **first docblock** of the test file, before `require`. Case-insensitive; 
 | `@outputMatch` / `@outputMatchFile` | pattern / `file` | `Assert::match` / `matchFile` against stdout |
 | `@phpIni` | `key=value` | same as the runner's `-d key=value`; repeatable |
 
-**Trap — `@phpVersion` with an exact version.** The skip condition is `version_compare(annotation, actualPhpVersion, op)`, so equality skips. `@phpVersion 8.4.3` on PHP 8.4.3 is **skipped**; write two components (`@phpVersion 8.4`), which sorts below `8.4.0` and therefore runs. Verified empirically on PHP 8.5.4.
+**Trap — `@phpVersion` with an exact version.** The skip condition is `version_compare(annotation, actualPhpVersion, op)`, so equality skips. `@phpVersion 8.4.3` on PHP 8.4.3 is **skipped**; write two components (`@phpVersion 8.4`), which sorts below `8.4.0` and therefore runs.
 
 In the `@dataProvider` file form the test loads its own data set: `$args = Tester\Environment::loadData();` — called once per run, returning one INI section. INI is parsed with `INI_SCANNER_TYPED` (values arrive typed). The optional query filters sections: its tokens are matched left to right against the whitespace-separated parts of the section name, operators `<= =< < == = != <> >= => >` (bare token = `=`), numeric tokens compared by `version_compare`. So `@dataProvider databases.ini postgresql, >=9.0` selects `[postgresql 9.1]`.
 
@@ -311,7 +311,7 @@ When a test fails, Nette Tester writes the expected and actual output into an `o
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Nette Tester](https://tester.nette.org) – complete testing guide
 - [Assertions](https://tester.nette.org/en/assertions) – all Assert methods

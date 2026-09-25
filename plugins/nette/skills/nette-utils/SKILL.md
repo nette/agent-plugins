@@ -368,7 +368,7 @@ echo $obj->name;        // calls getName()
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Arrays](https://doc.nette.org/en/utils/arrays) – array helpers
 - [Strings](https://doc.nette.org/en/utils/strings) – string functions and regex

@@ -8,13 +8,13 @@ description: Invoke before writing or modifying a router, a RouterFactory or any
 A route is **bidirectional**: the same object matches an incoming URL and generates links, and almost
 every routing bug comes from forgetting the second direction. Related skills: **nette-architecture**
 (`RouterFactory`, lifecycle), **nette-configuration** (registering it), **nette-components** (signal
-links), **latte-templates** (`n:href`/`{link}`).
+links), **latte-templates** (`n:href`/`{link}`). Verified against nette/application 3.3.0 and
+nette/routing 3.1.3.
 
 ### Order governs link GENERATION, not just matching
 
 `RouteList::constructUrl()` walks the routes in declaration order and returns the URL from **the first
-route that can build one** (routing v3.1.3 `src/Routing/RouteList.php:133-140`) – so a catch-all placed
-first silently hijacks every link, with no error:
+route that can build one** – so a catch-all placed first silently hijacks every link, with no error:
 
 ```php
 $router->addRoute('admin/<presenter>/<action>', 'Admin:Default:default'); // WRONG order:
@@ -33,21 +33,19 @@ $router->addRoute('<path .+>', 'File:serve');   // default pattern is [^/]+; onl
 $router->addRoute('//<lang>.example.com/<presenter>', /* ... */);     // host part needs the // prefix
 ```
 
-- **A defaulted parameter becomes optional only if everything after it is optional too**
-  (routing v3.1.3 `src/Routing/Route.php:481,563-572`):
+- **A defaulted parameter becomes optional only if everything after it is optional too**:
   `'<presenter=Home>/<action=default>/<id=>'` equals
   `'[<presenter=Home>/[<action=default>/[<id>]]]'`, hence the trailing slash. Write the brackets
   yourself – `'[<presenter=Home>[/<action=default>[/<id>]]]'` – to drop it.
   Generation prefers the **shortest** variant; `[!...]` keeps an optional part in generated URLs while
-  still accepting URLs without it (`'<name>[!.html]'` generates `/hello.html`, `Route.php:391-393`).
-- **`%basePath%`, `%host%`, `%domain%`, `%sld%`, `%tld%` are substituted only in `//`-masks**
-  (`Route.php:181-187`, `288-294` run for the Host mask type only), and `%basePath%` is matched with its
-  surrounding slashes – write `//www.%domain%/%basePath%/<presenter>`.
+  still accepting URLs without it (`'<name>[!.html]'` generates `/hello.html`).
+- **`%basePath%`, `%host%`, `%domain%`, `%sld%`, `%tld%` are substituted only in `//`-masks**, and
+  `%basePath%` is matched with its surrounding slashes – write `//www.%domain%/%basePath%/<presenter>`.
 - Query parameters can be renamed but not validated: in `'product ? id=<productId>'` a regex would be
-  **silently discarded** (`Route.php:604`).
+  **silently discarded**.
 - A parameter in the metadata array but **not** in the mask is constant: unchangeable from the query
-  string, and a link passing a different value makes the route decline and fall through
-  (`Route.php:340-342`) – that is how `addRoute('tos', ['presenter' => 'Article', 'id' => 123])` works.
+  string, and a link passing a different value makes the route decline and fall through – that is how
+  `addRoute('tos', ['presenter' => 'Article', 'id' => 123])` works.
 
 ### RouteList, modules, nesting
 
@@ -63,17 +61,15 @@ return $router;                                  // the ROOT, not the chain resu
 ```
 
 - `withModule()`/`withDomain()`/`withPath()` create and attach a **new child list and return it**, not
-  `$this` (application v3.3.0 `src/Application/Routers/RouteList.php:83-90`; routing v3.1.3
-  `src/Routing/RouteList.php:249-268`); `end()` returns the parent. Keep the root in a variable –
+  `$this`; `end()` returns the parent. Keep the root in a variable –
   `return (new RouteList)->withModule('Front')->addRoute(...)` returns the child and loses the siblings.
 - **Without `withModule()` (or a fixed `module` parameter) the full presenter name lands in the URL**,
   where each `:` becomes a dot and each PascalCase boundary a dash: `Front:Admin:ProductList` shows up as
-  `front.admin.product-list` (application v3.3.0 `src/Application/Routers/Route.php:171-178`). Dotted
-  URLs mean a missing `withModule()`.
-  `<module>` in a mask captures the **whole** module path, up to the *last* colon (`Route.php:110`), and
-  `Nette:` presenters (`Nette:Micro`, `Nette:Error`) are never prefixed (`RouteList.php:41`).
-- `$router[] = new Route(...)` is **deprecated** and emits `E_USER_DEPRECATED` (`RouteList.php:103-110`)
-  – use `addRoute()`/`add()`, which return `static`; **`prepend()` returns `void`**. Add a
+  `front.admin.product-list`. Dotted URLs mean a missing `withModule()`.
+  `<module>` in a mask captures the **whole** module path, up to the *last* colon, and
+  `Nette:` presenters (`Nette:Micro`, `Nette:Error`) are never prefixed.
+- `$router[] = new Route(...)` is **deprecated** and emits `E_USER_DEPRECATED` – use
+  `addRoute()`/`add()`, which return `static`; **`prepend()` returns `void`**. Add a
   `Nette\Application\Routers\Route`, never a `Nette\Routing\Route` – only the former knows
   presenter/action/module inflection (importing the latter for `Route::Value` constants is fine).
 
@@ -84,9 +80,8 @@ $router->addRoute('product-info', 'Product:detail', oneWay: true);  // old URL, 
 $router->addRoute('product/<id>', 'Product:detail');                // canonical, generates links
 ```
 
-`oneWay` is `int|bool` (application v3.3.0 `RouteList.php:68-77`). One-way routes are skipped while the
-generation cache is built (routing v3.1.3 `RouteList.php:149-151`), so such a route **can never produce a
-URL**; the old address is matched and then 301-redirected by canonicalization. `Router::ONE_WAY` still
+`oneWay` is `int|bool`. One-way routes are skipped while the generation cache is built, so such a route
+**can never produce a URL**; the old address is matched and then 301-redirected by canonicalization. `Router::ONE_WAY` still
 works but is `@deprecated` on master – prefer the named argument.
 
 ### Filters
@@ -105,15 +100,15 @@ $router->addRoute('article/<id [0-9]+>[-<slug>]', [
 ```
 
 - **The order is asymmetric**: on input the per-parameter `FilterIn` runs *before* the general one, on
-  output the general `FilterOut` runs *before* the per-parameter one (`Route.php:229-255` vs
-  `314-353`), so inside a general filter `presenter`/`action` are always PascalCase/camelCase.
-- `presenter`, `action` and `module` already carry filters converting PascalCase/camelCase to kebab-case
-  (application v3.3.0 `Route.php:24-40`); write defaults in the **application** form,
-  `<presenter=ProductEdit>`, not `<presenter=product-edit>`.
+  output the general `FilterOut` runs *before* the per-parameter one, so inside a general filter
+  `presenter`/`action` are always PascalCase/camelCase.
+- `presenter`, `action` and `module` already carry filters converting PascalCase/camelCase to
+  kebab-case; write defaults in the **application** form, `<presenter=ProductEdit>`, not
+  `<presenter=product-edit>`.
 - A `FilterIn` returning `null` **rejects the route** (matching falls through to the next one) unless the
-  parameter has a default (`Route.php:241-243`); `FilterStrict` behaves the same (`236-238`).
+  parameter has a default; `FilterStrict` behaves the same.
 - Several `FilterTable` keys may map to one value; the **last** wins as canonical, because the reverse
-  table is `array_flip()`ped (`Route.php:536-538`). Adding a slug to every link is likewise a
+  table is `array_flip()`ped. Adding a slug to every link is likewise a
   `FilterOut`-only job – no template changes; cache the lookup, one page generates the same link often.
 
 ### Canonicalization
@@ -122,11 +117,10 @@ $router->addRoute('article/<id [0-9]+>[-<slug>]', [
 the current one. It runs **after the action phase and before signals** (see **nette-architecture** for
 the full lifecycle) – an action can still change parameters before it fires, a signal handler cannot.
 
-- Skipped for AJAX and for anything other than GET/HEAD (`Presenter.php:805`). Disable it with
+- Skipped for AJAX and for anything other than GET/HEAD. Disable it with
   `$this->autoCanonicalize = false` and call `$this->canonicalize()` where it suits; `switch()` inside an
-  action disables it automatically (`Presenter.php:222`).
-- 301 unless the request carries the `VARYING` flag, which gives 302 (`Presenter.php:826-828`); nothing
-  in the framework sets it – use `$this->getRequest()->setFlag(Nette\Application\Request::VARYING)` when
+  action disables it automatically.
+- 301 unless the request carries the `VARYING` flag, which gives 302; nothing in the framework sets it – use `$this->getRequest()->setFlag(Nette\Application\Request::VARYING)` when
   the canonical URL depends on the user or locale.
 - A redirect loop means the generated URL never equals the incoming one, usually a `FilterOut` that is
   not the exact inverse of what the mask accepts.
@@ -141,8 +135,7 @@ the full lifecycle) – an action can still change parameters before it fires, a
   Serialization of 'Closure' is not allowed`. Use `FilterTable` or a callable array instead, or leave
   the cache off.
 - The Tracy **routing panel** lists every route: green ✓ matched, blue ≈ would also have matched but was
-  overtaken, plus a one-way label (application v3.3.0
-  `src/Bridges/ApplicationTracy/RoutingPanel.php:85-116`). After an unexpected redirect read its
+  overtaken, plus a one-way label. After an unexpected redirect read its
   *redirect* bar – it shows how the router understood the original URL. Disable the browser cache; 301s
   are cached aggressively.
 - `$presenter->getHttpRequest()->getUrl()` is the **raw** incoming URL, `$presenter->getRequest()` is the
@@ -151,7 +144,7 @@ the full lifecycle) – an action can still change parameters before it fires, a
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Routing](https://doc.nette.org/en/application/routing) – masks, filters, modules, custom routers
 - [Creating Links](https://doc.nette.org/en/application/creating-links) – link syntax, LinkGenerator

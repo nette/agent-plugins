@@ -222,17 +222,13 @@ This separation means business logic is testable without CLI context and reusabl
 
 ### Anti-Patterns to Avoid
 
-**Don't create directories prematurely** – a directory with one file is harder to navigate than a flat list. Wait until you have actual complexity (5+ related files), not anticipated complexity.
-
 **Don't separate by technical layer** – Services/, Repositories/, Controllers/ separation forces you to jump between directories for every feature change. Domain organization keeps related code together.
 
 **Don't create deep hierarchies** – prefer descriptive names over nested structure (OrderFulfillmentService vs Fulfill/Order/Service). Deep nesting increases cognitive load and makes imports longer without adding clarity.
 
-**Don't duplicate Base presenter logic** – if two modules need the same functionality, extract it to a trait or a shared service. Copying leads to divergence and bugs when one copy gets updated but not the other.
-
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Application](https://doc.nette.org/en/application) – presenters, routing, templates
 - [Components](https://doc.nette.org/en/application/components) – components and signal handling

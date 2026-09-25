@@ -3,9 +3,9 @@ name: tracy-debugging
 description: >
   Invoke when fetching web pages from localhost, debugging PHP errors, or interpreting Tracy output (BlueScreen, Tracy Bar,
   dump). Read BEFORE running curl or Chrome to any local development PHP URL – with Tracy >= 2.12 and a detected agent,
-  Tracy mirrors BlueScreen, Tracy Bar and dumps as markdown into the JS console for easy machine reading. For Chrome MCP,
-  call list_console_messages() to read Tracy output. Essential when: 500 error, blank page, PHP exception, slow page,
-  N+1 queries, or inspecting variables with dump().
+  Tracy mirrors BlueScreen, Tracy Bar and dumps as markdown into the JS console for easy machine reading; read it with
+  the browser server's console tool (list_console_messages in chrome-devtools-mcp). Essential when: 500 error, blank
+  page, PHP exception, slow page, N+1 queries, or inspecting variables with dump().
 ---
 
 ## Tracy Debugging
@@ -48,11 +48,7 @@ Without that cookie, Tracy still works normally for humans (red BlueScreen, visu
 
 ### Chrome MCP — reading Tracy output
 
-When using Chrome MCP (or any browser-automation MCP server: Playwright MCP, mcp-chrome, Puppeteer-based, Browser Use), `navigator.webdriver` is `true`, the cookie is set automatically after the first page load, and from then on every page response includes markdown for the agent. Read it all with one call:
-
-```
-list_console_messages()
-```
+When using Chrome MCP (or any browser-automation MCP server: Playwright MCP, mcp-chrome, Puppeteer-based, Browser Use), `navigator.webdriver` is `true`, the cookie is set automatically after the first page load, and from then on every page response includes markdown for the agent. Read it all with one call to the server's console tool – `list_console_messages` in chrome-devtools-mcp, `read_console_messages` in Claude in Chrome, `browser_console_messages` in Playwright MCP.
 
 What you get:
 
@@ -105,64 +101,15 @@ The visual HTML dump is rendered inline as usual; for a detected agent, the same
 
 In production, Tracy logs exceptions into `log/exception-<hash>.html`. Tracy ≥ 2.12 writes a parallel `log/exception-<hash>.md` next to each one with the same content in markdown — created at the moment the HTML is first written, never overwritten afterwards.
 
-This makes it possible to hand the whole log folder to an agent for batch triage without parsing hundreds of HTML files:
+For batch triage read the `.md` files; the `.html` siblings are for human inspection. A report can be older than the fix, so check each one against the current code before proposing changes.
 
-```
-You have a folder of .md exception reports in log/.
-For each report:
-  1. Read the exception (file/line/message/stack).
-  2. Compare it with the current state of the codebase — the bug may already be fixed.
-  3. Group related reports thematically.
-  4. Propose a fix plan and wait for approval before changing code.
-```
+### Reading the output over curl
 
-The `.html` siblings stay around for human inspection; ignore them unless you specifically need a rendered view.
-
-### Debugging workflow
-
-**With Chrome MCP (preferred for web pages):**
-
-1. **Navigate** — open the page in Chrome via `navigate_page`.
-2. **Check console** — `list_console_messages()` to read Tracy errors (`[error]`) and Bar info (`[log]`).
-3. **Inspect** — read further console messages or use `take_snapshot` if you need to see the visible HTML structure.
-4. **Fix** — make the code change.
-5. **Verify** — reload and check the console again.
-
-**With curl (API endpoints, CLI):**
-
-1. **Add the cookie** — `--cookie 'tracy-webdriver=1'`, otherwise you only get raw HTML.
-2. **Reproduce** — fetch the page to see current behavior.
-3. **Inspect** — read the markdown blocks emitted via `<script>console.log(...)</script>` / `<script>console.error(...)</script>` in the response body. They are JSON-encoded; decode the first argument to get the markdown.
-4. **Add dump()** — insert `dump()` calls in PHP to inspect specific values; refetch to read them from the same blocks.
-5. **Fix** — make the code change based on findings.
-6. **Verify** — fetch once more to confirm the fix.
-
-### Common patterns
-
-**Check what SQL queries a page generates (Chrome MCP):**
-
-1. `navigate_page` to the URL.
-2. `list_console_messages()`.
-3. Find the `[log]` entry with the markdown Tracy Bar; the SQL panel section lists queries with timings.
-
-**Inspect a variable at a specific point:**
-
-```php
-// Add to code temporarily
-dump($this->getParameter('id'));
-```
-
-Refetch (or reload in Chrome) and read the new `[log]` entry that appears.
-
-**Read production exception batch:**
-
-```
-Open log/ and process every exception-*.md file in order.
-```
+A browser page is the richer source for web pages. Over curl (API endpoints, or no browser at hand) the markdown sits in the response body inside `<script>console.log(...)</script>` / `<script>console.error(...)</script>`, JSON-encoded; decode the first argument to get it. The SQL queries of a request are in the SQL section of the Tracy Bar entry.
 
 ### Online documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Tracy](https://tracy.nette.org) – complete debugging guide
 - [Tracy Bar & panels](https://tracy.nette.org/en/extensions) – custom panels and extensions

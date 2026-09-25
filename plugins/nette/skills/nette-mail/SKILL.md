@@ -23,7 +23,7 @@ Everything must be UTF-8. Priority constants are `Message::High` / `Normal` / `L
 (1/3/5). Internationalized domains (`jan@příklad.cz`) are punycoded automatically, but
 **only when `intl` is loaded** – without it the UTF-8 domain goes out as-is. (4.2.0)
 
-### Embedding Images – the Part Models Get Wrong
+### Embedding Images
 
 A second argument to `setHtmlBody()` makes it scan the HTML and embed what it finds:
 
@@ -140,7 +140,7 @@ and, with DKIM, `mail.signer`.
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Mail](https://doc.nette.org/en/mail) – Message API, embedding, mailers, CssInliner, DKIM, configuration
 - [Mail Upgrading](https://doc.nette.org/en/mail/upgrading) – changes between major versions

@@ -307,6 +307,6 @@ $createUserSchema = Expect::structure([
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Schema](https://doc.nette.org/en/schema) – complete Schema library guide with all Expect methods

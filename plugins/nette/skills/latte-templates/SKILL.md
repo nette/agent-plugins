@@ -180,17 +180,10 @@ Pair tags can be written as HTML attributes:
 {include button, 'Cancel', 'secondary'}
 ```
 
-### Common Tags Reference
+### Other Common Tags
 
 | Tag | Description |
 |-----|-------------|
-| `{$var}` | Print escaped variable |
-| `{if}...{/if}` | Condition |
-| `{foreach}...{/foreach}` | Loop |
-| `{var $x = ...}` | Create variable |
-| `{include 'file'}` | Include template |
-| `{block name}...{/block}` | Define block |
-| `{layout 'file'}` | Extend layout |
 | `{do expression}` | Execute without output |
 | `{php expression}` | Obsolete alias for `{do}` – a single expression only. Real PHP code needs `RawPhpExtension` |
 | `{dump $var}` | Debug dump (Tracy) |
@@ -332,6 +325,8 @@ Admin/
 		└── edit.latte
 ```
 
+The more specific a layout, the closer it sits to the presenters it serves; whether it extends the enclosing one is up to it. Keep such chains short: a part that only some pages share usually fits better through `{include}` or `{define}` than through another layout level.
+
 ### Template Partial Patterns
 
 **Shared template parts use @ prefix:**
@@ -341,7 +336,7 @@ Admin/
 
 ### Passing Variables to Templates
 
-The standard way is assigning to `$this->template`:
+Templates display data; computing it (calculations, filtering, aggregation) belongs in `render<View>()` or a service. The standard way is assigning to `$this->template`:
 
 ```php
 $this->template->article = $this->articles->getById($id);
@@ -463,15 +458,9 @@ latte:
 
 Enable `strictParsing` to catch template errors early (missing variables, typos in tag names).
 
-### Anti-Patterns to Avoid
-
-- **Don't put business logic in templates** – templates display data, they don't process it. Calculations, filtering, and data transformations belong in presenters or services. Complex template logic is a sign that the presenter's `render*` method isn't preparing data well enough.
-- **Don't create deep template hierarchies** – more than 2 levels of `{layout}` inheritance becomes hard to debug. Prefer `{include}` and `{define}` for composition over deep inheritance chains.
-- **Don't duplicate template code** – if the same HTML structure appears in multiple templates, extract it to a `{define}` block or a partial template (`@item.latte`). Duplication causes inconsistency when one copy gets updated but not the others.
-
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Syntax](https://latte.nette.org/en/syntax) – complete syntax guide
 - [Tags](https://latte.nette.org/en/tags) – all available tags

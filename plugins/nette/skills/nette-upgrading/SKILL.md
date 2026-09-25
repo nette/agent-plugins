@@ -161,7 +161,7 @@ warnings this skill is about.
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [Upgrade Guide](https://doc.nette.org/en/migrations) – index of all package upgrade pages
 - [Application](https://doc.nette.org/en/application/upgrading) – routers, signals, type hints

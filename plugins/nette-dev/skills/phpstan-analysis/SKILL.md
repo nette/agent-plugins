@@ -94,14 +94,9 @@ Two hard rules override the ladder at every step:
 - **Never silence errors** - a fix must not hide a potential problem (see "Never Silence Errors" below).
 - **Never use `@phpstan-ignore` annotations** - keep checker-specific directives out of source code; ignore in `phpstan.neon` instead.
 
-### Create a Plan First
+### Agree on the Resolutions First
 
-Before making any changes, create a plan:
-
-1. **Group errors by type** (`property.nonObject`, `method.notFound`, `new.static`, etc.)
-2. **For each type, choose a resolution** following the priority order above
-3. **Justify each decision** with clear reasoning
-4. **Present the plan** before implementing
+Before changing code, present the errors grouped by identifier, with the rung of the ladder chosen for each group and the reason.
 
 ### Refactoring as First Choice
 
@@ -157,7 +152,7 @@ When PHPStan reports a missing callable signature (`missingType.callable`), it's
 - `callable(...mixed): mixed` claims the callee may be invoked with *any* arguments, so only callbacks whose parameters are all `mixed`-compatible (or which have no required typed params) satisfy it.
 - A normal callback like `function (UiForm $form, mixed $value): void {}` is then **rejected** at call sites: `expects callable(mixed...): mixed, Closure(UiForm, mixed): void given`.
 
-Bare `callable` is PHPStan's top type for callables — it accepts anything invokable regardless of signature, and `$cb(...$args)` inside the function still type-checks. So for "invoke arbitrary user callbacks" APIs keep `callable` (e.g. `@param iterable<callable> $callbacks`) and, if `missingType.callable` fires, ignore it for that file in `phpstan.neon` with a comment. An explicit signature buys nothing and introduces false positives. (Confirmed in nette/utils `Arrays::invoke()`.)
+Bare `callable` is PHPStan's top type for callables — it accepts anything invokable regardless of signature, and `$cb(...$args)` inside the function still type-checks. So for "invoke arbitrary user callbacks" APIs keep `callable` (e.g. `@param iterable<callable> $callbacks`) and, if `missingType.callable` fires, ignore it for that file in `phpstan.neon` with a comment. An explicit signature buys nothing and introduces false positives. (nette/utils `Arrays::invoke()` is an example.)
 
 The same applies to bare **`\Closure`** — when the value is guaranteed to be a closure (stored property, result of `Closure::fromCallable()`, etc.) but its signature is unknown or intentionally polymorphic, use plain `\Closure` without parameters. `missingType.callable` then fires on it too and is ignored on the same grounds.
 
@@ -379,15 +374,6 @@ assertType('string', Normalizer::normalize('foo'));
 
 ---
 
-## Workflow
+## After the Fixes
 
-1. **Run PHPStan** and get list of errors
-2. **Understand the project** - relationships between classes are essential
-3. **Exclude** files for historical compatibility
-4. **Create a plan** grouping errors by type with justification for each strategy
-5. **Refactor code** where error reveals a design improvement
-6. **Fix phpDoc** where code is correct but types are imprecise
-7. **Add assert()** where necessary to communicate type to PHPStan
-8. **Ignore in phpstan.neon** systematic patterns with a comment
-9. **Generate baseline** for the rest (minimize)
-10. **Verify** that tests pass
+Run the tests: a refactoring done for PHPStan can change behavior.

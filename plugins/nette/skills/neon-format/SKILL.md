@@ -212,6 +212,6 @@ vendor/bin/neon-lint <path>
 
 ### Online Documentation
 
-For detailed information, use WebFetch on these URLs:
+For details, see the official documentation:
 
 - [NEON Format](https://ne-on.org) – complete NEON specification and examples

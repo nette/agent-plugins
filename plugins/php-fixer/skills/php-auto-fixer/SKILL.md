@@ -9,66 +9,21 @@ A PostToolUse hook runs `ecs fix` after Claude Code `Edit`/`Write` or Codex `app
 
 ## Editing Order for `use` Statements
 
-The fixer removes any `use` statement not referenced in the file. This creates a timing trap between consecutive edits:
+The fixer removes any `use` statement not referenced in the file. A `use` added in one edit and the code that needs it in the next therefore loses the import in between.
 
-1. Edit adds `use App\Model\Foo;`
-2. Hook runs → `Foo` is not used anywhere → **removes the `use` statement**
-3. Next Edit adds code using `Foo` → **fails because the `use` is gone**
-
-### The Rule
-
-Always add `use` statements in the same Edit as the code that references them. Alternatively, add the code first, then add the `use` statement in a follow-up edit.
-
-Never add `use` statements alone in a separate Edit - they will be removed before the next edit adds the referencing code.
-
-### Safe Patterns
-
-**Single edit with both `use` and code** (preferred):
-
-```php
-use App\Model\UserRepository;
-
-public function getUsers(UserRepository $repo): array
-{
-    return $repo->findAll();
-}
-```
-
-**Code first, `use` second** (also safe):
-
-1. First Edit: add the method body referencing `UserRepository`
-2. Second Edit: add `use App\Model\UserRepository;` - now it's referenced, fixer keeps it
-
-**`use` first, code second** (broken):
-
-1. First Edit: add `use App\Model\UserRepository;` - fixer removes this immediately
-2. Second Edit: add method body - `UserRepository` undefined
-
-### Multiple Classes in One Edit
-
-When adding code that references several new classes, include all their `use` statements in the same edit. Do not split `use` statements and code across separate edits.
+Always add `use` statements in the same Edit as the code that references them, or add the code first and the `use` second. Never add `use` statements alone in a separate Edit before the code.
 
 ## What the Fixer Does
 
-- Removes unused `use` statements
-- Sorts `use` statements alphabetically
-- Fixes indentation, spacing, and line breaks
+- Removes unused `use` statements and sorts the rest
+- Fixes indentation, spacing and line breaks
 - Enforces PSR-12 with Nette modifications (e.g., no space before parentheses in arrow functions)
 
-When the hook is active, let the fixer handle formatting. If the hook is unavailable or the edit was made through the shell, run the project's fixer explicitly.
-
-## What Not to Do
-
-- Do not remove `use` statements manually - the fixer handles unused imports
-- Do not sort `use` statements manually - the fixer sorts them
-- Do not fix whitespace or indentation manually - the fixer fixes it
+When the hook is active, let the fixer handle formatting and removal or sorting of `use` statements. If the hook is unavailable or the edit was made through the shell, run the project's fixer explicitly.
 
 ## When the Fixer Reports Errors
 
-The hook exits with an error when ECS cannot auto-fix all issues. Common causes:
-
-- **PHP syntax error** in the file - fix the syntax first, fixer will run again on the next edit
-- **Conflicting rules** - rare, usually resolved by re-running (edit the file again)
+When ECS cannot fix everything, the hook reports "Could not fix all coding standard issues in <file>" followed by the remaining violations; fix them by hand. A file that is not valid PHP is skipped without a report.
 
 ## Excluding Paths
 
