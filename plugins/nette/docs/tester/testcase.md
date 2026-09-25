@@ -1,0 +1,185 @@
+# TestCase
+
+Contents:
+
+- [Method Annotations](#method-annotations)
+  - [`@throws`](#throws)
+  - [`@dataProvider`](#dataprovider)
+
+
+In simple tests, assertions can follow one after another. However, sometimes it's advantageous to wrap assertions in a test class to structure them.
+
+The class must extend `Tester\TestCase`, and we refer to it simply as a **TestCase**. The class must contain test methods starting with `test`. These methods will be executed as tests:
+
+```php
+use Tester\Assert;
+
+class RectangleTest extends Tester\TestCase
+{
+	public function testOne()
+	{
+		Assert::same(/* ... */);
+	}
+
+	public function testTwo()
+	{
+		Assert::match(/* ... */);
+	}
+}
+
+# Run test methods
+(new RectangleTest)->run();
+```
+
+A TestCase written this way can be further enhanced with `setUp()` and `tearDown()` methods. They are called before and after each test method, respectively:
+
+```php
+use Tester\Assert;
+
+class NextTest extends Tester\TestCase
+{
+	protected function setUp()
+	{
+		# Preparation
+	}
+
+	protected function tearDown()
+	{
+		# Clean-up
+	}
+
+	public function testOne()
+	{
+		Assert::same(/* ... */);
+	}
+
+	public function testTwo()
+	{
+		Assert::match(/* ... */);
+	}
+}
+
+# Run test methods
+(new NextTest)->run();
+
+/*
+
+
+Method Call Order
+-----------------
+setUp()
+testOne()
+tearDown()
+
+setUp()
+testTwo()
+tearDown()
+*/
+```
+
+If an error occurs during the `setUp()` or `tearDown()` phase, the test will fail overall. If an error occurs in the test method itself, the `tearDown()` method is still executed, but any errors within it are suppressed.
+
+Within a test method, you can skip the current test at any time by calling `$this->skip('reason')`, for example when a prerequisite is not met.
+
+We recommend writing the [@testCase](test-annotations.md#testcase) annotation at the beginning of the test file. The command-line test runner will then execute the individual TestCase methods in separate processes and in parallel using multiple threads. This can significantly speed up the entire testing process.
+
+```php
+<?php
+/** @testCase */
+```
+
+## Method Annotations
+
+Several annotations are available for test methods to facilitate testing. Write them above the test method.
+
+### `@throws`
+
+It is equivalent to using `Assert::exception()` inside the test method, but the notation is clearer:
+
+```php
+/**
+ * @throws RuntimeException
+ */
+public function testOne()
+{
+	// ...
+}
+
+
+/**
+ * @throws LogicException  Wrong argument order
+ */
+public function testTwo()
+{
+	// ...
+}
+```
+
+### `@dataProvider`
+
+This annotation is useful when you want to run the test method multiple times with different parameters. (Do not confuse it with the annotation of the same name for [test files](test-annotations.md#dataprovider).)
+
+After it, specify the name of a method that returns the arguments for the test method. This method must return an array or a Traversable object. A simple example:
+
+```php
+public function getLoopArgs()
+{
+	return [
+		[1, 2, 3],
+		[4, 5, 6],
+		[7, 8, 9],
+	];
+}
+
+
+/**
+ * @dataProvider getLoopArgs
+ */
+public function testLoop($a, $b, $c)
+{
+	// ...
+}
+```
+
+The second variation of the **@dataProvider** annotation accepts a path to an INI file (relative to the test file) as a parameter. The method is called as many times as there are sections in the INI file. File `loop-args.ini`:
+
+```ini
+[one]
+a=1
+b=2
+c=3
+
+[two]
+a=4
+b=5
+c=6
+
+[three]
+a=7
+b=8
+c=9
+```
+
+and the method that uses the INI file:
+
+```php
+/**
+ * @dataProvider loop-args.ini
+ */
+public function testLoop($a, $b, $c)
+{
+	// ...
+}
+```
+
+Similarly, instead of an INI file, you can reference a PHP script. It must return an array or a Traversable object. File `loop-args.php`:
+
+```php
+return [
+	['a' => 1, 'b' => 2, 'c' => 3],
+	['a' => 4, 'b' => 5, 'c' => 6],
+	['a' => 7, 'b' => 8, 'c' => 9],
+];
+```
+
+As with the [data provider for test files](test-annotations.md#dataprovider), you can append a filtering query after the file name to run the method only for the matching sections.

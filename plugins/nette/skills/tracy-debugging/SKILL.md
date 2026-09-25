@@ -107,9 +107,15 @@ For batch triage read the `.md` files; the `.html` siblings are for human inspec
 
 A browser page is the richer source for web pages. Over curl (API endpoints, or no browser at hand) the markdown sits in the response body inside `<script>console.log(...)</script>` / `<script>console.error(...)</script>`, JSON-encoded; decode the first argument to get it. The SQL queries of a request are in the SQL section of the Tracy Bar entry.
 
-### Online documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Tracy](https://tracy.nette.org) – complete debugging guide
-- [Tracy Bar & panels](https://tracy.nette.org/en/extensions) – custom panels and extensions
+- [Getting Started with Tracy](../../docs/tracy/guide.md) – enabling, modes, logging, the Bar
+- [Configuration](../../docs/tracy/configuring.md) – logging, `dump()` behavior, the `tracy:` section
+- [Dumper](../../docs/tracy/dumper.md) – `dump()`, `bdump()` and their options
+- [Stopwatch](../../docs/tracy/stopwatch.md) – measuring time
+- [Recipes](../../docs/tracy/recipes.md) – CSP, debugging AJAX, locating stray output, scrubbing
+- [Opening Files in IDE](../../docs/tracy/open-files-in-ide.md) – editor links
+- [Tracy Extensions](../../docs/tracy/extensions.md) – custom Bar panels and BlueScreen sections
+- [Troubleshooting](../../docs/nette/troubleshooting.md) – common errors and what they mean

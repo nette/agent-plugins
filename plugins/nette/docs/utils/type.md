@@ -1,0 +1,231 @@
+# PHP Type
+
+Contents:
+
+- [`fromReflection($reflection): ?Type`](#fromreflectionreflection-type)
+- [`fromString(string $type): Type`](#fromstringstring-type-type)
+- [`fromValue(mixed $value): Type` (since 4.0.10)](#fromvaluemixed-value-type-since-4010)
+- [`getNames(): (string|array)[]`](#getnames-stringarray)
+- [`getTypes(): Type[]`](#gettypes-type)
+- [`getSingleName(): ?string`](#getsinglename-string)
+- [`isSimple(): bool`](#issimple-bool)
+- [`isUnion(): bool`](#isunion-bool)
+- [`isIntersection(): bool`](#isintersection-bool)
+- [`isBuiltin(): bool`](#isbuiltin-bool)
+- [`isClass(): bool`](#isclass-bool)
+- [`isClassKeyword(): bool`](#isclasskeyword-bool)
+- [`allows(string|Type $type): bool`](#allowsstringtype-type-bool)
+- [`with(string|Type $type): Type` (since 4.0.10)](#withstringtype-type-type-since-4010)
+
+
+[Nette\Utils\Type](https://api.nette.org/utils/master/Nette/Utils/Type.html) represents a PHP data type. It is used for analyzing, comparing, and manipulating types, whether obtained from a string or reflection.
+
+PHP currently has a very rich type system: from scalar types (`int`, `string`), through objects and interfaces, to complex types (union `A|B`, intersection `A&B`, or disjunctive normal forms `(A&B)|D`). Additionally, there are special types like `void`, `never`, `mixed`, or relative types `self` and `static`.
+
+Working with these types natively, especially via `ReflectionType`, is often cumbersome because you must recursively distinguish between `ReflectionNamedType`, `ReflectionUnionType`, and other objects. The `Nette\Utils\Type` class encapsulates all of this and provides a **unified and intuitive API** for working with any type supported by PHP.
+
+For example, it allows you to easily check if one type [accepts](#allowsstringtype-type-bool) another (compatibility), [extend types](#withstringtype-type-type-since-4010), or convert reflections into a readable notation.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Type;
+```
+
+## `fromReflection($reflection): ?Type`
+
+This static method creates a `Type` object based on reflection. The parameter can be a `ReflectionMethod` or `ReflectionFunction` object (returns the return value type), or a `ReflectionParameter` or `ReflectionProperty` object. It resolves `self`, `static`, and `parent` to the actual class name. If the subject has no type, it returns `null`.
+
+```php
+class DemoClass
+{
+	public self $foo;
+}
+
+$prop = new ReflectionProperty(DemoClass::class, 'foo');
+echo Type::fromReflection($prop); // 'DemoClass'
+```
+
+## `fromString(string $type): Type`
+
+This static method creates a `Type` object from its string representation.
+
+```php
+$type = Type::fromString('Foo|Bar');
+echo $type;      // 'Foo|Bar'
+```
+
+## `fromValue(mixed $value): Type` (since 4.0.10)
+
+Static method that creates a Type object based on the type of the passed value.
+
+```php
+$type = Type::fromValue('hello'); // 'string'
+$type = Type::fromValue(123);     // 'int'
+$type = Type::fromValue(new stdClass); // 'stdClass'
+```
+
+For resources, it returns `mixed`, as PHP does not support the `resource` type. For anonymous classes, it returns the name of the nearest ancestor or `object`.
+
+```php
+$obj = new class extends Foo { };
+$type = Type::fromValue($obj);    // 'Foo'
+```
+
+## `getNames(): (string|array)[]`
+
+Returns an array of strings representing the subtypes that make up a compound type. For intersection types, it returns an array of arrays.
+
+```php
+$type = Type::fromString('string|null'); // or '?string'
+$type->getNames();  // ['string', 'null']
+
+$type = Type::fromString('(Foo&Bar)|string');
+$type->getNames();  // [['Foo', 'Bar'], 'string']
+```
+
+## `getTypes(): Type[]`
+
+Returns an array of `Type` objects representing the subtypes that make up a compound type:
+
+```php
+$type = Type::fromString('string|null'); // or '?string'
+$type->getTypes();  // [Type::fromString('string'), Type::fromString('null')]
+
+$type = Type::fromString('(Foo&Bar)|string');
+$type->getTypes();  // [Type::fromString('Foo&Bar'), Type::fromString('string')]
+
+$type = Type::fromString('Foo&Bar');
+$type->getTypes();  // [Type::fromString('Foo'), Type::fromString('Bar')]
+```
+
+## `getSingleName(): ?string`
+
+For simple types (including simple nullable types like `?string`), returns the type name. Otherwise, returns null.
+
+```php
+$type = Type::fromString('string|null');
+echo $type;                       // '?string'
+echo $type->getSingleName();      // 'string'
+
+$type = Type::fromString('?Foo');
+echo $type;                       // '?Foo'
+echo $type->getSingleName();      // 'Foo'
+
+$type = Type::fromString('Foo|Bar');
+echo $type;                       // 'Foo|Bar'
+echo $type->getSingleName();      // null (it's a union type)
+```
+
+## `isSimple(): bool`
+
+Returns whether it is a simple type. Simple types also include simple nullable types (e.g., `?string`, `?Foo`):
+
+```php
+$type = Type::fromString('string');
+$type->isSimple();       // true
+$type->isUnion();        // false
+
+$type = Type::fromString('?Foo'); // or 'Foo|null'
+$type->isSimple();       // true
+$type->isUnion();        // true (because it contains null)
+```
+
+## `isUnion(): bool`
+
+Returns whether it is a union type (contains `|`).
+
+```php
+$type = Type::fromString('string|int');
+$type->isUnion();        // true
+```
+
+## `isIntersection(): bool`
+
+Returns whether it is an intersection type (contains `&`).
+
+```php
+$type = Type::fromString('Foo&Bar');
+$type->isIntersection(); // true
+```
+
+## `isBuiltin(): bool`
+
+Returns whether the type is simple and also a PHP built-in type (like `string`, `int`, `array`, `callable`, etc.).
+
+```php
+$type = Type::fromString('string');
+$type->isBuiltin(); // true
+
+$type = Type::fromString('string|int');
+$type->isBuiltin(); // false
+
+$type = Type::fromString('Foo');
+$type->isBuiltin(); // false
+```
+
+## `isClass(): bool`
+
+Returns whether the type is simple and also a class name (not a built-in type like `string` or `int`).
+
+```php
+$type = Type::fromString('string');
+$type->isClass();   // false
+
+$type = Type::fromString('Foo|null');
+$type->isClass();   // true
+
+$type = Type::fromString('Foo|Bar');
+$type->isClass();   // false
+```
+
+## `isClassKeyword(): bool`
+
+Returns whether the type is one of the internal keywords `self`, `parent`, or `static`.
+
+```php
+$type = Type::fromString('self');
+$type->isClassKeyword();   // true
+
+$type = Type::fromString('Foo');
+$type->isClassKeyword();   // false
+```
+
+## `allows(string|Type $type): bool`
+
+The `allows()` method checks type compatibility. For example, it can determine if a value of a certain type could be passed as a parameter to a function expecting this type.
+
+```php
+$type = Type::fromString('string|null');
+$type->allows('string'); // true
+$type->allows('null');   // true
+$type->allows('Foo');    // false
+
+$type = Type::fromString('mixed');
+$type->allows('null');   // true
+```
+
+## `with(string|Type $type): Type` (since 4.0.10)
+
+Returns a Type object that accepts both the original type and the one being added. It creates a so-called union type.
+
+The method is clever and does not duplicate types unnecessarily. If you add a type that is already present, or is a superset of the current type (e.g., adding `mixed` to `string`), the result is simplified.
+
+```php
+$type = Type::fromString('string');
+
+// Extending to nullable string
+echo $type->with('null'); // '?string'
+
+// Creating a union type
+echo $type->with('int');  // 'string|int'
+
+// Adding a type that supersedes everything
+echo $type->with('mixed'); // 'mixed'
+```

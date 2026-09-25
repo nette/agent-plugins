@@ -107,9 +107,9 @@ concurrent requests for a cold key block until the first has generated it. Swapp
 `DevNullStorage` does not disable the Latte or DI container caches – they do not use
 `nette/caching`.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Caching](https://doc.nette.org/en/caching) – dependencies, journal, storages, `{cache}`
-- [Caching Upgrading](https://doc.nette.org/en/caching/upgrading) – renamed constants and interfaces
+- [Caching](../../docs/caching/index.md) – dependencies, journal, storages, `{cache}`
+- [Caching Upgrading](../../docs/caching/upgrading.md) – renamed constants and interfaces

@@ -1,0 +1,140 @@
+# Nette DI Container
+
+Contents:
+
+- [Standalone Use](#standalone-use)
+- [Working with the Container](#working-with-the-container)
+- [PSR-11 Container (since 3.2.7)](#psr-11container-since-327)
+- [Using with Nette Framework](#using-with-nette-framework)
+
+
+Nette DI is one of Nette's most interesting libraries. It can generate and automatically update compiled DI containers that are extremely fast and remarkably easy to configure.
+
+The form of services that the DI container should create is usually defined using configuration files in [NEON format](../neon/format.md). The container we manually created in the [previous chapter](container.md) would be written like this:
+
+```neon
+parameters:
+	db:
+		dsn: 'mysql:'
+		user: root
+		password: '***'
+
+services:
+	- Nette\Database\Connection(%db.dsn%, %db.user%, %db.password%)
+	- ArticleFactory
+	- EditController
+```
+
+The syntax is very concise.
+
+All dependencies declared in the constructors of the `ArticleFactory` and `EditController` classes are discovered and passed automatically by Nette DI thanks to so-called [autowiring](autowiring.md), so there's no need to specify anything in the configuration file. Thus, even if parameters change, you don't need to change anything in the configuration. During development, Nette automatically regenerates the container. You can focus purely on application development.
+
+If we want to pass dependencies using setters, we use the [setup](services.md#setup) section for this.
+
+Nette DI generates PHP code for the container directly. The result is thus a `.php` file that you can open and examine. This allows you to see exactly how the container functions. You can also debug it in your IDE and step through its execution. And most importantly: the generated PHP code is extremely fast.
+
+Nette DI can also generate [factory](factory.md) code based on a provided interface. Therefore, instead of the `ArticleFactory` class, we only need to create an interface in the application:
+
+```php
+interface ArticleFactory
+{
+	function create(): Article;
+}
+```
+
+You can find the full example in the course [Dependency Injection by Example](https://github.com/nette-examples/di-by-example), where you first write the container by hand and only then let Nette DI generate it.
+
+## Standalone Use
+
+Integrating the Nette DI library into an application is very easy. First, we install it using Composer (because downloading zip files is so outdated):
+
+```shell
+composer require nette/di
+```
+
+The following code uses the [Compiler](https://api.nette.org/di/master/Nette/DI/Compiler.html) to create an instance of the DI container according to the configuration stored in the `config.neon` file:
+
+```php
+$loader = new Nette\DI\ContainerLoader(__DIR__ . '/temp');
+$class = $loader->load(function ($compiler) {
+	$compiler->loadConfig(__DIR__ . '/config.neon');
+});
+$container = new $class;
+```
+
+The container is generated only once, its code is written to the cache (the `__DIR__ . '/temp'` directory), and on subsequent requests, it is only loaded from there.
+
+On its own, the `Compiler` enables only the `services` and `parameters` sections in the configuration. To use others – such as `search`, `decorator`, `di`, or `inject` – register their extensions first. And to allow registering extensions from the `extensions` section of the config, add the `ExtensionsExtension`:
+
+```php
+$compiler->addExtension('search', new Nette\DI\Extensions\SearchExtension($tempDir));
+$compiler->addExtension('extensions', new Nette\DI\Extensions\ExtensionsExtension);
+```
+
+The [Configurator](../application/bootstrapping.md) used in full Nette applications registers all of these automatically.
+
+If you keep several different containers in the same cache directory, distinguish them with a key passed as the second argument to `load()`; it becomes part of the generated class name:
+
+```php
+$class = $loader->load(
+	fn($compiler) => $compiler->loadConfig(__DIR__ . '/config.neon'),
+	'my-key',
+);
+```
+
+The `getService()` or `getByType()` methods are used to create and retrieve services. This is how we create the `EditController` object:
+
+```php
+$controller = $container->getByType(EditController::class);
+$controller->someMethod();
+```
+
+During development, it's useful to activate auto-refresh mode, where the container automatically regenerates if any class or configuration file is modified. Just provide `true` as the second argument in the [ContainerLoader](https://api.nette.org/di/master/Nette/DI/ContainerLoader.html) constructor.
+
+```php
+$loader = new Nette\DI\ContainerLoader(__DIR__ . '/temp', true);
+```
+
+(since 3.2.7) Auto-refresh works even within a single process, which matters for long-running workers, development servers and CLI tools. Because PHP cannot redeclare a class that is already loaded, every rebuild declares the container under a new class name and `load()` returns the name matching the current configuration. So call `load()` again before each unit of work and create a new container whenever the returned name changes; a rebuild done by another process over the same cache is picked up as well. Never store the class name, it is not stable across rebuilds.
+
+## Working with the Container
+
+Besides `getService()` and `getByType()`, the container object offers several other useful methods:
+
+- `getByType(string $type, bool $throw = true): ?object` returns the service of the given type. If you pass `false` as the second argument, it returns `null` instead of throwing an exception when no such service exists.
+- `hasService(string $name): bool` and `isCreated(string $name): bool` tell you whether a service is defined and whether it has already been instantiated.
+- `getServiceDescriptors(): array<string, ServiceDescriptor>` describes all registered services, keyed by name: type, autowiring, tags, aliases, and the instance if one already exists. Nothing is instantiated.
+- `addService(string $name, object $service): static` puts a service into the container; a closure with a declared return type registers a factory instead of a ready instance. `removeService(string $name): void` removes it.
+- `getParameters(): array` returns all container parameters, `getParameter($key)` returns a single one.
+- `createInstance(string $class, array $args = []): object` creates a new instance of the given class and passes its constructor dependencies via autowiring.
+- `callMethod(callable $function, array $args = []): mixed` calls the given callable and passes its arguments via autowiring.
+- `callInjects(object $service): void` calls all `inject*()` methods on the given object and passes dependencies to them.
+
+The container constructor also accepts an array of parameters that supplement those defined in the configuration:
+
+```php
+$container = new $class(['host' => 'localhost']);
+```
+
+## PSR-11 Container (since 3.2.7)
+
+The class `Nette\Bridges\DIPsr\PsrContainer` wraps the container and exposes it through the PSR-11 `ContainerInterface`, so you can hand it to any library or framework that expects one:
+
+```php
+$psr = new Nette\Bridges\DIPsr\PsrContainer($container);
+
+$psr->get(PDO::class);   // a type, resolved by autowiring
+$psr->get('database');   // a service name
+```
+
+The identifier is treated first as a type resolved by autowiring, and only then as a service name. If several autowired services match the type, `get()` throws `NotFoundException` instead of picking one of them, while `has()` returns `false`. The bridge's exceptions implement the PSR-11 interfaces, so `catch (Psr\Container\NotFoundExceptionInterface)` works as expected.
+
+The `psr/container` package is not a dependency of `nette/di`, so add it to your application yourself:
+
+```shell
+composer require psr/container
+```
+
+## Using with Nette Framework
+
+As we have shown, the use of Nette DI is not restricted to applications built with Nette Framework; you can integrate it anywhere with just three lines of code. However, if you are developing applications using the Nette Framework, the configuration and creation of the container are handled by [Bootstrap](../application/bootstrapping.md#di-container-configuration).

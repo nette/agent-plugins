@@ -73,7 +73,7 @@ parameters:
 				custom: App\MyMapper       # custom mapper FQCN
 ```
 
-Full reference: https://doc.nette.org/en/tools/phpstan-rules
+Full reference: [Nette PHPStan Rules](../../docs/tools/phpstan-rules.md), bundled with the plugin.
 
 ---
 

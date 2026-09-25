@@ -1,0 +1,36 @@
+# Exceptions
+
+Nette Database uses an exception hierarchy. The base class is `Nette\Database\DriverException`, which extends `PDOException` and provides enhanced functionality for working with database errors:
+
+- The `getDriverCode()` method returns the error code from the database driver.
+- The `getSqlState()` method returns the SQLSTATE code.
+- The `getQueryString()` and `getParameters()` methods allow retrieving the original query and its parameters.
+
+The `DriverException` class is extended by the following specialized exceptions:
+
+- `ConnectionException` – indicates a failure to connect to the database server.
+  - `ConnectionLostException` .{data-version:3.2.9} – the connection was dropped during an operation (server restart, network failure, idle timeout); a reconnect is required before further use.
+- `ConstraintViolationException` – the base class for database constraint violations, from which the following exceptions inherit:
+  - `ForeignKeyConstraintViolationException` – violation of a foreign key constraint.
+  - `NotNullConstraintViolationException` – violation of a NOT NULL constraint.
+  - `UniqueConstraintViolationException` – violation of a uniqueness constraint.
+  - `CheckConstraintViolationException` .{data-version:3.2.9} – violation of a CHECK constraint.
+- `DeadlockException` .{data-version:3.2.9} – a deadlock or serialization failure detected by the server; the transaction was rolled back and may be retried.
+- `LockTimeoutException` .{data-version:3.2.9} – a lock-wait timeout was exceeded; the statement was aborted, but the surrounding transaction typically remains open.
+
+The following example demonstrates how to catch a `UniqueConstraintViolationException`, which occurs when trying to insert a user with an email that already exists in the database (assuming the `email` column has a unique index):
+
+```php
+try {
+	$database->query('INSERT INTO users', [
+		'email' => 'john@example.com',
+		'name' => 'John Doe',
+		'password' => $hashedPassword,
+	]);
+} catch (Nette\Database\UniqueConstraintViolationException $e) {
+	echo 'A user with this email already exists.';
+
+} catch (Nette\Database\DriverException $e) {
+	echo 'An error occurred during registration: ' . $e->getMessage();
+}
+```

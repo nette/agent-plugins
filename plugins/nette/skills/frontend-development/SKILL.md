@@ -5,9 +5,6 @@ description: Provides frontend development guidelines for Nette. Use when workin
 
 ## Frontend Development
 
-See [the Nette Assets reference](references/assets.md) for asset management.
-See [the Vite integration guide](references/vite.md) for build configuration.
-
 ### Technology Stack
 
 - **Build system:** Vite with TypeScript support
@@ -51,6 +48,16 @@ assets:
 `%wwwDir%`, so the manifest is looked up in `www/.vite/manifest.json` instead of
 `www/assets/.vite/manifest.json` and you get `RuntimeException: Failed to read Vite manifest`.
 `devServer` defaults to `true`, so there is no need to write it.
+
+HMR works only when the application is in debug mode and the dev server is running, which PHP
+learns from the file `.vite/nette.json` that the plugin writes into the mapper's `path`. The
+lookup is hardcoded, so renaming the file with the plugin's `infoFile` option silently disables the
+detection; then set `devServer: '<url>'` in NEON by hand.
+
+**`type="module"` is added only to Vite entry points.** A script served by a `file` mapper
+renders as a plain `<script>`, so an `import` in it fails with *Cannot use import statement
+outside a module*. Write the attribute yourself, `<script type="module" n:asset="app.js"></script>`;
+the only option `{asset}` accepts for such a file is `version`, anything else throws.
 
 ### Data Flow from Backend to Frontend
 
@@ -111,6 +118,12 @@ import netteForms from 'nette-forms';
 // Initialize Nette Forms validation
 netteForms.initOnLoad();
 ```
+
+### TypeScript
+
+Vite transpiles `.ts` entry points out of the box but never type-checks them. For checking, install
+`typescript`, set `"moduleResolution": "bundler"` and `"noEmit": true` in `tsconfig.json`, and add a
+script `"typecheck": "tsc --noEmit"` to `package.json`.
 
 ### ESLint Configuration
 
@@ -195,9 +208,12 @@ When using Tailwind CSS, configure it to scan Latte templates for class names:
 @source '../app/**/*.latte';
 ```
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Assets](https://doc.nette.org/en/assets) – Nette Assets documentation
-- [Naja](https://naja.js.org/) – AJAX library for Nette
+- [Nette Assets](../../docs/assets/index.md) – `{asset}`, `n:asset`, `{preload}`, mappers, the PHP API
+- [Vite Integration](../../docs/assets/vite.md) – dev server, entry points, production build, Docker and HTTPS
+- [Assets Configuration](../../docs/assets/configuration.md) – the `assets:` section
+
+Naja, the AJAX library, has its own documentation at https://naja.js.org/.

@@ -1,0 +1,189 @@
+# Creating Tracy Extensions
+
+Contents:
+
+- [Tracy Bar Extensions](#tracy-bar-extensions)
+  - [Registration](#registration)
+  - [Tab HTML Code](#tab-html-code)
+  - [Panel HTML Code](#panel-html-code)
+  - [Default Styles](#default-styles)
+  - [Custom Assets](#custom-assets)
+  - [AI Agent Support (since 2.12.0)](#ai-agent-support-since-2120)
+- [Bluescreen Extensions](#bluescreen-extensions)
+  - [Create File Action (since 2.9.0)](#create-file-action-since-290)
+  - [Fibers and Generators (since 2.9.2)](#fibers-and-generators-since-292)
+
+
+Tracy is a great tool for debugging your application. However, you sometimes might want additional information readily available. We'll show you how to write your own extensions for the Tracy Bar to make development even more pleasant.
+
+- Creating your own Tracy Bar panel
+- Creating your own Bluescreen extension
+
+> [!TIP]
+> You can find a repository of ready-made extensions for Tracy on [Componette](https://componette.org/search/tracy).
+
+## Tracy Bar Extensions
+
+Creating a new extension for the Tracy Bar is straightforward. Create an object that implements the `Tracy\IBarPanel` interface, which has two methods: `getTab()` and `getPanel()`. These methods must return the HTML code for the tab (a small label displayed directly on the Bar) and the panel (a popup displayed after clicking the tab). If `getPanel()` returns nothing, only the tab itself is displayed. If `getTab()` returns nothing, nothing is displayed at all, and `getPanel()` is not called.
+
+```php
+class ExamplePanel implements Tracy\IBarPanel
+{
+	public function getTab()
+	{
+		return /* ... */;
+	}
+
+	public function getPanel()
+	{
+		return /* ... */;
+	}
+}
+```
+
+### Registration
+
+Registration is done by calling `Tracy\Debugger::getBar()->addPanel()`:
+
+```php
+Tracy\Debugger::getBar()->addPanel(new ExamplePanel);
+```
+
+Alternatively, you can register the panel directly in the application configuration:
+
+```neon
+tracy:
+	bar:
+		- ExamplePanel
+```
+
+### Tab HTML Code
+
+Should look something like this:
+
+```latte
+<span title="Explanatory tooltip">
+	<svg>...</svg>
+	<span class="tracy-label">Title</span>
+</span>
+```
+
+The image should be in SVG format. If an explanatory tooltip is not needed, the outer `<span>` can be omitted.
+
+### Panel HTML Code
+
+Should look something like this:
+
+```latte
+<h1>Title</h1>
+
+<div class="tracy-inner">
+<div class="tracy-inner-container">
+	... content ...
+</div>
+</div>
+```
+
+The title should either be the same as the tab title or contain additional information.
+
+Keep in mind that a single extension might be registered multiple times, perhaps with different settings. Therefore, for styling, you cannot use CSS IDs, only classes, preferably in the format `tracy-addons-<ClassName>[-<optional>]`. Add this class to the div along with the `tracy-inner` class. When writing CSS, it's useful to prefix selectors with `#tracy-debug .your-class`, as this gives the rule higher specificity than the reset styles.
+
+### Default Styles
+
+In the panel, `<a>`, `<table>`, `<pre>`, and `<code>` elements have predefined styles. If you want to create a link that hides and shows another element, connect them using `href` and `id` attributes and the `tracy-toggle` class:
+
+```latte
+<a href="#tracy-addons-ClassName-{$counter}" class="tracy-toggle">Details</a>
+
+<div id="tracy-addons-ClassName-{$counter}">...</div>
+```
+
+If the default state is collapsed, add the class `tracy-collapsed` to both elements.
+
+Use a static counter to prevent duplicate IDs on one page.
+
+### Custom Assets
+
+If your panel needs its own stylesheet or script, you can have Tracy load extra files alongside its own assets:
+
+```php
+Tracy\Debugger::$customCssFiles[] = __DIR__ . '/panel.css';
+Tracy\Debugger::$customJsFiles[] = __DIR__ . '/panel.js';
+```
+
+### AI Agent Support (since 2.12.0)
+
+When an AI agent drives the browser, Tracy sends a markdown summary of the Tracy Bar to the JS console. Custom panels can supply their own markdown by adding a `getAgentInfo(): ?string` method to their `IBarPanel` implementation:
+
+```php
+class DatabasePanel implements Tracy\IBarPanel
+{
+	public function getTab(): string { /* ... */ }
+	public function getPanel(): string { /* ... */ }
+
+	public function getAgentInfo(): ?string
+	{
+		return "## Database\n\n- Queries: {$this->count}\n- Total time: {$this->time} ms\n";
+	}
+}
+```
+
+The returned markdown is included in the bar's markdown summary. When the method is missing or returns `null`, the panel is omitted from the summary.
+
+See [Tracy's AI agent integration](guide.md#ai-agent-support-since-2120) for the full picture.
+
+## Bluescreen Extensions
+
+This way, you can add custom exception visualizations or panels that will appear on the bluescreen.
+
+An extension is created like this:
+
+```php
+Tracy\Debugger::getBlueScreen()->addPanel(function (?Throwable $e) { // caught exception
+	return [
+		'tab' => '...Title...',
+		'panel' => '...HTML panel content...',
+	];
+});
+```
+
+The function is called twice. First, the exception itself is passed in the `$e` parameter (if an exception occurred), and the returned panel is rendered at the beginning of the page. If it returns `null` or an empty array, the panel is not rendered. Then, it is called with `$e = null`, and the returned panel is rendered below the call stack. If the function returns `'bottom' => true` in the array, the panel is rendered at the very bottom.
+
+Besides panels, you can also add **actions** using `addAction()` – clickable links or buttons that appear in the header of the error page next to the built-in ones (such as *search*):
+
+```php
+Tracy\Debugger::getBlueScreen()->addAction(function (Throwable $e): ?array {
+	if ($e instanceof MyException) {
+		return [
+			'link' => 'https://example.com/help?code=' . $e->getCode(),
+			'label' => 'view help',
+		];
+	}
+	return null;
+});
+```
+
+The callback receives the caught exception and returns an array with the `link` and `label` keys, or `null` if it does not want to add an action for the given exception.
+
+### Create File Action (since 2.9.0)
+
+When you click a file that does not exist yet on the error page, Tracy offers to create it (the *create file* action). You can control the initial contents of such a file by registering a generator:
+
+```php
+Tracy\Debugger::getBlueScreen()->addFileGenerator(function (string $file, ?string $class): ?string {
+	if (str_ends_with($file, 'Test.php')) {
+		return "<?php\n\nclass $class extends Tester\\TestCase\n{\n\t\$END\$\n}\n";
+	}
+	return null;
+});
+```
+
+The callback receives the target file path and, when it is known, the name of the class that should be defined in it. It returns the initial contents (the `$END$` token marks where the cursor will be placed and is removed from the output), or `null` to leave the decision to another generator. Generators are tried from the most recently registered one; the built-in generator produces a plain PHP skeleton.
+
+### Fibers and Generators (since 2.9.2)
+
+If an exception is thrown while a fiber or generator is suspended, its stack is not part of the regular call stack. Tracy automatically shows the stack of fibers and generators reachable from the exception, but one running independently would be missed. You can add it to the BlueScreen manually:
+
+```php
+Tracy\Debugger::getBlueScreen()->addFiber($fiber);
+```

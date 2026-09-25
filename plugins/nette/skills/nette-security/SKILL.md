@@ -169,11 +169,12 @@ public function getGuestIdentity(): ?IIdentity { return new SimpleIdentity('gues
 - Reading an unknown identity data key raises an undefined-key warning – it is a plain array lookup, not a null-safe getter.
 - Multiple independent logins in one session need `$user->getStorage()->setNamespace('backend')` in every place of that section (e.g. `BasePresenter::checkRequirements()`), plus `$user->refreshStorage()` if switched mid-request.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Authentication](https://doc.nette.org/en/security/authentication) – login, identity, storage, IdentityHandler
-- [Authorization](https://doc.nette.org/en/security/authorization) – roles, resources, Permission ACL
-- [Password Hashing](https://doc.nette.org/en/security/passwords) – Passwords API
-- [Security Configuration](https://doc.nette.org/en/security/configuration) – the `security:` section
+- [Authentication](../../docs/security/authentication.md) – login, identity, storage, IdentityHandler
+- [Authorization](../../docs/security/authorization.md) – roles, resources, Permission ACL
+- [Password Hashing](../../docs/security/passwords.md) – the Passwords service
+- [Security Configuration](../../docs/security/configuration.md) – the `security:` section
+- [Vulnerability Protection](../../docs/nette/vulnerability-protection.md) – XSS, CSRF and what Nette does against them

@@ -11,8 +11,8 @@ Uses Nette Database, typically with MySQL, PostgreSQL or SQLite as the backend.
 composer require nette/database
 ```
 
-See [the Explorer API reference](references/explorer.md) for the full ActiveRow/Selection API.
-See [the SQL query reference](references/sql-way.md) for direct SQL queries.
+See [the Explorer documentation](../../docs/database/explorer.md) for the full ActiveRow/Selection API.
+See [the SQL way documentation](../../docs/database/sql-way.md) for direct SQL queries.
 
 ### Database Conventions
 
@@ -308,10 +308,18 @@ services:
 	- LogService(@database.logs.connection)
 ```
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [SQL way](https://doc.nette.org/en/database/sql-way) – SQL queries and Connection API
-- [Database Explorer](https://doc.nette.org/en/database/explorer) – Selection/ActiveRow API
-- [Database Configuration](https://doc.nette.org/en/database/configuration) – connection setup
+- [Nette Database](../../docs/database/guide.md) – overview and choosing between SQL and Explorer
+- [Configuration](../../docs/database/configuration.md) – connections in NEON
+- [SQL Way](../../docs/database/sql-way.md) – queries, placeholders, fetching
+- [Database Explorer](../../docs/database/explorer.md) – the Selection and ActiveRow API
+- [Transactions](../../docs/database/transactions.md) – transaction handling
+- [Type Conversion](../../docs/database/type-conversion.md) – how column values are converted
+- [Structure Reflection](../../docs/database/reflection.md) – reading tables, columns, keys
+- [Exceptions](../../docs/database/exceptions.md) – the exception hierarchy
+- [Security Risks](../../docs/database/security.md) – what is and is not escaped
+- [Supported Databases](../../docs/database/index.md) – the list of drivers
+- [Pagination](../../docs/best-practices/pagination.md) – paginating results with Paginator

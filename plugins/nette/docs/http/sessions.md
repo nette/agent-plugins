@@ -1,0 +1,193 @@
+# Sessions
+
+Contents:
+
+- [Starting a Session](#starting-a-session)
+- [Sections](#sections)
+  - [How to Set Expiration](#how-to-set-expiration)
+  - [Events $onStart, $onBeforeWrite](#events-onstart-onbeforewrite)
+- [Session Management](#session-management)
+  - [`start(): void`](#start-void)
+  - [`isStarted(): bool`](#isstarted-bool)
+  - [`close(): void`](#close-void)
+  - [`destroy(): void`](#destroy-void)
+  - [`exists(): bool`](#exists-bool)
+  - [`regenerateId(): void`](#regenerateid-void)
+  - [`getId(): string`](#getid-string)
+  - [Configuration](#configuration)
+  - [`setName(string $name): static`](#setnamestring-name-static)
+  - [`getName(): string`](#getname-string)
+  - [`setOptions(array $options): static`](#setoptionsarray-options-static)
+  - [`setExpiration(?string $expire): static`](#setexpirationstring-expire-static)
+  - [`setCookieParameters(string $path, ?string $domain=null, ?bool $secure=null, SameSite|string|null $samesite=null): static`](#setcookieparametersstring-path-string-domainnull-bool-securenull-samesitestringnull-samesitenull-static)
+  - [`setSavePath(string $path): static`](#setsavepathstring-path-static)
+  - [`setHandler(\SessionHandlerInterface $handler): static`](#sethandlersessionhandlerinterface-handler-static)
+- [Safety First](#safety-first)
+
+
+HTTP is a stateless protocol; however, almost every application needs to maintain state between requests, such as the content of a shopping cart. This is precisely what sessions are used for. We will show:
+
+- how to use sessions
+- how to prevent naming conflicts
+- how to set expiration
+
+When using sessions, each user receives a unique identifier called a session ID, which is passed in a cookie. This serves as a key to the session data. Unlike cookies, which are stored on the browser side, session data is stored on the server side.
+
+We configure sessions in the [configuration](configuration.md#session); the choice of expiration time is particularly important.
+
+Session management is handled by the [Nette\Http\Session](https://api.nette.org/http/master/Nette/Http/Session.html) object, which you can access by having it passed via [dependency injection](../dependency-injection/passing-dependencies.md). In presenters, simply call `$session = $this->getSession()`.
+
+→ [Installation and requirements](https://doc.nette.org/en/http#toc-installation)
+
+## Starting a Session
+
+By default, Nette automatically starts a session the moment we begin reading from or writing data to it. To start a session manually, use `$session->start()`.
+
+PHP sends HTTP headers affecting caching when starting the session (see [session_cache_limiter](https://php.net/session_cache_limiter)), and possibly a cookie with the session ID. Therefore, it is always necessary to start the session before sending any output to the browser; otherwise, an exception will be thrown. So, if you know that a session will be used during page rendering, start it manually beforehand, for example, in the presenter.
+
+In developer mode, Tracy starts the session because it uses it to display bars for redirects and AJAX requests in the Tracy Bar.
+
+## Sections
+
+In pure PHP, the session data storage is implemented as an array accessible via the global variable `$_SESSION`. The problem is that applications typically consist of many independent parts, and if all of them have only one array available, sooner or later a name collision will occur.
+
+Nette Framework solves this problem by dividing the entire space into sections (objects of [Nette\Http\SessionSection](https://api.nette.org/http/master/Nette/Http/SessionSection.html)). Each unit then uses its own section with a unique name, and no collision can occur.
+
+We obtain a section from the session:
+
+```php
+$section = $session->getSection('unique name');
+```
+
+In the presenter, just use `getSession()` with a parameter:
+
+```php
+// $this is a Presenter
+$section = $this->getSession('unique name');
+```
+
+The existence of a section can be checked using the `$session->hasSection('unique name')` method. A list of the names of all existing sections is returned by `$session->getSectionNames()`.
+
+Working with the section itself is then very easy using the `set()`, `get()`, and `remove()` methods:
+
+```php
+// writing a variable
+$section->set('userName', 'john');
+
+// reading a variable, returns null if it doesn't exist
+echo $section->get('userName');
+
+// removing a variable
+$section->remove('userName');
+```
+
+To get all variables from a section, you can use a `foreach` loop:
+
+```php
+foreach ($section as $key => $val) {
+	echo "$key = $val";
+}
+```
+
+### How to Set Expiration
+
+Expiration can be set for individual sections or even individual variables. We can let a user's login expire after 20 minutes, while still remembering the contents of the shopping cart.
+
+```php
+// section expires after 20 minutes
+$section->setExpiration('20 minutes');
+```
+
+To set the expiration for individual variables, use the third parameter of the `set()` method:
+
+```php
+// variable 'flash' expires after 30 seconds
+$section->set('flash', $message, '30 seconds');
+```
+
+Remember that the expiration time of the entire session (see [session configuration](configuration.md#session)) must be equal to or greater than the time set for individual sections or variables.
+
+To cancel a previously set expiration, use the `removeExpiration()` method; to clear the expiration of a specific variable, pass its name: `removeExpiration('flash')`. To immediately remove the entire section, use the `remove()` method.
+
+### Events $onStart, $onBeforeWrite
+
+The `Nette\Http\Session` object has [events](../nette/glossary.md#events) `$onStart` and `$onBeforeWrite`, so you can add callbacks that are invoked after the session starts or before it is written to disk and subsequently terminated.
+
+```php
+$session->onBeforeWrite[] = function () {
+	// write data to the session
+	$this->section->set('basket', $this->basket);
+};
+```
+
+## Session Management
+
+Overview of methods of the `Nette\Http\Session` class for session management:
+
+### `start(): void`
+
+Starts the session.
+
+### `isStarted(): bool`
+
+Is the session started?
+
+### `close(): void`
+
+Ends the session. The session automatically ends at the end of the script execution.
+
+### `destroy(): void`
+
+Ends and deletes the session.
+
+### `exists(): bool`
+
+Does the HTTP request contain a cookie with a session ID?
+
+### `regenerateId(): void`
+
+Generates a new random session ID. Data remains preserved.
+
+### `getId(): string`
+
+Returns the session ID.
+
+### Configuration
+
+We configure the session in the [configuration](configuration.md#session). If you are writing an application that does not use a DI container, use these methods for configuration. They must be called before starting the session.
+
+### `setName(string $name): static`
+
+Sets the name of the cookie in which the session ID is transmitted. The standard name is `PHPSESSID`. This is useful if you run several different applications on the same website.
+
+### `getName(): string`
+
+Returns the name of the cookie in which the session ID is transmitted.
+
+### `setOptions(array $options): static`
+
+Configures the session. It is possible to set all PHP [session directives](https://www.php.net/manual/en/session.configuration.php) (in camelCase format, e.g., write `savePath` instead of `session.save_path`) and also [readAndClose](https://www.php.net/manual/en/function.session-start.php#refsect1-function.session-start-parameters).
+
+### `setExpiration(?string $expire): static`
+
+Sets the inactivity time after which the session expires.
+
+### `setCookieParameters(string $path, ?string $domain=null, ?bool $secure=null, SameSite|string|null $samesite=null): static`
+
+Sets parameters for cookies. You can change the default parameter values in the [configuration](configuration.md#session-cookie).
+
+### `setSavePath(string $path): static`
+
+Sets the directory where session files are stored.
+
+### `setHandler(\SessionHandlerInterface $handler): static`
+
+Sets a custom handler, see the [PHP documentation](https://www.php.net/manual/en/class.sessionhandlerinterface.php).
+
+## Safety First
+
+The server assumes that it communicates with the same user as long as requests are accompanied by the same session ID. The task of security mechanisms is to ensure that this is indeed the case and that the identifier cannot be stolen or substituted.
+
+Nette Framework therefore correctly configures PHP directives to transfer the session ID only in cookies, make it inaccessible to JavaScript, and ignore any identifiers in the URL. Moreover, at critical moments, such as user login, it generates a new session ID.
+
+The `ini_set` function is used for configuring PHP, but unfortunately, some hosting providers prohibit its use. If this is the case with your host, try to arrange with them to allow this function for you or at least configure the server properly.

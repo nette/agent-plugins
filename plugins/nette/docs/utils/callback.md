@@ -1,0 +1,78 @@
+# Callback Functions
+
+[Nette\Utils\Callback](https://api.nette.org/utils/master/Nette/Utils/Callback.html) is a static class containing functions for working with [PHP callbacks](https://www.php.net/manual/en/language.types.callable.php).
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Callback;
+```
+
+## `check($callable, bool $syntax=false): callable`
+
+Checks if `$callable` is a valid PHP callback. Otherwise, it throws `Nette\InvalidArgumentException`. If `$syntax` is set to `true`, the function only verifies that `$callable` has a valid callback structure but does not check if the class or method actually exists. Returns the original `$callable`.
+
+```php
+Callback::check('trim'); // no exception
+Callback::check(['NonExistentClass', 'method']); // throws Nette\InvalidArgumentException
+Callback::check(['NonExistentClass', 'method'], true); // no exception
+Callback::check(function () {}); // no exception
+Callback::check(null); // throws Nette\InvalidArgumentException
+```
+
+## `toString(callable $callable): string`
+
+Converts a PHP callback to its textual representation. The class or method does not need to exist.
+
+```php
+Callback::toString('trim');                // 'trim'
+Callback::toString(['MyClass', 'method']); // 'MyClass::method'
+```
+
+## `toReflection(callable $callable): \ReflectionMethod|\ReflectionFunction`
+
+Returns a reflection for the method or function used in the PHP callback. Throws `\ReflectionException` if the referenced method or function does not exist.
+
+```php
+$ref = Callback::toReflection('trim');
+// $ref is ReflectionFunction('trim')
+
+$ref = Callback::toReflection(['MyClass', 'method']);
+// $ref is ReflectionMethod('MyClass', 'method')
+```
+
+## `isStatic(callable $callable): bool`
+
+Checks whether the PHP callback is a global function or a static method.
+
+```php
+Callback::isStatic('trim');                // true
+Callback::isStatic(['MyClass', 'method']); // true
+Callback::isStatic([$obj, 'method']);      // false
+Callback::isStatic(function () {});        // false
+```
+
+## `unwrap(\Closure $closure): callable|array`
+
+Unwraps a closure created by `Closure::fromCallable()`. Returns the original callable array or string.
+
+```php
+$closure = Closure::fromCallable(['MyClass', 'method']);
+Callback::unwrap($closure);     // ['MyClass', 'method']
+```
+
+## `invokeSafe(string $function, array $args, callable $onError): mixed`
+
+Calls the native PHP function `$function` with the arguments `$args`, while capturing any warnings or errors it emits with its own handler. This lets you react to problems that native functions normally report only as warnings. The `$onError` callback receives two arguments: the error message (with the leading `function():` prefix removed) and its severity. If it returns `false`, the error is passed on to the standard error handler.
+
+```php
+$result = Callback::invokeSafe('file_get_contents', ['file.txt'], function (string $message, int $severity) {
+	throw new Exception($message);
+});
+```

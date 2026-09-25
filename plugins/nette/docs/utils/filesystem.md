@@ -1,0 +1,219 @@
+# Filesystem Functions
+
+Contents:
+
+- [Manipulation](#manipulation)
+  - [`copy(string $origin, string $target, bool $overwrite=true): void`](#copystring-origin-string-target-bool-overwritetrue-void)
+  - [`createDir(string $dir, int $mode=0777): void`](#createdirstring-dir-int-mode0777-void)
+  - [`delete(string $path): void`](#deletestring-path-void)
+  - [`makeWritable(string $path, int $dirMode=0777, int $fileMode=0666): void`](#makewritablestring-path-int-dirmode0777-int-filemode0666-void)
+  - [`open(string $path, string $mode): resource`](#openstring-path-string-mode-resource)
+  - [`read(string $file): string`](#readstring-file-string)
+  - [`readLines(string $file, bool $stripNewLines=true): \Generator`](#readlinesstring-file-bool-stripnewlinestrue-generator)
+  - [`rename(string $origin, string $target, bool $overwrite=true): void`](#renamestring-origin-string-target-bool-overwritetrue-void)
+  - [`write(string $file, string $content, ?int $mode=0666): void`](#writestring-file-string-content-int-mode0666-void)
+  - [`writeAtomic(string $file, string $content, ?int $mode=0666): void` (since 4.1.5)](#writeatomicstring-file-string-content-int-mode0666-void-since-415)
+- [Paths](#paths)
+  - [`isAbsolute(string $path): bool`](#isabsolutestring-path-bool)
+  - [`isValidFilename(string $name): bool`](#isvalidfilenamestring-name-bool)
+  - [`joinPaths(string ...$segments): string`](#joinpathsstring-segments-string)
+  - [`normalizePath(string $path): string`](#normalizepathstring-path-string)
+  - [`unixSlashes(string $path): string`](#unixslashesstring-path-string)
+  - [`platformSlashes(string $path): string`](#platformslashesstring-path-string)
+  - [`resolvePath(string $basePath, string $path): string` (since 4.0.6)](#resolvepathstring-basepath-string-path-string-since-406)
+- [Static vs Non-static Approach](#static-vs-non-static-approach)
+
+
+[Nette\Utils\FileSystem](https://api.nette.org/utils/master/Nette/Utils/FileSystem.html) is a class with useful functions for working with the file system. One advantage over native PHP functions is that they throw exceptions in case of errors.
+
+If you need to search for files on the disk, use [Finder](finder.md).
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+The following examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\FileSystem;
+```
+
+## Manipulation
+
+### `copy(string $origin, string $target, bool $overwrite=true): void`
+
+Copies a file or an entire directory. Overwrites existing files and directories by default. If `$overwrite` is set to `false` and the target file or directory `$target` already exists, it throws a `Nette\InvalidStateException`. Throws a `Nette\IOException` on error.
+
+```php
+FileSystem::copy('/path/to/source', '/path/to/dest', overwrite: true);
+```
+
+### `createDir(string $dir, int $mode=0777): void`
+
+Creates a directory if it does not exist, including parent directories. Throws a `Nette\IOException` on error.
+
+```php
+FileSystem::createDir('/path/to/dir');
+```
+
+### `delete(string $path): void`
+
+Deletes a file or an entire directory if it exists. If the directory is not empty, it deletes its contents first. Throws a `Nette\IOException` on error.
+
+```php
+FileSystem::delete('/path/to/fileOrDir');
+```
+
+### `makeWritable(string $path, int $dirMode=0777, int $fileMode=0666): void`
+
+Sets file permissions to `$fileMode` or directory permissions to `$dirMode`. Recursively traverses and sets permissions for the entire directory content as well.
+
+```php
+FileSystem::makeWritable('/path/to/fileOrDir');
+```
+
+### `open(string $path, string $mode): resource`
+
+Opens a file and returns a resource handle. The `$mode` parameter works the same as the native `fopen()` function. Throws a `Nette\IOException` on error.
+
+```php
+$res = FileSystem::open('/path/to/file', 'r');
+```
+
+### `read(string $file): string`
+
+Reads the content of a file `$file`. Throws a `Nette\IOException` on error.
+
+```php
+$content = FileSystem::read('/path/to/file');
+```
+
+### `readLines(string $file, bool $stripNewLines=true): \Generator`
+
+Reads the file content line by line. Unlike the native `file()` function, it does not load the entire file into memory but reads it continuously, allowing you to read files larger than the available memory. `$stripNewLines` specifies whether to remove the line break characters `\r` and `\n`. Throws a `Nette\IOException` on error.
+
+```php
+$lines = FileSystem::readLines('/path/to/file');
+
+foreach ($lines as $lineNum => $line) {
+	echo "Line $lineNum: $line\n";
+}
+```
+
+### `rename(string $origin, string $target, bool $overwrite=true): void`
+
+Renames or moves a file or directory specified by `$origin` to `$target`. Overwrites existing files and directories by default. If `$overwrite` is set to `false` and the target file or directory `$target` already exists, it throws a `Nette\InvalidStateException`. Throws a `Nette\IOException` on error.
+
+```php
+FileSystem::rename('/path/to/source', '/path/to/dest', overwrite: true);
+```
+
+### `write(string $file, string $content, ?int $mode=0666): void`
+
+Writes the string `$content` to the file `$file`. If the parent directory doesn't exist, it is created automatically. By default it also sets the file permissions; pass `null` as `$mode` to skip the `chmod` call. Throws a `Nette\IOException` on error.
+
+```php
+FileSystem::write('/path/to/file', $content);
+```
+
+### `writeAtomic(string $file, string $content, ?int $mode=0666): void` (since 4.1.5)
+
+Writes the string `$content` to the file `$file` atomically: the content is first written to a temporary file, which then replaces the target in a single step. A reader accessing the file at the same moment can therefore never see it half-written or truncated. Otherwise it behaves exactly like `write()`. Throws a `Nette\IOException` on error.
+
+```php
+FileSystem::writeAtomic('/path/to/file', $content);
+```
+
+## Paths
+
+### `isAbsolute(string $path): bool`
+
+Determines if the path `$path` is absolute.
+
+```php
+FileSystem::isAbsolute('../backup'); // false
+FileSystem::isAbsolute('/backup');   // true
+FileSystem::isAbsolute('C:/backup'); // true
+```
+
+### `isValidFilename(string $name): bool`
+
+Checks whether `$name` is a valid cross-platform file name with no path information. Rejects empty strings, `.` and `..`, control characters, the characters `<>:"|?*\/`, names ending with a dot or space, and Windows reserved names (`CON`, `NUL`, `COM1`, …).
+
+```php
+FileSystem::isValidFilename('photo.jpg');    // true
+FileSystem::isValidFilename('../photo.jpg'); // false
+FileSystem::isValidFilename('CON');          // false
+```
+
+### `joinPaths(string ...$segments): string`
+
+Joins all path segments and normalizes the result.
+
+```php
+FileSystem::joinPaths('a', 'b', 'file.txt'); // 'a/b/file.txt'
+FileSystem::joinPaths('/a/', '/b/');         // '/a/b/'
+FileSystem::joinPaths('/a/', '/../b');       // '/b'
+```
+
+### `normalizePath(string $path): string`
+
+Normalizes `..`, `.`, and directory separators in the path to the system's standard.
+
+```php
+FileSystem::normalizePath('/file/.');        // '/file'
+FileSystem::normalizePath('\file\..');       // '/'
+FileSystem::normalizePath('/file/../..');    // '/..'
+FileSystem::normalizePath('file/../../bar'); // '../bar'
+```
+
+### `unixSlashes(string $path): string`
+
+Converts slashes to `/` used on Unix systems.
+
+```php
+$path = FileSystem::unixSlashes($path);
+```
+
+### `platformSlashes(string $path): string`
+
+Converts slashes to characters specific to the current platform, i.e., `\` on Windows and `/` elsewhere.
+
+```php
+$path = FileSystem::platformSlashes($path);
+```
+
+### `resolvePath(string $basePath, string $path): string` (since 4.0.6)
+
+Resolves the final path from `$path` relative to the base directory `$basePath`. Absolute paths (`/foo`, `C:/foo`) remain unchanged (only normalizes slashes), relative paths are appended to the base path.
+
+```php
+// On Windows, slashes in the output would be reversed (\)
+FileSystem::resolvePath('/base/dir', '/abs/path');      // '/abs/path'
+FileSystem::resolvePath('/base/dir', 'rel');            // '/base/dir/rel'
+FileSystem::resolvePath('base/dir', '../file.txt');     // 'base/file.txt'
+FileSystem::resolvePath('base', '');                    // 'base'
+```
+
+## Static vs Non-static Approach
+
+To easily replace the class with another one (e.g., a mock) for testing purposes, use it non-statically:
+
+```php
+class AnyClassUsingFileSystem
+{
+	public function __construct(
+		private FileSystem $fileSystem,
+	) {
+	}
+
+	public function readConfig(): string
+	{
+		return $this->fileSystem->read(/* ... */);
+	}
+
+	// ...
+}
+```

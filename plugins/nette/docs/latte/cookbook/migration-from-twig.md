@@ -1,0 +1,73 @@
+# Migration from Twig to Latte
+
+Are you converting a project written in Twig to the more modern Latte? We have a tool to make the migration easier. [Try it out online](https://fiddle.nette.org/twig2latte/).
+
+You can download the tool from [GitHub](https://github.com/nette/latte-tools) or install it using Composer:
+
+```shell
+composer create-project latte/tools
+```
+
+The converter doesn't use simple regular expression substitutions; instead, it utilizes the actual Twig parser, enabling it to handle arbitrarily complex syntax.
+
+The script `twig-to-latte.php` is used for converting from Twig to Latte:
+
+```shell
+php twig-to-latte.php input.twig.html [output.latte]
+```
+
+## Conversion
+
+The conversion requires manual editing of the result, since the conversion cannot be done unambiguously. Twig uses dot syntax, where `{{ a.b }}` can mean `$a->b`, `$a['b']` or `$a->getB()`, which cannot be distinguished during compilation. The converter therefore converts everything to `$a->b`.
+
+Some Twig functions, filters, or tags may not have direct equivalents in Latte, or they might behave slightly differently.
+
+## Example
+
+An input file might look like this:
+
+```twig
+{% use "blocks.twig" %}
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>{{ block("title") }}</title>
+	</head>
+	<body>
+		<h1>{% block title %}My Web{% endblock %}</h1>
+		<ul id="navigation">
+		{% for item in navigation %}
+			{% if not item.active %}
+				<li>{{ item.caption }}</li>
+			{% else %}
+				<li><a href="{{ item.href }}">{{ item.caption }}</a></li>
+			{% endif %}
+		{% endfor %}
+		</ul>
+	</body>
+</html>
+```
+
+After converting to Latte, we get this template:
+
+```latte
+{import 'blocks.latte'}
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>{include title}</title>
+	</head>
+	<body>
+		<h1>{block title}My Web{/block}</h1>
+		<ul id="navigation">
+		{foreach $navigation as $item}
+			{if !$item->active}
+				<li>{$item->caption}</li>
+			{else}
+				<li><a href="{$item->href}">{$item->caption}</a></li>
+			{/if}
+		{/foreach}
+		</ul>
+	</body>
+</html>
+```

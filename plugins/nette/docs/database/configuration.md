@@ -1,0 +1,108 @@
+# Database Configuration
+
+Contents:
+
+- [Single Connection](#single-connection)
+- [Multiple Connections](#multiple-connections)
+- [DI Services](#di-services)
+
+
+Overview of configuration options for Nette Database.
+
+If you are not using the entire framework, but only this library, read [how to load the configuration](../bootstrap/index.md).
+
+## Single Connection
+
+Configure a single database connection:
+
+```neon
+database:
+	# DSN, the only mandatory key
+	dsn: "sqlite:%appDir%/Model/demo.db"
+	user: ...
+	password: ...
+```
+
+This creates the `Nette\Database\Connection` and `Nette\Database\Explorer` services, which are usually passed via [autowiring](../dependency-injection/autowiring.md) or by referring to [their name](#di-services).
+
+Other settings:
+
+```neon
+database:
+	# show the database panel in Tracy Bar?
+	debugger: ...     # (bool) defaults to on if Tracy is active
+
+	# show query EXPLAIN in Tracy Bar?
+	explain: ...      # (bool) defaults to true
+
+	# enable autowiring for this connection?
+	autowired: ...    # (bool) defaults to true for the first connection
+
+	# table conventions: discovered, static, or class name
+	conventions: discovered  # (string) defaults to 'discovered'
+
+	options:
+		# connect to the database only when needed?
+		lazy: ...     # (bool) defaults to false
+
+		# PHP database driver class
+		driverClass:  # (string)
+
+		# MySQL only: sets sql_mode
+		sqlmode:      # (string)
+
+		# MySQL only: sets SET NAMES
+		charset:      # (string) defaults to 'utf8mb4'
+
+		# MySQL only: converts TINYINT(1) to bool
+		convertBoolean: # (bool) defaults to false
+
+		# returns date columns as immutable objects (since version 3.2.1)
+		newDateTime:  # (bool) defaults to false
+
+		# only Oracle and SQLite: format for storing date
+		formatDateTime: # (string) defaults to 'U'
+```
+
+The `options` key can contain other options found in the [PDO driver documentation](https://www.php.net/manual/en/pdo.drivers.php), such as:
+
+```neon
+database:
+	options:
+		PDO::MYSQL_ATTR_COMPRESS: true
+```
+
+## Multiple Connections
+
+In the configuration, we can define multiple database connections by dividing them into named sections:
+
+```neon
+database:
+	main:
+		dsn: 'mysql:host=127.0.0.1;dbname=test'
+		user: root
+		password: password
+
+	another:
+		dsn: 'sqlite::memory:'
+```
+
+Autowiring is enabled only for services from the first section. This can be changed using `autowired: false` or `autowired: true`.
+
+## DI Services
+
+These services are added to the DI container, where `###` represents the connection name:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `database.###.connection` | [Nette\Database\Connection](https://api.nette.org/database/master/Nette/Database/Connection.html) | database connection |
+| `database.###.explorer` | [Nette\Database\Explorer](https://api.nette.org/database/master/Nette/Database/Explorer.html) | [Database Explorer](explorer.md) |
+
+If we define only one connection, the service names will be `database.default.connection` and `database.default.explorer`. If we define multiple connections as in the example above, the names will correspond to the sections, i.e., `database.main.connection`, `database.main.explorer`, and also `database.another.connection` and `database.another.explorer`.
+
+We pass non-autowired services explicitly by referencing their name:
+
+```neon
+services:
+	- UserFacade(@database.another.connection)
+```

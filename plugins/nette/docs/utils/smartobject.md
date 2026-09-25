@@ -1,0 +1,246 @@
+# SmartObject
+
+Contents:
+
+- [Consistent Error States](#consistent-error-states)
+- [“Did you mean?” Helper](#did-you-mean-helper)
+- [Properties with Controlled Access](#properties-with-controlled-access)
+- [Extension Methods](#extension-methods)
+- [Getting Class Name](#getting-class-name)
+- [Reflection and Annotation Access](#reflection-and-annotation-access)
+- [Method Getters](#method-getters)
+- [Events](#events)
+
+
+SmartObject enhanced PHP object behavior for many years. Since PHP 8.4, all of its features have become native parts of PHP itself, thus completing its historic mission as a pioneer of the modern object-oriented approach in PHP.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+SmartObject was introduced in 2007 as a revolutionary solution to the shortcomings of PHP's object model at the time. In an era when PHP faced numerous issues with object-oriented design, it brought significant improvements and simplified developers' workflows. It became a legendary component of the Nette Framework. SmartObject offered functionality that PHP only acquired many years later – from access control for object properties to sophisticated syntactic sugar. With the release of PHP 8.4, it fulfilled its historical mission, as most of its features became a native part of the language. It was ahead of PHP's development by an impressive 17 years.
+
+Technically, SmartObject went through an interesting evolution. Initially, it was implemented as the `Nette\Object` class, from which other classes inherited the needed functionality. A significant change came with PHP 5.4, which introduced trait support. This enabled transformation into the `Nette\SmartObject` trait, bringing greater flexibility – developers could use the functionality even in classes that already inherited from another class. While the original `Nette\Object` class ceased to exist with PHP 7.2 (which prohibited naming classes with the word `Object`), the `Nette\SmartObject` trait lives on.
+
+Let's explore the features that `Nette\Object` and later `Nette\SmartObject` offered. Each of these functions represented a significant step forward in PHP object-oriented programming at the time.
+
+## Consistent Error States
+
+One of the most pressing issues of early PHP was inconsistent behavior when working with objects. `Nette\Object` brought order and predictability to this chaos. Let's look at how PHP originally behaved:
+
+```php
+echo $obj->undeclared;    // E_NOTICE, later E_WARNING
+$obj->undeclared = 1;     // passes silently without warning
+$obj->unknownMethod();    // Fatal error (uncatchable by try/catch)
+```
+
+A fatal error would terminate the application without any possibility to react. Silently writing to non-existent members without warning could lead to serious errors that were difficult to detect. `Nette\Object` caught all these cases and threw a `MemberAccessException`, allowing programmers to react to and handle these errors:
+
+```php
+echo $obj->undeclared;   // throws Nette\MemberAccessException
+$obj->undeclared = 1;    // throws Nette\MemberAccessException
+$obj->unknownMethod();   // throws Nette\MemberAccessException
+```
+
+Since PHP 7.0, the language no longer causes uncatchable fatal errors, and since PHP 8.2, access to undeclared members is considered an error.
+
+## “Did you mean?” Helper
+
+`Nette\Object` came with a very convenient feature: intelligent suggestions for typos. When a developer made a mistake in a method or variable name, it not only reported the error but also offered help by suggesting the correct name. This iconic message, known as “did you mean?”, saved programmers hours of hunting for typos:
+
+```php
+class Foo extends Nette\Object
+{
+	public static function from($var)
+	{
+	}
+}
+
+$foo = Foo::form($var);
+// throws Nette\MemberAccessException
+// "Call to undefined static method Foo::form(), did you mean from()?"
+```
+
+While current PHP doesn't have any form of “did you mean?”, this suffix can be added to errors by [Tracy](https://tracy.nette.org/en). And it can even [auto-fix](../tracy/open-files-in-ide.md#demos) such errors.
+
+## Properties with Controlled Access
+
+A significant innovation that SmartObject brought to PHP was properties with controlled access. This concept, common in languages like C# or Python, allowed developers to elegantly control access to object data and ensure their consistency. Properties are a powerful tool of object-oriented programming. They function like variables but are actually represented by methods (getters and setters). This allows input validation or value generation at the time of reading.
+
+To use properties, you had to:
+
+- Add the annotation `@property <type> $xyz` to the class
+- Create a getter named `getXyz()` or `isXyz()`, a setter named `setXyz()`
+- Ensure the getter and setter were *public* or *protected*. They were optional, so a property could be *read-only* or *write-only*
+
+Let's look at a practical example using the `Circle` class, where we'll use properties to ensure that the radius is always non-negative. We'll replace `public $radius` with a property:
+
+```php
+/**
+ * @property float $radius
+ * @property-read bool $visible
+ */
+class Circle
+{
+	use Nette\SmartObject;
+
+	private float $radius = 0.0; // not public!
+
+	// getter for $radius property
+	protected function getRadius(): float
+	{
+		return $this->radius;
+	}
+
+	// setter for $radius property
+	protected function setRadius(float $radius): void
+	{
+		// sanitize the value before saving
+		$this->radius = max(0.0, $radius);
+	}
+
+	// getter for $visible property
+	protected function isVisible(): bool
+	{
+		return $this->radius > 0;
+	}
+}
+
+$circle = new Circle;
+$circle->radius = 10;  // actually calls setRadius(10)
+echo $circle->radius;  // calls getRadius()
+echo $circle->visible; // calls isVisible()
+```
+
+Since PHP 8.4, the same functionality can be achieved using property hooks, which offer a much more elegant and concise syntax:
+
+```php
+class Circle
+{
+	public float $radius = 0.0 {
+		set => max(0.0, $value);
+	}
+
+	public bool $visible {
+		get => $this->radius > 0;
+	}
+}
+```
+
+## Extension Methods
+
+`Nette\Object` brought another interesting concept to PHP inspired by modern programming languages – extension methods. This feature, borrowed from C#, allowed developers to elegantly extend existing classes with new methods without modifying them or inheriting from them. For instance, you could add an `addDateTime()` method to a form that adds a custom DateTimePicker:
+
+```php
+Form::extensionMethod(
+	'addDateTime',
+	fn(Form $form, string $name) => $form[$name] = new DateTimePicker,
+);
+
+$form = new Form;
+$form->addDateTime('date');
+```
+
+Extension methods proved impractical because their names were not suggested by code editors, which instead reported that the method did not exist. Therefore, their support was discontinued. Today, it's more common to use composition or inheritance to extend class functionality.
+
+## Getting Class Name
+
+SmartObject offered a simple method for getting the class name:
+
+```php
+$class = $obj->getClass(); // using Nette\Object
+$class = $obj::class;      // since PHP 8.0
+```
+
+## Reflection and Annotation Access
+
+`Nette\Object` provided access to reflection and annotations through the methods `getReflection()` and `getAnnotation()`. This approach significantly simplified working with class meta-information:
+
+```php
+/**
+ * @author John Doe
+ */
+class Foo extends Nette\Object
+{
+}
+
+$obj = new Foo;
+$reflection = $obj->getReflection();
+$reflection->getAnnotation('author'); // returns 'John Doe'
+```
+
+Since PHP 8.0, it's possible to access meta-information through attributes, which offer even more possibilities and better type checking:
+
+```php
+#[Author('John Doe')]
+class Foo
+{
+}
+
+$obj = new Foo;
+$reflection = new ReflectionObject($obj);
+$reflection->getAttributes(Author::class)[0];
+```
+
+## Method Getters
+
+`Nette\Object` offered an elegant way to pass methods as if they were variables:
+
+```php
+class Foo extends Nette\Object
+{
+	public function adder($a, $b)
+	{
+		return $a + $b;
+	}
+}
+
+$obj = new Foo;
+$method = $obj->adder;
+echo $method(2, 3); // 5
+```
+
+Since PHP 8.1, you can use the [first-class callable syntax](https://www.php.net/manual/en/functions.first_class_callable_syntax.php), which takes this concept even further:
+
+```php
+$obj = new Foo;
+$method = $obj->adder(...);
+echo $method(2, 3); // 5
+```
+
+## Events
+
+SmartObject offers simplified syntax for working with [events](../nette/glossary.md#events). Events allow objects to inform other parts of the application about changes in their state:
+
+```php
+class Circle
+{
+	use Nette\SmartObject;
+
+	public array $onChange = [];
+
+	private float $radius = 0.0;
+
+	public function setRadius(float $radius): void
+	{
+		$this->onChange($this, $radius);
+		$this->radius = $radius;
+	}
+}
+```
+
+The code `$this->onChange($this, $radius)` is equivalent to the following loop:
+
+```php
+foreach ($this->onChange as $callback) {
+	$callback($this, $radius);
+}
+```
+
+For clarity, we recommend avoiding the magic `$this->onChange()` method. A practical replacement is the [Nette\Utils\Arrays::invoke](arrays.md#invokeiterable-callbacks-args-array) function:
+
+```php
+Nette\Utils\Arrays::invoke($this->onChange, $this, $radius);
+```

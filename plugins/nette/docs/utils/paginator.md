@@ -1,0 +1,62 @@
+# Paginator
+
+Need to paginate data listings? Since pagination math can be tricky, [Nette\Utils\Paginator](https://api.nette.org/utils/master/Nette/Utils/Paginator.html) is here to help.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+Let's create a paginator object and set some basic information:
+
+```php
+$paginator = new Nette\Utils\Paginator;
+$paginator->setPage(1); // number of the current page
+$paginator->setItemsPerPage(30); // number of items per page
+$paginator->setItemCount(356); // total number of items (if known)
+```
+
+Pages are numbered starting from 1. You can change this using `setBase()`:
+
+```php
+$paginator->setBase(0); // number from 0
+```
+
+The object now provides all the essential information needed for creating pagination controls. For example, you can pass it to a template and use it there.
+
+```php
+$paginator->isFirst(); // are we on the first page?
+$paginator->isLast(); // are we on the last page?
+$paginator->getPage(); // current page number
+$paginator->getFirstPage(); // first page number
+$paginator->getLastPage(); // last page number
+$paginator->getFirstItemOnPage(); // sequence number of the first item on the page
+$paginator->getLastItemOnPage(); // sequence number of the last item on the page
+$paginator->getBase(); // page numbering base (default 1)
+$paginator->getPageCount(); // total number of pages
+$paginator->getItemsPerPage(); // number of items per page
+$paginator->getItemCount(); // total number of items (if known)
+```
+
+The paginator helps in formulating SQL queries. The `getLength()` and `getOffset()` methods return values used in `LIMIT` and `OFFSET` clauses:
+
+```php
+$result = $database->query(
+	'SELECT * FROM items LIMIT ? OFFSET ?',
+	$paginator->getLength(),
+	$paginator->getOffset(),
+);
+```
+
+If you need to paginate in reverse order (i.e., page 1 corresponds to the highest offset), use `getCountdownOffset()`:
+
+```php
+$result = $database->query(
+	'SELECT * FROM items LIMIT ? OFFSET ?',
+	$paginator->getLength(),
+	$paginator->getCountdownOffset(),
+);
+```
+
+An example of usage in an application can be found in the cookbook [Paginating Database Results](../best-practices/pagination.md).

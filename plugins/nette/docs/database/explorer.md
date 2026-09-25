@@ -1,0 +1,877 @@
+# Database Explorer
+
+Contents:
+
+- [Filtering and Sorting](#filtering-and-sorting)
+  - [Escaping and Identifiers](#escaping-and-identifiers)
+  - [`where(string|array $condition, ...$parameters): static`](#wherestringarray-condition-parameters-static)
+  - [`whereOr(array $parameters): static`](#whereorarray-parameters-static)
+  - [`wherePrimary(mixed $key): static`](#whereprimarymixed-key-static)
+  - [`order(string $columns, ...$parameters): static`](#orderstring-columns-parameters-static)
+  - [`select(string $columns, ...$parameters): static`](#selectstring-columns-parameters-static)
+  - [`limit(?int $limit, ?int $offset = null): static`](#limitint-limit-int-offset--null-static)
+  - [`page(int $page, int $itemsPerPage, &$numOfPages = null): static`](#pageint-page-int-itemsperpage-numofpages--null-static)
+  - [`group(string $columns, ...$parameters): static`](#groupstring-columns-parameters-static)
+  - [`having(string $having, ...$parameters): static`](#havingstring-having-parameters-static)
+- [Reading Data](#reading-data)
+  - [`foreach` – Iterating Through All Rows](#foreach-iterating-through-all-rows)
+  - [`get($key): ?ActiveRow`](#getkey-activerow)
+  - [`fetch(): ?ActiveRow`](#fetch-activerow)
+  - [`fetchPairs(string|int|null $key = null, string|int|null $value = null): array`](#fetchpairsstringintnull-key--null-stringintnull-value--null-array)
+  - [`fetchPairs(Closure $callback): array`](#fetchpairsclosure-callback-array)
+  - [`fetchAll(): array`](#fetchall-array)
+  - [`count(): int`](#count-int)
+  - [`ActiveRow::toArray(): array`](#activerowtoarray-array)
+- [Aggregation](#aggregation)
+  - [`count(string $expr): int`](#countstring-expr-int)
+  - [`min(string $expr) and max(string $expr)`](#minstring-expr-and-maxstring-expr)
+  - [`sum(string $expr): mixed`](#sumstring-expr-mixed)
+  - [`aggregation(string $function, ?string $groupFunction = null): mixed`](#aggregationstring-function-string-groupfunction--null-mixed)
+- [Insert, Update & Delete](#insert-update--delete)
+  - [`Selection::insert(iterable $data)`](#selectioninsertiterable-data)
+  - [`Selection::update(iterable $data): int`](#selectionupdateiterable-data-int)
+  - [`Selection::delete(): int`](#selectiondelete-int)
+  - [`ActiveRow::update(iterable $data): bool`](#activerowupdateiterable-data-bool)
+  - [`ActiveRow::delete(): int`](#activerowdelete-int)
+- [Relationships Between Tables](#relationships-between-tables)
+  - [Accessing the Parent Table](#accessing-the-parent-table)
+  - [Accessing the Child Table](#accessing-the-child-table)
+  - [Many-to-Many Relationship](#many-to-many-relationship)
+  - [Querying Through Related Tables](#querying-through-related-tables)
+  - [Extending Conditions for JOIN](#extending-conditions-for-join)
+
+
+Explorer offers an intuitive and efficient way to work with your database. It automatically handles table relationships and optimizes queries, allowing you to focus on your application logic. It works immediately without configuration. If you need full control over SQL queries, you can use the [SQL way](sql-way.md).
+
+- Working with data is natural and easy to understand
+- Generates optimized SQL queries that fetch only the necessary data
+- Provides easy access to related data without the need to write JOIN queries
+- Works immediately without any configuration or entity generation
+
+Working with the Explorer begins by calling the `table()` method on the [Nette\Database\Explorer](https://api.nette.org/database/master/Nette/Database/Explorer.html) object (see [Connection and Configuration](guide.md#connection-and-configuration) for details on setting up the database connection):
+
+```php
+$books = $explorer->table('book'); // 'book' is the table name
+```
+
+The method returns a [Selection](https://api.nette.org/database/master/Nette/Database/Table/Selection.html) object, which represents an SQL query. Additional methods can be chained to this object for filtering and sorting results. The query is assembled and executed only when the data is requested, for example, by iterating with `foreach`. Each row is represented by an [ActiveRow](https://api.nette.org/database/master/Nette/Database/Table/ActiveRow.html) object:
+
+```php
+foreach ($books as $book) {
+	echo $book->title;        // outputs the 'title' column
+	echo $book->author_id;    // outputs the 'author_id' column
+}
+```
+
+Explorer greatly simplifies working with [table relationships](#relationships-between-tables). The following example shows how easily we can output data from related tables (books and their authors). Notice that no JOIN queries need to be written; Nette generates them for us:
+
+```php
+$books = $explorer->table('book');
+
+foreach ($books as $book) {
+	echo 'Book: ' . $book->title;
+	echo 'Author: ' . $book->author->name; // creates a JOIN to the 'author' table
+}
+```
+
+Nette Database Explorer optimizes queries for maximum efficiency. The above example performs only two SELECT queries, regardless of whether we process 10 or 10,000 books.
+
+Additionally, Explorer tracks which columns are used in the code and fetches only those from the database, saving further performance. This behavior is fully automatic and adaptive. If you later modify the code to use additional columns, Explorer automatically adjusts the queries. You don't need to configure anything or think about which columns will be needed – leave that to Nette.
+
+## Filtering and Sorting
+
+The `Selection` class provides methods for filtering and sorting data selections.
+
+|  |  |
+| --- | --- |
+| `where($condition, ...$params)` | Adds a WHERE condition. Multiple conditions are combined using AND |
+| `whereOr(array $conditions)` | Adds a group of WHERE conditions combined using OR |
+| `wherePrimary($value)` | Adds a WHERE condition based on the primary key |
+| `order($columns, ...$params)` | Sets sorting with ORDER BY |
+| `select($columns, ...$params)` | Specifies which columns to fetch |
+| `limit($limit, $offset = null)` | Limits the number of rows (LIMIT) and optionally sets OFFSET |
+| `page($page, $itemsPerPage, &$numOfPages = null)` | Sets pagination |
+| `group($columns, ...$params)` | Groups rows (GROUP BY) |
+| `having($condition, ...$params)` | Adds a HAVING condition for filtering grouped rows |
+
+Methods can be chained (the so-called [fluent interface](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-fluent-interfaces)): `$table->where(...)->order(...)->limit(...)`.
+
+In these methods, you can also use special notations for accessing [data from related tables](#querying-through-related-tables).
+
+### Escaping and Identifiers
+
+The methods automatically escape parameters and quote identifiers (table and column names), preventing SQL injection. To ensure proper operation, a few rules must be followed:
+
+- Write keywords, function names, procedures, etc., in **uppercase**.
+- Write column and table names in **lowercase**.
+- Always pass strings using **parameters**.
+
+```php
+where('name = ' . $name);         // CRITICAL VULNERABILITY: SQL injection
+where('name LIKE "%search%"');    // WRONG: complicates automatic quoting
+where('name LIKE ?', '%search%'); // CORRECT: value passed as a parameter
+
+where('name like ?', $name);     // WRONG: generates: `name` `like` ?
+where('name LIKE ?', $name);     // CORRECT: generates: `name` LIKE ?
+where('LOWER(name) = ?', $value);// CORRECT: LOWER(`name`) = ?
+```
+
+### `where(string|array $condition, ...$parameters): static`
+
+Filters results using WHERE conditions. Its strength lies in intelligently handling various value types and automatically selecting appropriate SQL operators.
+
+Basic usage:
+
+```php
+$table->where('id', $value);     // WHERE `id` = 123
+$table->where('id > ?', $value); // WHERE `id` > 123
+$table->where('id = ? OR name = ?', $id, $name); // WHERE `id` = 1 OR `name` = 'Jon Snow'
+```
+
+Thanks to automatic detection of suitable operators, you don't need to handle various special cases – Nette resolves them for you:
+
+```php
+$table->where('id', 1);          // WHERE `id` = 1
+$table->where('id', null);       // WHERE `id` IS NULL
+$table->where('id', [1, 2, 3]);  // WHERE `id` IN (1, 2, 3)
+// You can also use the placeholder ? without an operator:
+$table->where('id ?', 1);        // WHERE `id` = 1
+```
+
+The method correctly handles negative conditions and empty arrays:
+
+```php
+$table->where('id', []);         // WHERE `id` IS NULL AND FALSE -- finds nothing
+$table->where('id NOT', []);     // WHERE `id` IS NULL OR TRUE -- finds everything
+$table->where('NOT (id ?)', []); // WHERE NOT (`id` IS NULL AND FALSE) -- finds everything
+// $table->where('NOT id ?', $ids); // WARNING: This syntax is not supported
+```
+
+You can also pass the result of another table query as a parameter, creating a subquery:
+
+```php
+// WHERE `id` IN (SELECT `id` FROM `tableName`)
+$table->where('id', $explorer->table($tableName));
+
+// WHERE `id` IN (SELECT `col` FROM `tableName`)
+$table->where('id', $explorer->table($tableName)->select('col'));
+```
+
+Conditions can also be passed as an array, whose items are combined using AND:
+
+```php
+// WHERE (`price_final` < `price_original`) AND (`stock_count` > `min_stock`)
+$table->where([
+	'price_final < price_original',
+	'stock_count > min_stock',
+]);
+```
+
+In the array, you can use key ⇒ value pairs, and Nette will again automatically choose the correct operators:
+
+```php
+// WHERE (`status` = 'active') AND (`id` IN (1, 2, 3))
+$table->where([
+	'status' => 'active',
+	'id' => [1, 2, 3],
+]);
+```
+
+In the array, you can combine SQL expressions with placeholders and multiple parameters. This is suitable for complex conditions with precisely defined operators:
+
+```php
+// WHERE (`age` > 18) AND (ROUND(`score`, 2) > 75.5)
+$table->where([
+	'age > ?' => 18,
+	'ROUND(score, ?) > ?' => [2, 75.5], // two parameters are passed as an array
+]);
+```
+
+Multiple calls to `where()` automatically combine conditions using AND.
+
+### `whereOr(array $parameters): static`
+
+Similar to `where()`, this adds conditions, but combines them using OR:
+
+```php
+// WHERE (`status` = 'active') OR (`deleted` = 1)
+$table->whereOr([
+	'status' => 'active',
+	'deleted' => true,
+]);
+```
+
+More complex expressions can also be used here:
+
+```php
+// WHERE (`price` > 1000) OR (`price_with_tax` > 1500)
+$table->whereOr([
+	'price > ?' => 1000,
+	'price_with_tax > ?' => 1500,
+]);
+```
+
+### `wherePrimary(mixed $key): static`
+
+Adds a condition for the table's primary key:
+
+```php
+// WHERE `id` = 123
+$table->wherePrimary(123);
+
+// WHERE `id` IN (1, 2, 3)
+$table->wherePrimary([1, 2, 3]);
+```
+
+If the table has a composite primary key (e.g., `foo_id`, `bar_id`), pass it as an array:
+
+```php
+// WHERE `foo_id` = 1 AND `bar_id` = 5
+$table->wherePrimary(['foo_id' => 1, 'bar_id' => 5])->fetch();
+
+// WHERE (`foo_id`, `bar_id`) IN ((1, 5), (2, 3))
+$table->wherePrimary([
+	['foo_id' => 1, 'bar_id' => 5],
+	['foo_id' => 2, 'bar_id' => 3],
+])->fetchAll();
+```
+
+### `order(string $columns, ...$parameters): static`
+
+Specifies the order in which rows are returned. You can sort by one or more columns, in ascending or descending order, or according to a custom expression:
+
+```php
+$table->order('created');                   // ORDER BY `created`
+$table->order('created DESC');              // ORDER BY `created` DESC
+$table->order('priority DESC, created');    // ORDER BY `priority` DESC, `created`
+$table->order('status = ? DESC', 'active'); // ORDER BY `status` = 'active' DESC
+```
+
+### `select(string $columns, ...$parameters): static`
+
+Specifies the columns to be returned from the database. By default, Nette Database Explorer returns only the columns that are actually used in the code. Use the `select()` method when you need to retrieve specific expressions:
+
+```php
+// SELECT *, DATE_FORMAT(`created_at`, "%d.%m.%Y") AS `formatted_date`
+$table->select('*, DATE_FORMAT(created_at, ?) AS formatted_date', '%d.%m.%Y');
+```
+
+Aliases defined using `AS` are then accessible as properties of the `ActiveRow` object:
+
+```php
+foreach ($table as $row) {
+	echo $row->formatted_date;   // access the alias
+}
+```
+
+### `limit(?int $limit, ?int $offset = null): static`
+
+Limits the number of returned rows (LIMIT) and optionally allows setting an offset:
+
+```php
+$table->limit(10);        // LIMIT 10 (returns the first 10 rows)
+$table->limit(10, 20);    // LIMIT 10 OFFSET 20
+```
+
+For pagination, it is more appropriate to use the `page()` method.
+
+### `page(int $page, int $itemsPerPage, &$numOfPages = null): static`
+
+Facilitates pagination of results. It accepts the page number (starting from 1) and the number of items per page. Optionally, you can pass a reference to a variable where the total number of pages will be stored:
+
+```php
+$numOfPages = null;
+$table->page(page: 3, itemsPerPage: 10, numOfPages: $numOfPages);
+echo "Total pages: $numOfPages";
+```
+
+### `group(string $columns, ...$parameters): static`
+
+Groups rows according to the specified columns (GROUP BY). It is typically used in conjunction with aggregate functions:
+
+```php
+// Counts the number of products in each category
+$table->select('category_id, COUNT(*) AS count')
+	->group('category_id');
+```
+
+### `having(string $having, ...$parameters): static`
+
+Sets a condition for filtering grouped rows (HAVING). It can be used in conjunction with the `group()` method and aggregate functions:
+
+```php
+// Finds categories that have more than 100 products
+$table->select('category_id, COUNT(*) AS count')
+	->group('category_id')
+	->having('count > ?', 100);
+```
+
+## Reading Data
+
+For reading data from the database, several useful methods are available:
+
+|  |  |
+| --- | --- |
+| `foreach ($table as $key => $row)` | Iterates through all rows, `$key` is the primary key value, `$row` is an ActiveRow object |
+| `$row = $table->get($key)` | Returns a single row by primary key |
+| `$row = $table->fetch()` | Returns the current row and advances the pointer to the next one |
+| `$array = $table->fetchPairs()` | Creates an associative array from the results |
+| `$array = $table->fetchAll()` | Returns all rows as an array |
+| `count($table)` | Returns the number of rows in the Selection object |
+
+The [ActiveRow](https://api.nette.org/database/master/Nette/Database/Table/ActiveRow.html) object is read-only. This means you cannot change the values of its properties. This restriction ensures data consistency and prevents unexpected side effects. Data is loaded from the database, and any changes should be made explicitly and in a controlled manner.
+
+### `foreach` – Iterating Through All Rows
+
+The easiest way to execute a query and retrieve rows is by iterating using a `foreach` loop. It automatically executes the SQL query.
+
+```php
+$books = $explorer->table('book');
+foreach ($books as $key => $book) {
+	// $key is the primary key value, $book is ActiveRow
+	echo "$book->title ({$book->author->name})";
+}
+```
+
+### `get($key): ?ActiveRow`
+
+Executes the SQL query and returns the row by primary key, or `null` if it doesn't exist.
+
+```php
+$book = $explorer->table('book')->get(123);  // returns ActiveRow with ID 123 or null
+if ($book) {
+	echo $book->title;
+}
+```
+
+### `fetch(): ?ActiveRow`
+
+Returns the current row and advances the internal pointer to the next one. If there are no more rows, it returns `null`.
+
+```php
+$books = $explorer->table('book');
+while ($book = $books->fetch()) {
+	$this->processBook($book);
+}
+```
+
+### `fetchPairs(string|int|null $key = null, string|int|null $value = null): array`
+
+Returns results as an associative array. The first argument specifies the column name to be used as the key in the array, the second argument specifies the column name to be used as the value:
+
+```php
+$authors = $explorer->table('author')->fetchPairs('id', 'name');
+// [1 => 'John Doe', 2 => 'Jane Doe', ...]
+```
+
+If only the first parameter is provided, the value will be the entire row, i.e., the `ActiveRow` object:
+
+```php
+$authors = $explorer->table('author')->fetchPairs('id');
+// [1 => ActiveRow(id: 1, ...), 2 => ActiveRow(id: 2, ...), ...]
+```
+
+In case of duplicate keys, the value from the last row is used. When using `null` as the key, the array will be indexed numerically starting from zero (then no collisions occur):
+
+```php
+$authors = $explorer->table('author')->fetchPairs(null, 'name');
+// [0 => 'John Doe', 1 => 'Jane Doe', ...]
+```
+
+### `fetchPairs(Closure $callback): array`
+
+Alternatively, you can pass a callback as a parameter, which will return either a single value or a key-value pair for each row.
+
+```php
+$titles = $explorer->table('book')
+	->fetchPairs(fn($row) => "$row->title ({$row->author->name})");
+// ['First Book (John Novak)', ...]
+
+// The callback can also return an array with a key & value pair:
+$titles = $explorer->table('book')
+	->fetchPairs(fn($row) => [$row->title, $row->author->name]);
+// ['First Book' => 'John Novak', ...]
+```
+
+### `fetchAll(): array`
+
+Returns all rows as an associative array of `ActiveRow` objects, where the keys are the primary key values.
+
+```php
+$allBooks = $explorer->table('book')->fetchAll();
+// [1 => ActiveRow(id: 1, ...), 2 => ActiveRow(id: 2, ...), ...]
+```
+
+### `count(): int`
+
+The `count()` method without a parameter returns the number of rows in the `Selection` object:
+
+```php
+$table->where('category', 1);
+$count = $table->count();
+$count = count($table); // alternative
+```
+
+Note: `count()` with a parameter performs the COUNT aggregate function in the database, see below.
+
+### `ActiveRow::toArray(): array`
+
+Converts the `ActiveRow` object to an associative array, where keys are column names and values are the corresponding data.
+
+```php
+$book = $explorer->table('book')->get(1);
+$bookArray = $book->toArray();
+// $bookArray will be ['id' => 1, 'title' => '...', 'author_id' => ..., ...]
+```
+
+## Aggregation
+
+The `Selection` class provides methods for easily performing aggregate functions (COUNT, SUM, MIN, MAX, AVG, etc.).
+
+|  |  |
+| --- | --- |
+| `count($expr)` | Counts the number of rows |
+| `min($expr)` | Returns the minimum value in a column |
+| `max($expr)` | Returns the maximum value in a column |
+| `sum($expr)` | Returns the sum of values in a column |
+| `aggregation($function)` | Allows any aggregation function, such as `AVG()` or `GROUP_CONCAT()` |
+
+### `count(string $expr): int`
+
+Executes an SQL query with the COUNT function and returns the result. The method is used to determine how many rows match a certain condition:
+
+```php
+$count = $table->count('*');                 // SELECT COUNT(*) FROM `table`
+$count = $table->count('DISTINCT column');   // SELECT COUNT(DISTINCT `column`) FROM `table`
+```
+
+Note: [count()](#count-int) without a parameter only returns the number of rows in the `Selection` object.
+
+### `min(string $expr) and max(string $expr)`
+
+The `min()` and `max()` methods return the minimum and maximum values in the specified column or expression:
+
+```php
+// SELECT MAX(`price`) FROM `products` WHERE `active` = 1
+$maxPrice = $products->where('active', true)
+	->max('price');
+```
+
+### `sum(string $expr): mixed`
+
+Returns the sum of values in the specified column or expression:
+
+```php
+// SELECT SUM(`price` * `items_in_stock`) FROM `products` WHERE `active` = 1
+$totalPrice = $products->where('active', true)
+	->sum('price * items_in_stock');
+```
+
+### `aggregation(string $function, ?string $groupFunction = null): mixed`
+
+Allows performing any aggregate function.
+
+```php
+// average price of products in a category
+$avgPrice = $products->where('category_id', 1)
+	->aggregation('AVG(price)');
+
+// joins product tags into a single string
+$tags = $products->where('id', 1)
+	->aggregation('GROUP_CONCAT(tag.name) AS tags')
+	->fetch()
+	->tags;
+```
+
+If we need to aggregate results that already result from some aggregate function and grouping (e.g., `SUM(value)` over grouped rows), we specify the aggregate function to be applied to these intermediate results as the second argument:
+
+```php
+// Calculates the total price of products in stock for individual categories and then sums these prices together.
+$totalPrice = $products->select('category_id, SUM(price * stock) AS category_total')
+	->group('category_id')
+	->aggregation('SUM(category_total)', 'SUM');
+```
+
+In this example, we first calculate the total price of products in each category (`SUM(price * stock) AS category_total`) and group the results by `category_id`. Then, we use `aggregation('SUM(category_total)', 'SUM')` to sum these intermediate totals `category_total`. The second argument `'SUM'` specifies that the SUM function should be applied to the intermediate results.
+
+## Insert, Update & Delete
+
+Nette Database Explorer simplifies inserting, updating, and deleting data. All the methods mentioned throw a `Nette\Database\DriverException` in case of an error.
+
+### `Selection::insert(iterable $data)`
+
+Inserts new records into the table.
+
+**Inserting a single record:**
+
+Pass the new record as an associative array or iterable object (like `ArrayHash` used in [forms](https://doc.nette.org/en/forms)), where keys correspond to column names in the table.
+
+If the table has a defined primary key, the method returns an `ActiveRow` object, which is reloaded from the database to reflect any changes made at the database level (triggers, default column values, auto-increment column calculations). This ensures data consistency, and the object always contains the current data from the database. If the table has no primary key, there is no identifiable row and the method returns `null`.
+
+```php
+$row = $explorer->table('users')->insert([
+	'name' => 'John Doe',
+	'email' => 'john.doe@example.com',
+]);
+// $row is an instance of ActiveRow and contains the complete data of the inserted row,
+// including the automatically generated ID and any changes made by triggers
+echo $row->id; // Outputs the ID of the newly inserted user
+echo $row->created_at; // Outputs the creation time if set by a trigger
+```
+
+**Inserting multiple records at once:**
+
+The `insert()` method allows inserting multiple records using a single SQL query. In this case, it returns the number of inserted rows.
+
+```php
+$insertedRows = $explorer->table('users')->insert([
+	[
+		'name' => 'John',
+		'year' => 1994,
+	],
+	[
+		'name' => 'Jack',
+		'year' => 1995,
+	],
+]);
+// INSERT INTO `users` (`name`, `year`) VALUES ('John', 1994), ('Jack', 1995)
+// $insertedRows will be 2
+```
+
+A `Selection` object with a data selection can also be passed as a parameter.
+
+```php
+$newUsers = $explorer->table('potential_users')
+	->where('approved', 1)
+	->select('name, email');
+
+$insertedRows = $explorer->table('users')->insert($newUsers);
+```
+
+**Inserting special values:**
+
+We can also pass files, `DateTime` objects, or SQL literals as values:
+
+```php
+$explorer->table('users')->insert([
+	'name' => 'John',
+	'created_at' => new DateTime,           // converts to database format
+	'avatar' => fopen('image.jpg', 'rb'),   // inserts binary content of the file
+	'uuid' => $explorer::literal('UUID()'), // calls the UUID() function
+]);
+```
+
+### `Selection::update(iterable $data): int`
+
+Updates rows in the table according to the specified filter. Returns the number of actually modified rows.
+
+Pass the columns to be changed as an associative array or iterable object (like `ArrayHash` used in [forms](https://doc.nette.org/en/forms)), where keys correspond to column names in the table:
+
+```php
+$affected = $explorer->table('users')
+	->where('id', 10)
+	->update([
+		'name' => 'John Smith',
+		'year' => 1994,
+	]);
+// UPDATE `users` SET `name` = 'John Smith', `year` = 1994 WHERE `id` = 10
+```
+
+To change numeric values, you can use the `+=` and `-=` operators:
+
+```php
+$explorer->table('users')
+	->where('id', 10)
+	->update([
+		'points+=' => 1,  // increases the value of the 'points' column by 1
+		'coins-=' => 1,   // decreases the value of the 'coins' column by 1
+	]);
+// UPDATE `users` SET `points` = `points` + 1, `coins` = `coins` - 1 WHERE `id` = 10
+```
+
+### `Selection::delete(): int`
+
+Deletes rows from the table according to the specified filter. Returns the number of deleted rows.
+
+```php
+$count = $explorer->table('users')
+	->where('id', 10)
+	->delete();
+// DELETE FROM `users` WHERE `id` = 10
+```
+
+> [!CAUTION]
+> When calling `update()` or `delete()`, don't forget to use `where()` to specify the rows to be modified/deleted. If `where()` is not used, the operation will be performed on the entire table!
+
+### `ActiveRow::update(iterable $data): bool`
+
+Updates data in the database row represented by the `ActiveRow` object. It accepts an iterable with data to be updated (keys are column names). To change numeric values, you can use the `+=` and `-=` operators:
+
+After performing the update, the `ActiveRow` is automatically reloaded from the database to reflect any changes made at the database level (e.g., triggers). The method returns `true` only if a real data change occurred.
+
+```php
+$article = $explorer->table('article')->get(1);
+$article->update([
+	'views += 1',  // increments the view count
+]);
+echo $article->views; // Outputs the current view count
+```
+
+This method updates only one specific row in the database. For bulk updates of multiple rows, use the [Selection::update()](#selectionupdateiterable-data-int) method.
+
+### `ActiveRow::delete(): int`
+
+Deletes the row from the database represented by the `ActiveRow` object. Returns the number of deleted rows, which should be 1.
+
+```php
+$book = $explorer->table('book')->get(1);
+$book->delete(); // Deletes the book with ID 1
+```
+
+This method deletes only one specific row in the database. For bulk deletion of multiple rows, use the [Selection::delete()](#selectiondelete-int) method.
+
+## Relationships Between Tables
+
+In relational databases, data is divided into multiple tables and linked together using foreign keys. Nette Database Explorer provides a revolutionary way to work with these relationships – without writing JOIN queries and without needing to configure or generate anything.
+
+To illustrate working with relationships, we'll use an example book database ([find it on GitHub](https://github.com/nette-examples/books)). In the database, we have tables:
+
+- `author` – writers and translators (columns `id`, `name`, `web`, `born`)
+- `book` – books (columns `id`, `author_id`, `translator_id`, `title`, `sequel_id`)
+- `tag` – tags (columns `id`, `name`)
+- `book_tag` – junction table between books and tags (columns `book_id`, `tag_id`)
+
+![](https://files.nette.org/git/database/4.x/db-schema-1-.webp)
+
+*Database structure used in examples*
+
+In our example book database, we find several types of relationships (although the model is simplified compared to reality):
+
+- **One-to-many (1:N)** – Each book **has one** author; an author can write **multiple** books.
+- **Zero-to-many (0:N)** – A book **can have** a translator; a translator can translate **multiple** books.
+- **Zero-to-one (0:1)** – A book **can have** a sequel.
+- **Many-to-many (M:N)** – A book **can have several** tags, and a tag can be assigned to **several** books.
+
+In these relationships, there is always a **parent table** and a **child table**. For example, in the relationship between authors and books, the `author` table is the parent, and the `book` table is the child – you can think of it as a book always “belonging” to an author. This is also reflected in the database structure: the child table `book` contains the foreign key `author_id`, which references the parent table `author`.
+
+If we need to list books including their authors' names, we have two options. Either retrieve the data with a single SQL query using JOIN:
+
+```sql
+SELECT book.*, author.name FROM book LEFT JOIN author ON book.author_id = author.id;
+```
+
+Or retrieve the data in two steps – first the books, then their authors – and then assemble them in PHP:
+
+```sql
+SELECT * FROM book;
+SELECT * FROM author WHERE id IN (1, 2, 3);  -- IDs of authors from the selected books
+```
+
+The second approach is actually **more efficient**, although it might be surprising. Data is fetched only once and can be better utilized in the cache. This is precisely how Nette Database Explorer works – it handles everything under the hood and offers you an elegant API:
+
+```php
+$books = $explorer->table('book');
+foreach ($books as $book) {
+	echo 'title: ' . $book->title;
+	echo 'written by: ' . $book->author->name; // $book->author is a record from the 'author' table
+	echo 'translated by: ' . $book->translator?->name;
+}
+```
+
+### Accessing the Parent Table
+
+Accessing the parent table is straightforward. These are relationships like *a book has an author* or *a book may have a translator*. The related record is obtained via a property of the ActiveRow object – its name corresponds to the name of the foreign key column without the `_id` suffix:
+
+```php
+$book = $explorer->table('book')->get(1);
+echo $book->author->name;      // finds the author based on the author_id column
+echo $book->translator?->name; // finds the translator based on the translator_id column
+```
+
+When accessing the `$book->author` property, Explorer looks in the `book` table for a column whose name contains the string `author` (i.e., `author_id`). Based on the value in this column, it loads the corresponding record from the `author` table and returns it as an `ActiveRow`. Similarly, `$book->translator` uses the `translator_id` column. Since the `translator_id` column can contain `null`, we use the nullsafe operator `?->` in the code.
+
+An alternative approach is offered by the `ref()` method, which accepts two arguments: the name of the target table and the name of the joining column, and returns an `ActiveRow` instance or `null`:
+
+```php
+echo $book->ref('author', 'author_id')->name;      // relationship to the author
+echo $book->ref('author', 'translator_id')->name;  // relationship to the translator
+```
+
+The `ref()` method is useful if property-based access cannot be used, for example, because the table contains a column with the same name (i.e., `author`). In other cases, using property-based access is recommended for better readability.
+
+Explorer automatically optimizes database queries. When iterating through books in a loop and accessing their related records (authors, translators), Explorer does not generate a query for each book separately. Instead, it performs only **one SELECT query for each type of relationship**, significantly reducing the database load. For example:
+
+```php
+$books = $explorer->table('book');
+foreach ($books as $book) {
+	echo $book->title . ': ';
+	echo $book->author->name;
+	echo $book->translator?->name;
+}
+```
+
+This code executes only these three lightning-fast queries to the database:
+
+```sql
+SELECT * FROM `book`;
+SELECT * FROM `author` WHERE (`id` IN (1, 2, 3)); -- IDs from the author_id column of selected books
+SELECT * FROM `author` WHERE (`id` IN (2, 3));    -- IDs from the translator_id column of selected books
+```
+
+The logic for finding the joining column is determined by the implementation of [Conventions](https://api.nette.org/database/master/Nette/Database/Conventions.html). We recommend using [DiscoveredConventions](https://api.nette.org/database/master/Nette/Database/Conventions/DiscoveredConventions.html), which analyzes foreign keys and allows you to easily work with existing relationships between tables.
+
+### Accessing the Child Table
+
+Accessing the child table works in the opposite direction. Now we ask *which books did this author write* or *which books did this translator translate*. For this type of query, we use the `related()` method, which returns a `Selection` with related records. Let's look at an example:
+
+```php
+$author = $explorer->table('author')->get(1);
+
+// Outputs all books by the author
+foreach ($author->related('book.author_id') as $book) {
+	echo "Wrote: $book->title";
+}
+
+// Outputs all books translated by the author
+foreach ($author->related('book.translator_id') as $book) {
+	echo "Translated: $book->title";
+}
+```
+
+The `related()` method accepts the join description as a single argument with dot notation or as two separate arguments:
+
+```php
+$author->related('book.translator_id');  // single argument
+$author->related('book', 'translator_id');  // two arguments
+```
+
+Explorer can automatically detect the correct joining column based on the name of the parent table. In this case, it joins via the `book.author_id` column because the name of the source table is `author`:
+
+```php
+$author->related('book');  // uses book.author_id
+```
+
+If multiple possible connections exist, Explorer will throw an [AmbiguousReferenceKeyException](https://api.nette.org/database/master/Nette/Database/Conventions/AmbiguousReferenceKeyException.html).
+
+We can, of course, use the `related()` method when iterating through multiple records in a loop, and Explorer will automatically optimize the queries in this case as well:
+
+```php
+$authors = $explorer->table('author');
+foreach ($authors as $author) {
+	echo $author->name . ' wrote:';
+	foreach ($author->related('book') as $book) {
+		echo $book->title;
+	}
+}
+```
+
+This code generates only two lightning-fast SQL queries:
+
+```sql
+SELECT * FROM `author`;
+SELECT * FROM `book` WHERE (`author_id` IN (1, 2, 3)); -- IDs of the selected authors
+```
+
+### Many-to-Many Relationship
+
+For a many-to-many (M:N) relationship, a **junction table** (in our case, `book_tag`) is needed, containing two foreign key columns (`book_id`, `tag_id`). Each of these columns refers to the primary key of one of the linked tables. To retrieve related data, we first get the records from the junction table using `related('book_tag')` and then proceed to the target data:
+
+```php
+$book = $explorer->table('book')->get(1);
+// outputs the names of tags assigned to the book
+foreach ($book->related('book_tag') as $bookTag) {
+	echo $bookTag->tag->name;  // outputs the tag name via the junction table
+}
+
+$tag = $explorer->table('tag')->get(1);
+// or the opposite way: outputs the names of books marked with this tag
+foreach ($tag->related('book_tag') as $bookTag) {
+	echo $bookTag->book->title; // outputs the book title
+}
+```
+
+Explorer again optimizes the SQL queries into an efficient form:
+
+```sql
+SELECT * FROM `book`;
+SELECT * FROM `book_tag` WHERE (`book_tag`.`book_id` IN (1, 2, ...));  -- IDs of the selected books
+SELECT * FROM `tag` WHERE (`tag`.`id` IN (1, 2, ...));                 -- IDs of the tags found in book_tag
+```
+
+### Querying Through Related Tables
+
+In the `where()`, `select()`, `order()`, and `group()` methods, you can use special notations to access columns from other tables. Explorer automatically creates the necessary JOINs.
+
+**Dot notation** (`parent_table.column`) is used for 1:N relationships from the perspective of the child table:
+
+```php
+$books = $explorer->table('book');
+
+// Finds books whose author's name starts with 'Jon'
+$books->where('author.name LIKE ?', 'Jon%');
+
+// Sorts books by author name descending
+$books->order('author.name DESC');
+
+// Outputs the book title and author name
+$books->select('book.title, author.name');
+```
+
+**Colon notation** (`:child_table.column`) is used for 1:N relationships from the perspective of the parent table:
+
+```php
+$authors = $explorer->table('author');
+
+// Finds authors who wrote a book with 'PHP' in the title
+$authors->where(':book.title LIKE ?', '%PHP%');
+
+// Counts the number of books for each author
+$authors->select('*, COUNT(:book.id) AS book_count')
+	->group('author.id');
+```
+
+In the example above with colon notation (`:book.title`), the foreign key column is not specified. Explorer automatically detects the correct column based on the name of the parent table. In this case, it joins via the `book.author_id` column because the name of the source table is `author`. If multiple possible connections exist, Explorer will throw an [AmbiguousReferenceKeyException](https://api.nette.org/database/master/Nette/Database/Conventions/AmbiguousReferenceKeyException.html).
+
+The joining column can be explicitly specified in parentheses:
+
+```php
+// Finds authors who translated a book with 'PHP' in the title
+$authors->where(':book(translator_id).title LIKE ?', '%PHP%');
+```
+
+Notations can be chained to access data across multiple tables:
+
+```php
+// Finds authors of books tagged with 'PHP'
+$authors->where(':book:book_tag.tag.name', 'PHP')
+	->group('author.id');
+```
+
+### Extending Conditions for JOIN
+
+The `joinWhere()` method extends the conditions specified when joining tables in SQL after the `ON` keyword.
+
+Let's say we want to find books translated by a specific translator:
+
+```php
+// Finds books translated by a translator named 'David'
+$books = $explorer->table('book')
+	->joinWhere('translator', 'translator.name', 'David');
+// LEFT JOIN author translator ON book.translator_id = translator.id AND (translator.name = 'David')
+```
+
+In the `joinWhere()` condition, you can use the same constructs as in the `where()` method – operators, placeholders, arrays of values, or SQL expressions.
+
+For more complex queries with multiple JOINs, you can define table aliases:
+
+```php
+$tags = $explorer->table('tag')
+	->joinWhere(':book_tag.book.author', 'book_author.born < ?', 1950)
+	->alias(':book_tag.book.author', 'book_author');
+// LEFT JOIN `book_tag` ON `tag`.`id` = `book_tag`.`tag_id`
+// LEFT JOIN `book` ON `book_tag`.`book_id` = `book`.`id`
+// LEFT JOIN `author` `book_author` ON `book`.`author_id` = `book_author`.`id`
+//    AND (`book_author`.`born` < 1950)
+```
+
+Note that while the `where()` method adds conditions to the `WHERE` clause, the `joinWhere()` method extends the conditions in the `ON` clause when joining tables.

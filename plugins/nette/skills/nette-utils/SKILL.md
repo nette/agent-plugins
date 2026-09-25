@@ -12,10 +12,10 @@ composer require nette/utils
 ```
 
 For detailed references:
-- [Arrays, ArrayHash, ArrayList](references/arrays.md)
-- [Strings and regex functions](references/strings.md)
-- [Image manipulation](references/image.md)
-- [File searching with Finder](references/finder.md)
+- [Arrays, ArrayHash, ArrayList](../../docs/utils/arrays.md)
+- [Strings and regex functions](../../docs/utils/strings.md)
+- [Image manipulation](../../docs/utils/images.md)
+- [File searching with Finder](../../docs/utils/finder.md)
 
 ---
 
@@ -366,14 +366,27 @@ $obj->name = 'John';    // calls setName()
 echo $obj->name;        // calls getName()
 ```
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Arrays](https://doc.nette.org/en/utils/arrays) – array helpers
-- [Strings](https://doc.nette.org/en/utils/strings) – string functions and regex
-- [Images](https://doc.nette.org/en/utils/images) – image manipulation
-- [FileSystem](https://doc.nette.org/en/utils/filesystem) – file operations
-- [Finder](https://doc.nette.org/en/utils/finder) – file searching
-- [JSON](https://doc.nette.org/en/utils/json) – safe JSON handling
-- [Validators](https://doc.nette.org/en/utils/validators) – type checking and validation
+- [Arrays](../../docs/utils/arrays.md) – Arrays, ArrayHash, ArrayList
+- [Strings](../../docs/utils/strings.md) – string functions and regular expressions
+- [Images](../../docs/utils/images.md) – Image manipulation
+- [Finder](../../docs/utils/finder.md) – searching for files
+- [FileSystem](../../docs/utils/filesystem.md) – file operations
+- [JSON](../../docs/utils/json.md) – safe encoding and decoding
+- [Validators](../../docs/utils/validators.md) – type checking and validation
+- [DateTime](../../docs/utils/datetime.md) – date and time
+- [HTML Elements](../../docs/utils/html-elements.md) – the Html builder
+- [Iterables](../../docs/utils/iterables.md) – working with iterators
+- [Process](../../docs/utils/process.md) – running external programs
+- [Callback](../../docs/utils/callback.md) – callable helpers
+- [Floats](../../docs/utils/floats.md) – comparing floats
+- [Helpers](../../docs/utils/helpers.md) – `capture()`, `clamp()`, `compare()` and other functions
+- [Paginator](../../docs/utils/paginator.md) – pagination math
+- [Random](../../docs/utils/random.md) – generating random strings
+- [Reflection](../../docs/utils/reflection.md) – PHP reflection helpers
+- [SmartObject](../../docs/utils/smartobject.md) – strict objects and properties
+- [StaticClass](../../docs/utils/staticclass.md) – static classes
+- [Type](../../docs/utils/type.md) – PHP types

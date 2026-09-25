@@ -1,0 +1,562 @@
+# Presenters
+
+Contents:
+
+- [Presenter Life Cycle](#presenter-life-cycle)
+  - [`__construct()`](#__construct)
+  - [`startup()`](#startup)
+  - [`action<Action>(args...)`](#actionactionargs)
+  - [`handle<Signal>(args...)`](#handlesignalargs)
+  - [`beforeRender()`](#beforerender)
+  - [`render<View>(args...)`](#renderviewargs)
+  - [`afterRender()`](#afterrender)
+  - [`shutdown()`](#shutdown)
+  - [Events](#events)
+- [Sending a Response](#sending-a-response)
+- [Creating Links](#creating-links)
+- [Redirection](#redirection)
+- [Flash Messages](#flash-messages)
+- [Error 404 etc.](#error-404etc)
+- [Sending JSON](#sending-json)
+- [Request Parameters (since 3.1.14)](#request-parameters-since-3114)
+- [Persistent Parameters](#persistent-parameters)
+- [Shared Parameter Space](#shared-parameter-space)
+- [Interactive Components](#interactive-components)
+- [Going Deeper](#going-deeper)
+  - [Validation of Parameters](#validation-of-parameters)
+  - [Save and Restore the Request](#save-and-restore-the-request)
+  - [Canonization](#canonization)
+  - [Responses](#responses)
+  - [HTTP Caching](#http-caching)
+  - [Completing the Template (since 3.3.0)](#completing-the-template-since-330)
+  - [Access Restriction Using `#[Requires]` (since 3.2.3)](#access-restriction-using-requires-since-323)
+  - [HTTP Method Check](#http-method-check)
+  - [Marking Deprecated Actions (since 3.2.3)](#marking-deprecated-actions-since-323)
+- [Further Reading](#further-reading)
+
+
+We will explore how presenters and templates are written in Nette. After reading, you will understand:
+
+- how presenters work
+- what persistent parameters are
+- how templates are rendered
+
+[We already know](how-it-works.md#nette-application) that a presenter is a class representing a specific page of a web application, such as the homepage, a product in an e-shop, a login form, a sitemap feed, etc. An application can have anywhere from one to thousands of presenters. In other frameworks, they are also known as controllers.
+
+Usually, the term presenter refers to a descendant of the [Nette\Application\UI\Presenter](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html) class, which is suitable for generating web interfaces and will be the focus of the rest of this chapter. In a general sense, a presenter is any object implementing the [Nette\Application\IPresenter](https://api.nette.org/application/master/Nette/Application/IPresenter.html) interface.
+
+## Presenter Life Cycle
+
+The presenter's task is to handle a request and return a response (which could be an HTML page, an image, a redirect, etc.).
+
+So, initially, a request is passed to it. This isn't the direct HTTP request, but a [Nette\Application\Request](https://api.nette.org/application/master/Nette/Application/Request.html) object, into which the HTTP request was transformed with the help of the router. We usually don't interact directly with this object, as the presenter cleverly delegates request processing to other methods, which we will now explore.
+
+![](https://files.nette.org/git/application/4.x/lifecycle.svg)
+
+*Presenter Life Cycle*
+
+The diagram shows a list of methods that are called sequentially from top to bottom, if they exist. None of them are mandatory; you can have a completely empty presenter without a single method and build a simple static website upon it.
+
+### `__construct()`
+
+The constructor doesn't strictly belong to the presenter's life cycle, as it's called at the moment the object is created. However, we mention it due to its importance. The constructor (along with the [inject method](../best-practices/inject-method-attribute.md)) is used for passing dependencies.
+
+The presenter should not handle the application's business logic, write to or read from the database, perform calculations, etc. That's the responsibility of classes in the layer we call the model. For example, an `ArticleRepository` class might be responsible for loading and saving articles. For the presenter to work with it, it needs to have it [passed via dependency injection](../dependency-injection/passing-dependencies.md):
+
+```php
+class ArticlePresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private ArticleRepository $articles,
+	) {
+	}
+}
+```
+
+### `startup()`
+
+Immediately after receiving the request, the `startup()` method is invoked. You can use it to initialize properties, check user permissions, etc. It is required that this method always calls its parent: `parent::startup()`.
+
+### `action<Action>(args...)`
+
+Similar to the `render<View>()` method. While `render<View>()` is intended to prepare data for a specific template that will subsequently be rendered, `action<Action>()` processes a request without necessarily rendering a template afterwards. For example, it might process data, log a user in or out, and so on, and then [redirect elsewhere](#redirection).
+
+It's important that `action<Action>()` is called *before* `render<View>()`. This allows us to potentially change the course of the request within the action method, for instance, by changing the template that will be rendered or even the `render<View>()` method that will be called, using `setView('otherView')`.
+
+(since 3.2.3) You can even switch to an entirely different action using the `switch('otherAction')` method. It aborts the current method and instead runs the new action's `action<Action>()` and `render<View>()` methods (and turns off automatic [canonicalization](#canonization)). The request itself continues; only the currently running method is interrupted.
+
+Parameters from the request are passed to the method. It's possible and recommended to specify types for these parameters, e.g., `actionShow(int $id, ?string $slug = null)`. If the `id` parameter is missing or is not an integer, the presenter returns a [404 error](#error-404etc) and terminates.
+
+### `handle<Signal>(args...)`
+
+This method processes so-called signals, which we'll learn about in the chapter dedicated to [components](components.md#signal). It's primarily intended for components and handling AJAX requests.
+
+Parameters from the request are passed to the method, just like with `action<Action>()`, including type checking.
+
+### `beforeRender()`
+
+The `beforeRender` method, as its name suggests, is called before every `render<View>()` method. It's used for common template configuration, passing variables to the layout, and similar tasks.
+
+### `render<View>(args...)`
+
+This is where we prepare the template for subsequent rendering, pass data to it, etc.
+
+Parameters from the request are passed to the method, just like with `action<Action>()`, including type checking.
+
+```php
+public function renderShow(int $id): void
+{
+	// obtain data from the model and pass it to the template
+	$this->template->article = $this->articles->getById($id);
+}
+```
+
+### `afterRender()`
+
+The `afterRender` method, as the name suggests again, is called after every `render<View>()` method. It's used rather rarely.
+
+### `shutdown()`
+
+Called at the end of the presenter's life cycle.
+
+### Events
+
+In addition to the `startup()`, `beforeRender()`, and `shutdown()` methods, which are called as part of the presenter's life cycle, other functions can be defined to be called automatically. The presenter defines so-called [events](../nette/glossary.md#events), and you add their handlers to the `$onStartup`, `$onRender`, and `$onShutdown` arrays.
+
+```php
+class ArticlePresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct()
+	{
+		$this->onStartup[] = function () {
+			// ...
+		};
+	}
+}
+```
+
+Handlers in the `$onStartup` array are called just before the `startup()` method, `$onRender` handlers between `beforeRender()` and `render<View>()`, and finally `$onShutdown` handlers just before `shutdown()`.
+
+**A piece of advice before we continue:** As you can see, a presenter can handle multiple actions/views, meaning it can have multiple `render<View>()` methods. However, we recommend designing presenters with one or as few actions as possible.
+
+## Sending a Response
+
+The presenter's response is typically [rendering a template into an HTML page](templates.md), but it can also be sending a file, JSON, or even redirecting to another page.
+
+At any point during the life cycle, we can use one of the following methods to send a response and simultaneously terminate the presenter:
+
+- `redirect()`, `redirectPermanent()`, `redirectUrl()`, and `forward()` perform a [redirect](#redirection)
+- `error()` terminates the presenter [due to an error](#error-404etc)
+- `sendJson($data)` terminates the presenter and [sends data](#sending-json) in JSON format
+- `sendTemplate()` terminates the presenter and immediately [renders the template](templates.md)
+- `sendResponse($response)` terminates the presenter and sends a [custom response](#responses)
+- `terminate()` terminates the presenter without a response
+
+Each of these methods immediately terminates the presenter by throwing a silent termination exception `Nette\Application\AbortException`.
+
+If you don't call any of these methods, the presenter automatically proceeds to render the template. Why? Because in 99% of cases, we want to render a template, so the presenter adopts this behavior as the default to simplify our work.
+
+## Creating Links
+
+The presenter has a `link()` method used to create URL links to other presenters. The first parameter is the target presenter & action, followed by arguments, which can be passed as an array:
+
+```php
+$url = $this->link('Product:show', $id);
+
+$url = $this->link('Product:show', [$id, 'lang' => 'en']);
+```
+
+In the template, links to other presenters & actions are created like this:
+
+```latte
+<a n:href="Product:show $id">product detail</a>
+```
+
+Simply write the familiar `Presenter:action` pair instead of the actual URL and include any necessary parameters. The trick lies in `n:href`, which tells Latte to process this attribute and generate the real URL. In Nette, you don't need to think about URLs at all, just about presenters and actions.
+
+You can find more information in the chapter [Creating URL Links](creating-links.md).
+
+## Redirection
+
+The `redirect()` and `forward()` methods are used to switch to another presenter. They have a very similar syntax to the [link()](#creating-links) method.
+
+The `forward()` method switches to the new presenter immediately without an HTTP redirect:
+
+```php
+$this->forward('Product:show');
+```
+
+Example of a temporary redirect with HTTP code 302 (or 303 if the current request method is POST):
+
+```php
+$this->redirect('Product:show', $id);
+```
+
+To achieve a permanent redirect with HTTP code 301, use this:
+
+```php
+$this->redirectPermanent('Product:show', $id);
+```
+
+You can redirect to another URL outside the application using the `redirectUrl()` method. The HTTP code can be specified as the second parameter; the default is 302 (or 303 if the current request method is POST):
+
+```php
+$this->redirectUrl('https://nette.org');
+```
+
+Redirection immediately terminates the presenter's activity by throwing the so-called silent termination exception, `Nette\Application\AbortException`.
+
+Before redirection, it's possible to send [flash messages](#flash-messages), i.e., messages that will be displayed in the template after redirection.
+
+## Flash Messages
+
+These are messages typically informing about the result of some operation. An important feature of flash messages is that they remain available in the template even after redirection. Once displayed, they stay active for an additional 30 seconds – for instance, if the user refreshes the page due to a transmission error, the message won't disappear immediately.
+
+Simply call the [flashMessage()](https://api.nette.org/application/master/Nette/Application/UI/Control.html#method_flashMessage) method, and the presenter handles passing it to the template. The first parameter is the message text, and the optional second parameter is its type (e.g., error, warning, info). The `flashMessage()` method returns an instance of the flash message, allowing additional information to be added.
+
+```php
+$this->flashMessage('The item has been deleted.');
+$this->redirect(/* ... */); // and redirect
+```
+
+In the template, these messages are available in the `$flashes` variable as `stdClass` objects containing the properties `message` (the message text), `type` (the message type), and potentially the user-added information mentioned earlier. We render them like this:
+
+```latte
+{foreach $flashes as $flash}
+	<div class="flash {$flash->type}">{$flash->message}</div>
+{/foreach}
+```
+
+## Error 404 etc.
+
+If the request cannot be fulfilled, for example, because the article we want to display doesn't exist in the database, we throw a 404 error using the `error(string $message = '', int $httpCode = 404)` method.
+
+```php
+public function renderShow(int $id): void
+{
+	$article = $this->articles->getById($id);
+	if (!$article) {
+		$this->error();
+	}
+	// ...
+}
+```
+
+The HTTP error code can be passed as the second parameter; the default is 404. The method works by throwing a `Nette\Application\BadRequestException`, after which the `Application` passes control to the error presenter. This is a presenter whose task is to display a page informing about the error that occurred. The error presenter is configured in the [application configuration](configuration.md).
+
+## Sending JSON
+
+The `sendJson($data)` method encodes the given data into JSON, sends it as the HTTP response, and terminates the presenter. Example:
+
+```php
+public function actionData(): void
+{
+	$data = ['hello' => 'nette'];
+	$this->sendJson($data);
+}
+```
+
+## Request Parameters (since 3.1.14)
+
+The presenter, and also each component, obtains its parameters from the HTTP request. You can retrieve their values using the `getParameter($name)` or `getParameters()` methods. The values are strings or arrays of strings, essentially raw data obtained directly from the URL.
+
+For greater convenience, we recommend accessing parameters via properties. Simply mark them with the `#[Parameter]` attribute:
+
+```php
+use Nette\Application\Attributes\Parameter;  // this line is important
+
+class HomePresenter extends Nette\Application\UI\Presenter
+{
+	#[Parameter]
+	public string $theme; // must be public
+}
+```
+
+For the property, we recommend specifying the data type (e.g., `string`), and Nette will automatically cast the value accordingly. Parameter values can also be [validated](#validation-of-parameters).
+
+When creating a link, you can set the parameter's value directly:
+
+```latte
+<a n:href="Home:default theme: dark">click</a>
+```
+
+## Persistent Parameters
+
+Persistent parameters are used to maintain state across different requests. Their value remains the same even after clicking a link. Unlike session data, they are transmitted in the URL. And this happens completely automatically, so there's no need to explicitly include them in `link()` or `n:href`.
+
+An example use case? Imagine you have a multilingual application. The current language is a parameter that must always be part of the URL. But it would be incredibly tedious to include it in every link. So, you make it a persistent parameter `lang`, and it will be carried along automatically. Neat!
+
+Creating a persistent parameter in Nette is extremely simple. Just create a public property and mark it with the attribute (previously, `/** @persistent */` was used):
+
+```php
+use Nette\Application\Attributes\Persistent;  // this line is important
+
+class ProductPresenter extends Nette\Application\UI\Presenter
+{
+	#[Persistent]
+	public string $lang; // must be public
+}
+```
+
+If `$this->lang` has a value like `'en'`, then links created using `link()` or `n:href` will also contain the parameter `lang=en`. And after clicking the link, `$this->lang` will again be `'en'`.
+
+For the property, we recommend specifying the data type (e.g., `string`), and you can also provide a default value. Parameter values can be [validated](#validation-of-parameters).
+
+Persistent parameters are typically transferred between all actions of a given presenter. To transfer them across multiple presenters as well, they need to be defined either:
+
+- in a common ancestor from which the presenters inherit
+- or in a trait that the presenters use:
+
+```php
+trait LanguageAware
+{
+	#[Persistent]
+	public string $lang;
+}
+
+class ProductPresenter extends Nette\Application\UI\Presenter
+{
+	use LanguageAware;
+}
+```
+
+When creating a link, the value of a persistent parameter can be changed:
+
+```latte
+<a n:href="Product:show $id, lang: cs">detail in Czech</a>
+```
+
+Alternatively, it can be *reset*, i.e., removed from the URL. It will then assume its default value:
+
+```latte
+<a n:href="Product:show $id, lang: null">click</a>
+```
+
+## Shared Parameter Space
+
+The request parameters, [persistent parameters](#persistent-parameters), and the parameters of the `action`, `render`, and `handle` (signal) methods all share a single space, where each is identified by its name. If the same name appears in more than one of them, they refer to one and the same value.
+
+This is often used to advantage. For example, a persistent parameter `lang` and the `$lang` argument of an action or signal method are one and the same – you can read the current value of a persistent parameter simply by listing it in the method signature:
+
+```php
+#[Persistent]
+public string $lang;
+
+public function handleSearch(string $query, string $lang): void
+{
+	// $lang holds the current value of the persistent parameter lang
+}
+```
+
+Because this space is shared, keep parameter names unique unless you deliberately want them to share a value. This applies to signals as well, which additionally read parameters from the request's POST body, see [Signals in Depth](components.md#signals-in-depth).
+
+## Interactive Components
+
+Presenters have a built-in component system. Components are separate reusable units that we embed into presenters. They can be [forms](../forms/in-presenter.md), datagrids, menus, essentially anything that makes sense to use repeatedly.
+
+How are components embedded into presenters and subsequently used? You'll learn this in the [Components](components.md) chapter. You'll even find out what they have in common with Hollywood.
+
+And where can you get components? On [Componette](https://componette.org/search/component), you'll find open-source components and many other add-ons for Nette, contributed by volunteers from the framework community.
+
+## Going Deeper
+
+> [!TIP]
+> What we've covered so far in this chapter will likely be sufficient for most uses. The following sections are intended for those interested in delving deeper into presenters and wanting to know absolutely everything.
+
+### Validation of Parameters
+
+The values of [Request-Parameters](#request-parameters-since-3114) and [Persistent-Parameters](#persistent-parameters) received from URLs are written to properties by the `loadState()` method. It also checks if the data type specified in the property matches, otherwise it will respond with a 404 error and the page will not be displayed.
+
+Never blindly trust parameters received from the URL, as they can easily be overwritten by the user. For example, this is how we would verify if the language `$this->lang` is among the supported ones. A suitable way to do this is by overriding the aforementioned `loadState()` method:
+
+```php
+class ProductPresenter extends Nette\Application\UI\Presenter
+{
+	#[Persistent]
+	public string $lang;
+
+	public function loadState(array $params): void
+	{
+		parent::loadState($params); // $this->lang is set here
+		// followed by custom value check:
+		if (!in_array($this->lang, ['en', 'cs'])) {
+			$this->error();
+		}
+	}
+}
+```
+
+### Save and Restore the Request
+
+The request handled by the presenter is a [Nette\Application\Request](https://api.nette.org/application/master/Nette/Application/Request.html) object, returned by the presenter's `getRequest()` method.
+
+The current request can be saved to the session or, conversely, restored from it and have the presenter execute it again. This is useful, for example, when a user is filling out a form and their login session expires. To avoid data loss, before redirecting to the login page, we save the current request to the session using `$reqId = $this->storeRequest()`. This returns its identifier as a short string, which we then pass as a parameter to the login presenter.
+
+After logging in, we call the `$this->restoreRequest($reqId)` method, which retrieves the request from the session. POST requests are forwarded to it, while the others (GET) are redirected to the request's URL. The method verifies that the request was created by the same user who is now logged in. If a different user logs in or the key is invalid, it does nothing, and the program continues as usual.
+
+See the guide [How to Return to a Previous Page](../best-practices/restore-request.md).
+
+### Canonization
+
+Presenters have a truly excellent feature that contributes to better SEO (Search Engine Optimization). They automatically prevent the existence of duplicate content at different URLs. If multiple URLs lead to a specific destination, e.g., `/index` and `/index?page=1`, the framework designates one of them as primary (canonical) and redirects the others to it using HTTP code 301. Thanks to this, search engines don't index your pages twice and dilute their page rank.
+
+This process is called canonization. The canonical URL is the one generated by the [router](routing.md), typically the first matching route in the collection.
+
+Canonization is enabled by default and can be disabled via `$this->autoCanonicalize = false`.
+
+Redirection does not occur during AJAX or POST requests, as this could lead to data loss or would offer no added SEO value.
+
+You can also trigger canonization manually using the `canonicalize()` method. Similar to the `link()` method, you pass it the presenter, action, and parameters. It generates a link and compares it with the current URL address. If they differ, it redirects to the generated link.
+
+```php
+public function actionShow(int $id, ?string $slug = null): void
+{
+	$realSlug = $this->facade->getSlugForId($id);
+	// redirects if $slug is different from $realSlug
+	$this->canonicalize('Product:show', [$id, $realSlug]);
+}
+```
+
+For a complete pattern that combines route filters with `canonicalize()` to produce SEO-friendly URLs, see [Pretty URLs with Slugs](../best-practices/pretty-urls.md).
+
+### Responses
+
+The response returned by the presenter is an object implementing the [Nette\Application\Response](https://api.nette.org/application/master/Nette/Application/Response.html) interface. Several pre-built responses are available:
+
+- [Nette\Application\Responses\CallbackResponse](https://api.nette.org/application/master/Nette/Application/Responses/CallbackResponse.html) – sends a callback
+- [Nette\Application\Responses\FileResponse](https://api.nette.org/application/master/Nette/Application/Responses/FileResponse.html) – sends the file
+- [Nette\Application\Responses\ForwardResponse](https://api.nette.org/application/master/Nette/Application/Responses/ForwardResponse.html) – forward()
+- [Nette\Application\Responses\JsonResponse](https://api.nette.org/application/master/Nette/Application/Responses/JsonResponse.html) – sends JSON
+- [Nette\Application\Responses\RedirectResponse](https://api.nette.org/application/master/Nette/Application/Responses/RedirectResponse.html) – redirect
+- [Nette\Application\Responses\TextResponse](https://api.nette.org/application/master/Nette/Application/Responses/TextResponse.html) – sends text
+- [Nette\Application\Responses\VoidResponse](https://api.nette.org/application/master/Nette/Application/Responses/VoidResponse.html) – blank response
+
+Responses are sent using the `sendResponse()` method:
+
+```php
+use Nette\Application\Responses;
+
+// Plain text
+$this->sendResponse(new Responses\TextResponse('Hello Nette!'));
+
+// Sends a file
+$this->sendResponse(new Responses\FileResponse(__DIR__ . '/invoice.pdf', 'Invoice13.pdf'));
+
+// Sends a callback
+$callback = function (Nette\Http\IRequest $httpRequest, Nette\Http\IResponse $httpResponse) {
+	if ($httpResponse->getHeader('Content-Type') === 'text/html') {
+		echo '<h1>Hello</h1>';
+	}
+};
+$this->sendResponse(new Responses\CallbackResponse($callback));
+```
+
+You can also write your own response. Just implement the `Nette\Application\Response` interface, which has a single `send()` method receiving the HTTP request and response. This is useful, for example, when streaming data that you do not want to hold in memory:
+
+```php
+class CsvResponse implements Nette\Application\Response
+{
+	public function __construct(
+		private string $fileName,
+		private iterable $rows,
+	) {
+	}
+
+	public function send(Nette\Http\IRequest $request, Nette\Http\IResponse $response): void
+	{
+		$response->setContentType('text/csv', 'utf-8');
+		$response->sendAsFile($this->fileName);
+
+		$handle = fopen('php://output', 'w');
+		foreach ($this->rows as $row) {
+			fputcsv($handle, $row);
+		}
+
+		fclose($handle);
+	}
+}
+```
+
+You then send it in the presenter as usual: `$this->sendResponse(new CsvResponse('export.csv', $rows));`
+
+### HTTP Caching
+
+The `lastModified()` method makes it easy to take advantage of HTTP caching. You pass it the date and time of the content's last modification (as a timestamp, string, or `DateTimeInterface` object), and optionally an ETag validator (a short string identifying the current version of the content, such as a hash of it) and an expiration time. If the browser already holds a matching version, the presenter sends a `304 Not Modified` response and terminates, so the page isn't rendered or transferred needlessly:
+
+```php
+public function renderArticle(int $id): void
+{
+	$article = $this->articles->getById($id);
+	$this->lastModified($article->updatedAt);
+	// ...
+}
+```
+
+### Completing the Template (since 3.3.0)
+
+When the presenter renders a template, the `sendTemplate()` method calls `completeTemplate()` just before rendering. This method fills in the variables marked with the `#[TemplateVariable]` attribute and locates the template file (the default variables are already set by the `TemplateFactory` when the template is created). You can override this protected method to add variables shared across all views or to set a different file:
+
+```php
+protected function completeTemplate(Nette\Application\UI\Template $template): void
+{
+	parent::completeTemplate($template);
+	$template->siteName = 'My App';
+}
+```
+
+### Access Restriction Using `#[Requires]` (since 3.2.3)
+
+The `#[Requires]` attribute provides advanced options for restricting access to presenters and their methods. It can be used to specify HTTP methods, require an AJAX request, restrict to the same origin, and allow access only via forwarding. The attribute can be applied both to presenter classes and to individual methods like `action<Action>()`, `render<View>()`, `handle<Signal>()`, and `createComponent<Name>()`.
+
+You can specify these restrictions:
+
+- on HTTP methods: `#[Requires(methods: ['GET', 'POST'])]`
+- requiring an AJAX request: `#[Requires(ajax: true)]`
+- access only from the same origin: `#[Requires(sameOrigin: true)]`
+- access only via forwarding: `#[Requires(forward: true)]`
+- restrictions on specific actions: `#[Requires(actions: 'default')]`
+
+Since version 3.3, the same-origin match is verified using the browser's `Sec-Fetch-Site` header (previously via a SameSite cookie), which is more reliable and checks the exact match of scheme, domain, and port.
+
+Details can be found in the guide [How to Use the Requires Attribute](../best-practices/attribute-requires.md).
+
+### HTTP Method Check
+
+Presenters in Nette automatically verify the HTTP method of every incoming request, primarily for security reasons. By default, the methods `GET`, `POST`, `HEAD`, `PUT`, `DELETE`, `PATCH` are allowed.
+
+If you want to additionally allow, for example, the `OPTIONS` method, use the `#[Requires]` attribute (since Nette Application v3.2.3):
+
+```php
+#[Requires(methods: ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])]
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+}
+```
+
+Since version 3.1.13, verification is performed in `checkHttpMethod()`, which checks whether the method specified in the request is included in the `$presenter->allowedMethods` array. As of version 3.2.3, this approach is deprecated in favor of `#[Requires]`. You can override the method like this:
+
+```php
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+	protected function checkHttpMethod(): void
+	{
+		$this->allowedMethods[] = 'OPTIONS';
+		parent::checkHttpMethod();
+	}
+}
+```
+
+It's important to emphasize that if you enable the `OPTIONS` method, you must subsequently handle it appropriately within your presenter. This method is often used as a so-called preflight request, which the browser automatically sends before the actual request when it's necessary to determine if the request is permissible according to the CORS (Cross-Origin Resource Sharing) policy. If you enable the method but don't implement the correct response, it can lead to inconsistencies and potential security problems.
+
+### Marking Deprecated Actions (since 3.2.3)
+
+The `#[Deprecated]` attribute marks actions, signals, or entire presenters as deprecated and scheduled for future removal. When generating links to deprecated parts of the application, Nette throws a warning to alert developers.
+
+You can apply the attribute to either the entire presenter class or to individual `action<Action>()`, `render<View>()`, and `handle<Signal>()` methods.
+
+## Further Reading
+
+- [Inject methods and attributes](../best-practices/inject-method-attribute.md)
+- [Composing presenters from traits](../best-practices/presenter-traits.md)
+- [Passing settings to presenters](../best-practices/passing-settings-to-presenters.md)
+- [How to Return to a Previous Page](../best-practices/restore-request.md)

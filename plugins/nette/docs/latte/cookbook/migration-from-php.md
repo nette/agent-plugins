@@ -1,0 +1,66 @@
+# Migration from PHP to Latte
+
+Are you converting an old project written in pure PHP to Latte? We have a tool to make the migration easier. [Try it out online](https://fiddle.nette.org/php2latte/).
+
+You can download the tool from [GitHub](https://github.com/nette/latte-tools) or install it using Composer:
+
+```shell
+composer create-project latte/tools
+```
+
+The converter doesn't rely on simple regular expression substitutions; instead, it utilizes the actual PHP parser, enabling it to handle arbitrarily complex syntax.
+
+The script `php-to-latte.php` is used for converting from PHP to Latte:
+
+```shell
+php php-to-latte.php input.php [output.latte]
+```
+
+## Example
+
+An input file might look like this (this is part of the PunBB forum code):
+
+```php
+<h1><span><?= $lang_common['User list'] ?></span></h1>
+
+<div class="blockform">
+	<form id="userlist" method="get" action="userlist.php">
+		<div class="infldset">
+<?php
+foreach ($result as $cur_group) {
+	if ($cur_group['g_id'] == $show_group) {
+		echo "\n\t\t" . '<option value="' . $cur_group['g_id'] . '" selected="selected">'
+			. htmlspecialchars($cur_group['g_title']) . '</option>';
+	} else {
+		echo "\n\t\t" . '<option value="' . $cur_group['g_id'] . '">'
+			. htmlspecialchars($cur_group['g_title']) . '</option>';
+	}
+}
+?>
+			</select>
+			<p class="clearb"><?= $lang_ul['User search info'] ?></p>
+		</div>
+	</form>
+</div>
+```
+
+It generates this template:
+
+```latte
+<h1><span>{$lang_common['User list']}</span></h1>
+
+<div class="blockform">
+	<form id="userlist" method="get" action="userlist.php">
+		<div class="infldset">
+{foreach $result as $cur_group}
+	{if $cur_group[g_id] == $show_group}
+		<option value="{$cur_group[g_id]}" selected="selected">{$cur_group[g_title]}</option>
+	 {else}
+		<option value="{$cur_group[g_id]}">{$cur_group[g_title]}</option>
+	{/if}
+{/foreach}			</select>
+			<p class="clearb">{$lang_ul['User search info']}</p>
+		</div>
+	</form>
+</div>
+```

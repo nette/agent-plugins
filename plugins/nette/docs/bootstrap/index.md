@@ -1,0 +1,92 @@
+# Nette Bootstrap
+
+Individual Nette components are configured using configuration files. We will show how to load these files.
+
+> [!TIP]
+> If you are using the entire framework, there is no need to do anything else. Your project has a prepared `config/` directory for configuration files, and their loading is handled by the [application loader](../application/bootstrapping.md#di-container-configuration). This article is for users who use only a single Nette library and want to take advantage of configuration files.
+
+Configuration files are usually written in [NEON format](../neon/format.md) and are best edited in [editors that support it](https://doc.nette.org/en/tools/ide). They can be thought of as instructions on how to **create and configure** objects. Thus, the result of loading a configuration will be a so-called factory, which is an object that creates on demand other objects you want to use. For example, a database connection, etc.
+
+This factory is also called a *dependency injection container* (DI container), and if you are interested in the details, read the chapter on [dependency injection](https://doc.nette.org/en/dependency-injection).
+
+Loading the configuration and creating the container is handled by the [Nette\Bootstrap\Configurator](https://api.nette.org/bootstrap/master/Nette/Bootstrap/Configurator.html) class, so first, we install its `nette/bootstrap` package:
+
+```shell
+composer require nette/bootstrap
+```
+
+And create an instance of the `Configurator` class. Since the generated DI container will be cached to disk, you need to set the path to the directory where it will be saved:
+
+```php
+$configurator = new Nette\Bootstrap\Configurator;
+$configurator->setTempDirectory(__DIR__ . '/temp');
+```
+
+On Linux or macOS, set [write permissions](../nette/troubleshooting.md#setting-directory-permissions) for the `temp/` directory.
+
+Now we get to the configuration files themselves. We load them using `addConfig()`:
+
+```php
+$configurator->addConfig(__DIR__ . '/database.neon');
+```
+
+If you want to add more configuration files, you can call the `addConfig()` function multiple times. If elements with the same keys appear in the files, they will be overwritten (or [merged](../dependency-injection/configuration.md#merging) in the case of arrays). The file added later has a higher priority than the previous one.
+
+The final step is to create the DI container:
+
+```php
+$container = $configurator->createContainer();
+```
+
+And this will create the desired objects for us. For example, if you are using the configuration for [Nette Database](../database/configuration.md), you can ask it to create database connections:
+
+```php
+$db = $container->getByType(Nette\Database\Connection::class);
+// or
+$explorer = $container->getByType(Nette\Database\Explorer::class);
+// or when creating multiple connections
+$db = $container->getByName('database.main.connection');
+```
+
+And now you can work with the database!
+
+## Development vs Production Mode
+
+In development mode, the container is automatically updated whenever the configuration files are changed. In production mode, it is generated only once, and changes are not checked. Thus, development mode is aimed at maximum programmer convenience, while production mode focuses on performance and production deployment.
+
+Mode selection is done by autodetection, so there is usually no need to configure or manually switch anything. The mode is development if the application is running on localhost (i.e., IP address `127.0.0.1` or `::1`) and no proxy (i.e., its HTTP header) is present. Otherwise, it runs in production mode.
+
+If we want to enable development mode in other cases, for example, for programmers accessing from a specific IP address, use `setDebugMode()`:
+
+```php
+$configurator->setDebugMode('23.75.345.200');
+// an array of IP addresses can also be specified
+```
+
+We strongly recommend combining the IP address with a cookie. Store a secret token, e.g., `secret1234`, in the `nette-debug` cookie. This way, you enable development mode for programmers accessing from a specific IP address who also have the mentioned token in their cookie:
+
+```php
+$configurator->setDebugMode('secret1234@23.75.345.200');
+```
+
+We can also disable development mode completely, even for localhost:
+
+```php
+$configurator->setDebugMode(false);
+```
+
+## Parameters
+
+You can also use parameters in configuration files, which are defined [in the `parameters` section](../dependency-injection/configuration.md#parameters).
+
+They can also be inserted from the outside using the `addDynamicParameters()` method:
+
+```php
+$configurator->addDynamicParameters([
+	'remoteIp' => $_SERVER['REMOTE_ADDR'],
+]);
+```
+
+The `remoteIp` parameter can be referenced in the configuration using the `%remoteIp%` notation.
+
+If you are upgrading to a newer version, see the [upgrading](upgrading.md) page.

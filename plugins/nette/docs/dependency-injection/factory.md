@@ -1,0 +1,230 @@
+# Generated Factories
+
+Contents:
+
+- [Parameterized Factory](#parameterized-factory)
+- [Advanced Definition](#advanced-definition)
+- [Accessor](#accessor)
+- [Multifactory/Accessor](#multifactoryaccessor)
+  - [Definition with a List](#definition-with-a-list)
+  - [Definition with Tags](#definition-with-tags)
+
+
+Nette DI can automatically generate factory code based on interfaces, saving you from writing code.
+
+A factory is a class that is responsible for creating objects and passing their dependencies. Please do not confuse this with the *factory method* design pattern, which describes a specific way of using factories and is unrelated to this topic.
+
+We have shown what such a factory looks like in the [introductory chapter](introduction.md#factory):
+
+```php
+class ArticleFactory
+{
+	public function __construct(
+		private Nette\Database\Connection $db,
+	) {
+	}
+
+	public function create(): Article
+	{
+		return new Article($this->db);
+	}
+}
+```
+
+Nette DI can automatically generate factory code. All you need to do is create an interface, and Nette DI will generate the implementation. The interface must have exactly one method named `create` and declare a return type:
+
+```php
+interface ArticleFactory
+{
+	function create(): Article;
+}
+```
+
+So, the factory `ArticleFactory` has a method `create` that creates `Article` objects. The `Article` class might look like this, for example:
+
+```php
+class Article
+{
+	public function __construct(
+		private Nette\Database\Connection $db,
+	) {
+	}
+}
+```
+
+Add the factory to the configuration file:
+
+```neon
+services:
+	- ArticleFactory
+```
+
+Nette DI will generate the corresponding factory implementation.
+
+In the code that uses the factory, request the object by its interface, and Nette DI will provide the generated implementation:
+
+```php
+class UserController
+{
+	public function __construct(
+		private ArticleFactory $articleFactory,
+	) {
+	}
+
+	public function foo()
+	{
+		// let the factory create an object
+		$article = $this->articleFactory->create();
+	}
+}
+```
+
+## Parameterized Factory
+
+The factory method `create` can accept parameters, which it then passes to the constructor. For example, let's add the article author's ID to the `Article` class:
+
+```php
+class Article
+{
+	public function __construct(
+		private Nette\Database\Connection $db,
+		private int $authorId,
+	) {
+	}
+}
+```
+
+We will also add the parameter to the factory:
+
+```php
+interface ArticleFactory
+{
+	function create(int $authorId): Article;
+}
+```
+
+Since the parameter name in the constructor (`$authorId`) matches the parameter name in the factory method, Nette DI automatically passes it.
+
+## Advanced Definition
+
+The definition can also be written in multi-line form using the `implement` key:
+
+```neon
+services:
+	articleFactory:
+		implement: ArticleFactory
+```
+
+Using this longer format allows specifying additional arguments for the constructor via the `arguments` key and further configuration using `setup`, similar to regular service definitions.
+
+Example: If the `create()` method didn't accept the `$authorId` parameter, we could provide a fixed value in the configuration to be passed to the `Article` constructor:
+
+```neon
+services:
+	articleFactory:
+		implement: ArticleFactory
+		arguments:
+			authorId: 123
+```
+
+Conversely, if `create()` accepted `$authorId`, but it wasn't part of the constructor and was instead passed via a method like `Article::setAuthorId()`, we would reference the parameter in the `setup` section:
+
+```neon
+services:
+	articleFactory:
+		implement: ArticleFactory
+		setup:
+			- setAuthorId($authorId)
+```
+
+## Accessor
+
+Besides factories, Nette can also generate so-called accessors. These are objects with a `get()` method that returns a specific service from the DI container. Repeated calls to `get()` always return the same instance.
+
+Accessors provide lazy-loading for dependencies. Consider a class that logs errors to a dedicated database. If this class received the database connection via constructor dependency injection, the connection would always be established, even if errors occur rarely and the connection remains unused most of the time. Instead, the class can receive an accessor. The database object (connection) is only created when the accessor's `get()` method is called for the first time.
+
+How to create an accessor? Just write an interface, and Nette DI will generate the implementation. The interface must have exactly one method named `get` that takes no parameters and declares the return type:
+
+```php
+interface PDOAccessor
+{
+	function get(): PDO;
+}
+```
+
+Add the accessor to the configuration file, along with the definition of the service it should return:
+
+```neon
+services:
+	- PDOAccessor
+	- PDO(%dsn%, %user%, %password%)
+```
+
+Because the accessor returns a `PDO` service, and there's only one such service defined in the configuration, the accessor will return that specific service. If multiple services of that type exist, specify which one the accessor should return by name, e.g., `- PDOAccessor(@db1)`.
+
+## Multifactory/Accessor
+
+So far, our factories and accessors could only create or return a single type of object. However, you can easily create multifactories, which combine features of factories and accessors. The interface for such a component can contain multiple methods named `create<Name>()` and `get<Name>()`, for example:
+
+```php
+interface MultiFactory
+{
+	function createArticle(): Article;
+	function getDb(): PDO;
+}
+```
+
+So, instead of injecting multiple individual factories and accessors, you can inject a single, more comprehensive component.
+
+Alternatively, instead of multiple methods, `get()` with a parameter can be used:
+
+```php
+interface MultiFactoryAlt
+{
+	function get($name): PDO;
+}
+```
+
+Then, `MultiFactory::getDb()` does the same thing as `MultiFactoryAlt::get('db')`. However, this alternative notation has the disadvantage that the supported values for `$name` are not explicitly clear from the interface signature. Additionally, you cannot define different return types for different `$name` values within the interface.
+
+Instead of `get($name)`, the interface can declare `create($name)`, which returns a new instance on every call (whereas `get()` returns a shared one). The interface may contain only one such parameterized method. If the method's return type is nullable (e.g. `?PDO`), it returns `null` for an unknown `$name` instead of throwing an exception.
+
+### Definition with a List
+
+(since 3.2.0) You can define a multifactory in the configuration using a list, with the services written inline:
+
+```neon
+services:
+	- MultiFactory(
+		article: Article()                    # defines createArticle()
+		db: PDO(%dsn%, %user%, %password%)    # defines getDb()
+	)
+```
+
+Alternatively, you can refer to existing services in the multifactory definition using references:
+
+```neon
+services:
+	article: Article
+	- PDO(%dsn%, %user%, %password%)
+	- MultiFactory(
+		article: @article    # defines createArticle()
+		db: @\PDO            # defines getDb()
+	)
+```
+
+### Definition with Tags
+
+Another way to define a multifactory is to use [tags](services.md#tags). The value of the tag determines the name of the corresponding method:
+
+```neon
+services:
+	article:
+		create: Article
+		tags: {multi: article}     # defines createArticle()
+	db:
+		create: PDO(%dsn%, %user%, %password%)
+		tags: {multi: db}          # defines getDb()
+
+	- MultiFactory(tagged: multi)
+```

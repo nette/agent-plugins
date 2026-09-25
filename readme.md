@@ -39,6 +39,16 @@ For automatic PHP code style fixing:
 /php-fixer:install-php-fixer
 ```
 
+The skills come with the relevant pages of the Nette documentation, which Claude reads when it needs details. The plugin lives outside your project, so Claude Code asks for permission the first time it reads one of its files. To skip the prompt, allow reading the plugin directory in your settings:
+
+```json
+{
+	"permissions": {
+		"allow": ["Read(~/.claude/plugins/cache/nette/**)"]
+	}
+}
+```
+
 ### Codex
 
 Add the marketplace and install the application-development skills:
@@ -85,6 +95,8 @@ Best practices and conventions for building applications with Nette Framework â€
 | **nette-schema** | Data validation and normalization with Expect class |
 | **nette-tester** | Nette Tester usage, test structure, assertions |
 | **nette-utils** | Utility classes: Arrays, Strings, Image, Finder, DateTime, Json, Validators |
+| **nette-command-line** | Command-line scripts with nette/command-line 2.0: parameters, commands, help, colored output |
+| **nette-php-generator** | Generating PHP code with nette/php-generator: classes, namespaces, files, printers |
 | **frontend-development** | Vite, ESLint, Tailwind, Nette Assets integration |
 | **latte-templates** | Latte templating system, layouts, filters, template classes |
 | **neon-format** | NEON data format syntax, mappings, sequences, entities |

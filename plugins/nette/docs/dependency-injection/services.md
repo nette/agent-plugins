@@ -1,0 +1,471 @@
+# Service Definitions
+
+Contents:
+
+- [Service Creation](#service-creation)
+- [Arguments](#arguments)
+- [Setup](#setup)
+- [Expression Language](#expression-language)
+  - [Special Functions](#special-functions)
+- [Autowiring](#autowiring)
+- [Lazy Services (since 3.2.4)](#lazy-services-since-324)
+- [Tags](#tags)
+- [Inject Mode](#inject-mode)
+- [Service Modifications](#service-modifications)
+
+
+Configuration is where we instruct the DI container how to create individual services and how to connect them with their dependencies. Nette offers a very clear and elegant way to achieve this.
+
+The `services` section in the NEON configuration file is where we define our own services and their configurations. Let's look at a simple example defining a service named `database`, which represents an instance of the `PDO` class:
+
+```neon
+services:
+	database: PDO('sqlite::memory:')
+```
+
+The configuration above results in the following factory method in the [DI container](container.md):
+
+```php
+public function createServiceDatabase(): PDO
+{
+	return new PDO('sqlite::memory:');
+}
+```
+
+Service names enable referencing them in other parts of the configuration file, using the `@serviceName` format. If there's no need to assign a name to the service, we can simply use a bullet point (`-`):
+
+```neon
+services:
+	- PDO('sqlite::memory:')
+```
+
+To retrieve a service from the DI container, we can use the `getService()` method with the service name as a parameter, or the `getByType()` method with the service type:
+
+```php
+$database = $container->getService('database');
+$database = $container->getByType(PDO::class);
+```
+
+## Service Creation
+
+Usually, we create a service simply by instantiating a specific class. For example:
+
+```neon
+services:
+	database: PDO('mysql:host=127.0.0.1;dbname=test', root, secret)
+```
+
+If we need to expand the configuration with additional keys, the definition can be split across multiple lines:
+
+```neon
+services:
+	database:
+		create: PDO('sqlite::memory:')
+		setup: ...
+```
+
+The `create` key has an alias `factory`; both variants are commonly used. However, we recommend using `create`.
+
+Arguments for the constructor or the factory method can alternatively be specified using the `arguments` key:
+
+```neon
+services:
+	database:
+		create: PDO
+		arguments: ['mysql:host=127.0.0.1;dbname=test', root, secret]
+```
+
+Services don't necessarily have to be created by simple class instantiation; they can also be the result of invoking static methods or methods of other services:
+
+```neon
+services:
+	database: DatabaseFactory::create()
+	router: @routerFactory::create()
+```
+
+Note that for simplicity, `::` is used instead of `->`, see [Expression Language](#expression-language). These factory methods will be generated:
+
+```php
+public function createServiceDatabase(): PDO
+{
+	return DatabaseFactory::create();
+}
+
+public function createServiceRouter(): RouteList
+{
+	return $this->getService('routerFactory')->create();
+}
+```
+
+The DI container needs to know the type of the service being created. If we create a service using a method that lacks a specified return type, we must explicitly declare this type in the configuration:
+
+```neon
+services:
+	database:
+		create: DatabaseFactory::create()
+		type: PDO
+```
+
+## Arguments
+
+We pass arguments to constructors and methods in a way very similar to how it's done in PHP itself:
+
+```neon
+services:
+	database: PDO('mysql:host=127.0.0.1;dbname=test', root, secret)
+```
+
+For better readability, we can list arguments on separate lines. In this case, using commas becomes optional:
+
+```neon
+services:
+	database: PDO(
+		'mysql:host=127.0.0.1;dbname=test'
+		root
+		secret
+	)
+```
+
+You can also name the arguments, eliminating the need to worry about their order:
+
+```neon
+services:
+	database: PDO(
+		username: root
+		password: secret
+		dsn: 'mysql:host=127.0.0.1;dbname=test'
+	)
+```
+
+If you want to omit certain arguments and use their default values or have a service injected via [autowiring](autowiring.md), use an underscore (`_`):
+
+```neon
+services:
+	foo: Foo(_, %appDir%)
+```
+
+Arguments can include services, parameters, and much more, see [Expression Language](#expression-language).
+
+## Setup
+
+In the `setup` section, we define methods that should be invoked upon service creation.
+
+```neon
+services:
+	database:
+		create: PDO(%dsn%, %user%, %password%)
+		setup:
+			- setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION)
+```
+
+This would look like this in PHP:
+
+```php
+public function createServiceDatabase(): PDO
+{
+	$service = new PDO('...', '...', '...');
+	$service->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	return $service;
+}
+```
+
+In addition to method calls, values can also be assigned to properties. Adding elements to arrays is also supported, which requires enclosing the array access in quotes to avoid conflicts with NEON syntax:
+
+```neon
+services:
+	foo:
+		create: Foo
+		setup:
+			- $value = 123
+			- '$onClick[]' = [@bar, clickHandler]
+```
+
+Which would look like the following in PHP code:
+
+```php
+public function createServiceFoo(): Foo
+{
+	$service = new Foo;
+	$service->value = 123;
+	$service->onClick[] = [$this->getService('bar'), 'clickHandler'];
+	return $service;
+}
+```
+
+However, in the setup, you can also invoke static methods or methods of other services. If you need to pass the current service itself as an argument, refer to it using `@self`:
+
+```neon
+services:
+	foo:
+		create: Foo
+		setup:
+			- My\Helpers::initializeFoo(@self)
+			- @anotherService::setFoo(@self)
+```
+
+Note that for simplicity, `::` is used instead of `->`, see [Expression Language](#expression-language). Such a factory method will be generated:
+
+```php
+public function createServiceFoo(): Foo
+{
+	$service = new Foo;
+	My\Helpers::initializeFoo($service);
+	$this->getService('anotherService')->setFoo($service);
+	return $service;
+}
+```
+
+## Expression Language
+
+Nette DI provides an exceptionally rich expression language, through which we can define almost anything. In configuration files, we can thus use [parameters](configuration.md#parameters):
+
+```neon
+# parameter
+%wwwDir%
+
+# value of a parameter under a key
+%mailer.user%
+
+# parameter inside a string
+'%wwwDir%/images'
+```
+
+Furthermore, create objects, call methods and functions:
+
+```neon
+# create object
+DateTime()
+
+# call static method
+Collator::create(%locale%)
+
+# call PHP function
+::getenv(DB_USER)
+```
+
+Refer to services either by their name or by type:
+
+```neon
+# service by name
+@database
+
+# service by type
+@Nette\Database\Connection
+```
+
+(since 3.2.0) Use first-class callable syntax:
+
+```neon
+# create callback, equivalent to [@user, logout]
+@user::logout(...)
+```
+
+Use constants:
+
+```neon
+# class constant
+FilesystemIterator::SKIP_DOTS
+
+# get global constant using PHP function constant()
+::constant(\PHP_VERSION)
+```
+
+Access a service's public properties and constants via `@service::member`. Whether the name resolves to a property or to a constant is decided by its first letter – a lowercase initial means a public property, an uppercase one means a constant:
+
+```neon
+# public property of a service (starts with a lowercase letter)
+@settings::apiUrl
+
+# class constant of a service (starts with an uppercase letter)
+@settings::Version
+```
+
+Method calls can be chained just like in PHP. For simplicity, `::` is used instead of `->`:
+
+```neon
+DateTime()::format('Y-m-d')
+# PHP: (new DateTime())->format('Y-m-d')
+
+@http.request::getUrl()::getHost()
+# PHP: $this->getService('http.request')->getUrl()->getHost()
+```
+
+You can use these expressions anywhere, when [creating services](#service-creation), in [arguments](#arguments), in the [setup](#setup) section, or in [parameters](configuration.md#parameters):
+
+```neon
+parameters:
+	ipAddress: @http.request::getRemoteAddress()
+
+services:
+	database:
+		create: DatabaseFactory::create( @anotherService::getDsn() )
+		setup:
+			- initialize( ::getenv('DB_USER') )
+```
+
+### Special Functions
+
+In configuration files, you can use the following special functions:
+
+- `not()` negates a value
+- `bool()`, `int()`, `float()`, `string()` lossless casting to the specified type
+- `typed()` creates an array of all services of the specified type
+- `tagged()` creates an array of all services with the given tag
+
+```neon
+services:
+	- Foo(
+		id: int(::getenv('ProjectId'))
+		productionMode: not(%debugMode%)
+	)
+```
+
+Unlike standard PHP casting, such as `(int)`, lossless casting throws an exception for non-numeric values.
+
+The `typed()` function creates an array of all services of the specified type (class or interface). It excludes services that have autowiring disabled. Multiple types can also be specified, separated by commas.
+
+```neon
+services:
+	- BarsDependent( typed(Bar) )
+```
+
+An array of services of a certain type can also be passed as an argument automatically using [autowiring](autowiring.md#collection-of-services).
+
+The `tagged()` function then creates an array of all services with a specific tag. Here too, you can specify multiple tags separated by commas.
+
+```neon
+services:
+	- LoggersDependent( tagged(logger) )
+```
+
+## Autowiring
+
+The `autowired` key allows you to influence the autowiring behavior for a specific service. For details, see the [chapter on autowiring](autowiring.md).
+
+```neon
+services:
+	foo:
+		create: Foo
+		autowired: false     # the foo service is excluded from autowiring
+```
+
+## Lazy Services (since 3.2.4)
+
+Lazy loading is a technique that defers the creation of a service until it is actually needed. In the global configuration, you can [enable lazy creation](configuration.md#lazy-services-since-324) for all services at once. For individual services, you can then override this behavior:
+
+```neon
+services:
+	foo:
+		create: Foo
+		lazy: false
+```
+
+When a service is defined as lazy, upon requesting it from the DI container, we receive a special proxy object. This proxy looks and behaves identically to the actual service, but the actual initialization (constructor invocation and setup calls) occurs only upon the first access to any of its methods or properties.
+
+Keep in mind that because the service is created later, errors in its configuration also manifest themselves later. For example, incorrect database credentials will not reveal themselves when the application starts, but only upon the first query.
+
+Lazy creation also mitigates circular dependencies, i.e., a situation where service A requires service B and B at the same time requires A. Without it, the container reports the error `Circular reference detected`. With a lazy proxy, service A receives only a proxy of service B, which initializes itself when it is actually used, at a moment when A already exists. Nevertheless, a circular dependency signals a flawed design, and it is better to get rid of it.
+
+Lazy loading requires PHP 8.4 or newer and works only for services created by directly instantiating a class (e.g. `create: Foo`), not for those created by a factory method. It also cannot be used for classes that ultimately extend an internal PHP class. When lazy loading cannot be applied, the `lazy: true` flag is silently ignored.
+
+## Tags
+
+Tags serve to add supplementary information to services. You can assign one or more tags to a service:
+
+```neon
+services:
+	foo:
+		create: Foo
+		tags:
+			- cached
+```
+
+Tags can also hold values:
+
+```neon
+services:
+	foo:
+		create: Foo
+		tags:
+			logger: monolog.logger.event
+```
+
+To retrieve all services associated with specific tags, you can use the `tagged()` function:
+
+```neon
+services:
+	- LoggersDependent( tagged(logger) )
+```
+
+Within the DI container, you can retrieve the names of all services with a specific tag using the `findByTag()` method:
+
+```php
+$names = $container->findByTag('logger');
+// $names is an array containing service names as keys and tag values as values
+// e.g., ['foo' => 'monolog.logger.event', ...]
+```
+
+## Inject Mode
+
+Using the `inject: true` flag enables dependency injection via public properties with the [Inject](../best-practices/inject-method-attribute.md#inject-attributes) attribute and [inject\*()](../best-practices/inject-method-attribute.md#inject-methods) methods.
+
+```neon
+services:
+	articles:
+		create: App\Model\Articles
+		inject: true
+```
+
+By default, `inject` mode is enabled only for presenters.
+
+## Service Modifications
+
+The DI container holds numerous services added via built-in or [user extensions](extensions.md). You can modify the definitions of these existing services directly in the configuration. For example, you can change the class for the `application.application` service, which defaults to `Nette\Application\Application`, to a different one:
+
+```neon
+services:
+	application.application:
+		create: MyApplication
+		alteration: true
+```
+
+The `alteration` flag indicates that we are merely modifying an existing service. It also acts as a safeguard: if the service being modified doesn't exist, compilation fails with an exception.
+
+We can also supplement the setup:
+
+```neon
+services:
+	application.application:
+		create: MyApplication
+		alteration: true
+		setup:
+			- '$onStartup[]' = [@resource, init]
+```
+
+You don't have to identify a service by its internal name – you can refer to it by type instead. The previous example can also be written as:
+
+```neon
+services:
+	@Nette\Application\Application:
+		create: MyApplication
+```
+
+When modifying a service, we might want to remove original arguments, setup items, or tags, using the `reset` key:
+
+```neon
+services:
+	application.application:
+		create: MyApplication
+		alteration: true
+		reset:
+			arguments: true
+			setup: true
+			tags: true
+```
+
+If you want to remove a service added by an extension, you can do so as follows:
+
+```neon
+services:
+	cache.journal: false
+```

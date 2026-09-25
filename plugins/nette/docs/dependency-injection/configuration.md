@@ -1,0 +1,329 @@
+# Configuring DI Container
+
+Contents:
+
+- [Configuration File](#configuration-file)
+- [Parameters](#parameters)
+- [Services](#services)
+- [Decorator](#decorator)
+- [DI](#di)
+  - [Lazy Services (since 3.2.4)](#lazy-services-since-324)
+  - [Metadata Export](#metadata-export)
+- [Extensions](#extensions)
+- [Including Files](#including-files)
+- [Search](#search)
+- [Merging](#merging)
+
+
+Overview of configuration options for the Nette DI container.
+
+## Configuration File
+
+The Nette DI container is easily controlled using configuration files. These are usually written in the [NEON format](../neon/format.md). We recommend using [editors with support](https://doc.nette.org/en/tools/ide) for this format.
+
+<pre>
+[decorator](#decorator): Decorator<br>
+[di](#di): DI Container<br>
+[extensions](#extensions): Install additional DI extensions<br>
+[includes](#including-files): Including files<br>
+[parameters](#parameters): Parameters<br>
+[search](#search): Automatic service registration<br>
+[services](services.md): Services
+</pre>
+
+To write a string containing the character `%`, you must escape it by doubling it to `%%`.
+
+## Parameters
+
+In the configuration, you can define parameters that can then be used as part of service definitions. This allows you to clarify the configuration or to centralize values that might change.
+
+```neon
+parameters:
+	dsn: 'mysql:host=127.0.0.1;dbname=test'
+	user: root
+	password: secret
+```
+
+We refer to the `dsn` parameter anywhere in the configuration using the notation `%dsn%`. Parameters can also be used inside strings like `'%wwwDir%/images'`.
+
+Parameters do not have to be just strings or numbers; they can also contain arrays:
+
+```neon
+parameters:
+	mailer:
+		host: smtp.example.com
+		secure: ssl
+		user: franta@gmail.com
+	languages: [cs, en, de]
+```
+
+We refer to a specific key as `%mailer.user%`.
+
+If your code (e.g., a class) needs the value of a parameter, pass it to the class. For example, in the constructor. There is no global configuration object that classes can query for parameter values. That would be a violation of the dependency injection principle.
+
+## Services
+
+See [separate chapter](services.md).
+
+## Decorator
+
+How can you modify multiple services of a certain type at once? For example, how to call a specific method on all presenters that inherit from a particular base class? That's what the decorator is for.
+
+```neon
+decorator:
+	# for all services that are instances of this class or interface
+	App\Presentation\BasePresenter:
+		setup:
+			- setProjectId(10)       # call this method
+			- $absoluteUrls = true   # and set the variable
+```
+
+Decorators can also be used to set [tags](services.md#tags) or enable [inject mode](services.md#inject-mode).
+
+```neon
+decorator:
+	InjectableInterface:
+		tags: [mytag: 1]
+		inject: true
+```
+
+## DI
+
+Technical settings of the DI container.
+
+```neon
+di:
+	# show DIC in Tracy Bar?
+	debugger: ...        # (bool) defaults to autodetection (enabled when Tracy is present)
+
+	# parameter types that you never autowire
+	excluded: ...        # (string[])
+
+	# enable lazy service creation?
+	lazy: ...            # (bool) default is false
+
+	# the class from which the DI container inherits
+	parentClass: ...     # (string) defaults to Nette\DI\Container
+```
+
+### Lazy Services (since 3.2.4)
+
+Setting `lazy: true` activates lazy (deferred) creation of services. This means that services are not actually created at the moment they are requested from the DI container, but only at the time of their first use. This can speed up application startup and reduce memory usage, as only the services actually needed for a given request are created.
+
+For a specific service, lazy creation can be [adjusted](services.md#lazy-services-since-324).
+
+Lazy objects can only be used for user-defined classes, not for internal PHP classes. Requires PHP 8.4 or newer.
+
+### Metadata Export
+
+The DI container class also contains a lot of metadata. You can reduce its size by reducing the metadata export.
+
+```neon
+di:
+	export:
+		# export parameters?
+		parameters: false   # (bool) defaults to true
+
+		# export tags and which ones?
+		tags:               # (string[]|bool) the default is all
+			- event.subscriber
+
+		# export data for autowiring and which?
+		types:              # (string[]|bool) the default is all
+			- Nette\Database\Connection
+			- Symfony\Component\Console\Application
+```
+
+If you don't use `$container->getParameters()`, you can disable parameter export. Furthermore, you can export only the tags that you actually use to retrieve services via `$container->findByTag(...)`. If you don't call this method at all, you can disable tag export completely using `false`.
+
+You can significantly reduce metadata for [autowiring](autowiring.md) by listing only the classes you actually request using `$container->getByType()`. Again, if you don't call this method (or only call it in the [bootstrap](../application/bootstrapping.md) file, e.g., to get `Nette\Application\Application`), you can disable type export completely using `false`.
+
+## Extensions
+
+Registration of additional DI extensions. This is how you add, for example, the DI extension `Dibi\Bridges\Nette\DibiExtension3` under the name `dibi`:
+
+```neon
+extensions:
+	dibi: Dibi\Bridges\Nette\DibiExtension3
+```
+
+You then configure it in the `dibi` section:
+
+```neon
+dibi:
+	host: localhost
+```
+
+You can also add a class with parameters as an extension:
+
+```neon
+extensions:
+	application: Nette\Bridges\ApplicationDI\ApplicationExtension(%debugMode%, [%appDir%], %tempDir%/cache)
+```
+
+## Including Files
+
+Additional configuration files can be included in the `includes` section:
+
+```neon
+includes:
+	- parameters.php
+	- services.neon
+	- presenters.neon
+```
+
+The name `parameters.php` is not a typo; the configuration can also be written in a PHP file that returns it as an array:
+
+```php
+<?php
+return [
+	'database' => [
+		'main' => [
+			'dsn' => 'sqlite::memory:',
+		],
+	],
+];
+```
+
+If items with the same keys appear in multiple configuration files, they will be overwritten, or [merged](#merging) in the case of arrays. A file included later has higher priority than the previous one. The file in which the `includes` section is listed has a higher priority than the files included in it.
+
+## Search
+
+Automatic registration of services in the DI container significantly simplifies development. Nette automatically adds presenters to the container, but you can easily add any other classes as well.
+
+Just specify in which directories (and subdirectories) the classes should be searched for:
+
+```neon
+search:
+	-	in: %appDir%/Forms
+	-	in: %appDir%/Model
+```
+
+If you only need a single search rule, you can omit the list and write its keys directly under `search`:
+
+```neon
+search:
+	in: %appDir%
+```
+
+Usually, however, we don't want to add absolutely all classes and interfaces, so we can filter them:
+
+```neon
+search:
+	-	in: %appDir%/Forms
+
+		# filtering by file name (string|string[])
+		files:
+			- *Factory.php
+
+		# filtering by class name (string|string[])
+		classes:
+			- *Factory
+```
+
+Or we can select classes that inherit or implement at least one of the listed classes:
+
+```neon
+search:
+	-	in: %appDir%
+		extends:
+			- App\*Form
+		implements:
+			- App\*FormInterface
+```
+
+You can also define exclusion rules using class name masks or ancestors. If a class matches an exclusion rule, it won't be added to the DI container:
+
+```neon
+search:
+	-	in: %appDir%
+		exclude:
+			files: ...
+			classes: ...
+			extends: ...
+			implements: ...
+```
+
+Tags can be assigned to all automatically registered services:
+
+```neon
+search:
+	-	in: %appDir%
+		tags: ...
+```
+
+Besides classes, the search also registers interfaces that have a single `create()` or `get()` method – as [generated factories or accessors](factory.md). Classes for which a service of the same type is already registered in the container are skipped, so no duplicates are created.
+
+## Merging
+
+If elements with the same keys appear in multiple configuration files, they will be overwritten, or merged in the case of arrays. The later included file has higher priority than the previous one.
+
+<table class="table">
+<tr>
+ <th width="33%">config1.neon</th>
+ <th width="33%">config2.neon</th>
+ <th>result</th>
+</tr>
+<tr>
+ <td>
+
+```neon
+items:
+	- 1
+	- 2
+```
+
+</td>  
+<td>
+
+```neon
+items:
+	- 3
+```
+
+</td>  
+<td>
+
+```neon
+items:
+	- 1
+	- 2
+	- 3
+```
+
+</td> </tr> </table>
+
+For arrays, merging can be prevented by adding an exclamation mark after the key name:
+
+<table class="table">
+<tr>
+ <th width="33%">config1.neon</th>
+ <th width="33%">config2.neon</th>
+ <th>result</th>
+</tr>
+<tr>
+ <td>
+
+```neon
+items:
+	- 1
+	- 2
+```
+
+</td>  
+<td>
+
+```neon
+items!:
+	- 3
+```
+
+</td>  
+<td>
+
+```neon
+items:
+	- 3
+```
+
+</td> </tr> </table>

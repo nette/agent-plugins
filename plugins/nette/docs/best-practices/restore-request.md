@@ -1,0 +1,57 @@
+# How to Return to an Earlier Page?
+
+What happens if a user is filling out a form and their login session expires? To prevent data loss, we can save the current request (including form data) to the session before redirecting to the login page. In Nette, this is surprisingly easy.
+
+The current request can be stored in the session using the `storeRequest()` method. This method returns a unique identifier (a short string) for the stored request. The method saves the name of the current presenter, its view, and its parameters. If a form was submitted as part of the request, the values entered into the fields (excluding uploaded files) are also saved.
+
+The request is restored using the `restoreRequest($key)` method, to which you pass the previously obtained identifier. This method redirects the user back to the original presenter and view. However, if the stored request included a form submission, `restoreRequest()` uses the `forward()` method instead of redirecting. It passes the previously filled values back to the form and allows it to be rendered again. This allows the user to resubmit the form without losing any entered data.
+
+Crucially, `restoreRequest()` verifies that the newly logged-in user is the same user who originally submitted the form. If the user is different, the stored request is not restored, and the method does nothing, enhancing security.
+
+Let's illustrate this with an example. Consider an `AdminPresenter` where data is edited. Its `startup()` method verifies if the user is logged in. If not, the user is redirected to `SignPresenter`. Simultaneously, we store the current request using `storeRequest()` and pass its key (the `$backlink`) to `SignPresenter`.
+
+```php
+class AdminPresenter extends Nette\Application\UI\Presenter
+{
+	protected function startup()
+	{
+		parent::startup();
+
+		if (!$this->user->isLoggedIn()) {
+			$this->redirect('Sign:in', ['backlink' => $this->storeRequest()]);
+		}
+	}
+}
+```
+
+The `SignPresenter` will contain, in addition to the login form, a persistent parameter `$backlink` where the key is stored. Because the parameter is persistent, its value is retained even after the login form is submitted.
+
+```php
+use Nette\Application\Attributes\Persistent;
+
+class SignPresenter extends Nette\Application\UI\Presenter
+{
+	#[Persistent]
+	public string $backlink = '';
+
+	protected function createComponentSignInForm()
+	{
+		$form = new Nette\Application\UI\Form;
+		// ... add form fields ...
+		$form->onSuccess[] = $this->signInFormSuceeded(...);
+		return $form;
+	}
+
+	private function signInFormSuceeded($form)
+	{
+		// ... log the user in here ...
+
+		$this->restoreRequest($this->backlink);
+		$this->redirect('Admin:');
+	}
+}
+```
+
+We pass the key (`$this->backlink`) of the stored request to the `restoreRequest()` method. It then redirects (or forwards) the user back to the original presenter and view.
+
+However, if the key is invalid (e.g., it has expired from the session), the method does nothing. Therefore, the subsequent call `$this->redirect('Admin:')` acts as a fallback, redirecting to a default page like `AdminPresenter`.

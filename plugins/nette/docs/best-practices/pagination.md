@@ -1,0 +1,268 @@
+# Paginating Database Results
+
+
+When developing web applications, you often encounter the requirement to limit the number of listed items per page, a technique known as pagination.
+
+Let's start from a state where we list all data without pagination. For selecting data from the database, we have an `ArticleRepository` class. Besides the constructor, it contains a `findPublishedArticles` method that returns all published articles sorted descending by publication date.
+
+```php
+namespace App\Model;
+
+use Nette;
+
+class ArticleRepository
+{
+	public function __construct(
+		private Nette\Database\Connection $database,
+	) {
+	}
+
+	public function findPublishedArticles(): Nette\Database\ResultSet
+	{
+		return $this->database->query('
+			SELECT * FROM articles
+			WHERE created_at < ?
+			ORDER BY created_at DESC',
+			new \DateTime,
+		);
+	}
+}
+```
+
+In the presenter, we then inject this model class. In the render method, we retrieve the published articles and pass them to the template:
+
+```php
+namespace App\Presentation\Home;
+
+use Nette;
+use App\Model\ArticleRepository;
+
+class HomePresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private ArticleRepository $articleRepository,
+	) {
+	}
+
+	public function renderDefault(): void
+	{
+		$this->template->articles = $this->articleRepository->findPublishedArticles();
+	}
+}
+```
+
+The `default.latte` template will then take care of listing the articles:
+
+```latte
+{block content}
+<h1>Articles</h1>
+
+<div class="articles">
+	{foreach $articles as $article}
+		<h2>{$article->title}</h2>
+		<p>{$article->content}</p>
+	{/foreach}
+</div>
+```
+
+This way, we can list all articles, but this becomes problematic as the number of articles increases. At that point, implementing a pagination mechanism becomes useful.
+
+This mechanism divides all articles into several pages, and we only display the articles belonging to the currently selected page. The total number of pages and the division of articles are calculated by the [Paginator](../utils/paginator.md) utility based on the total number of articles and the desired number of articles per page.
+
+In the first step, we'll modify the article retrieval method in the repository class so it can return articles for just one page. We'll also add a method to get the total count of articles in the database, which is needed to configure the Paginator:
+
+```php
+namespace App\Model;
+
+use Nette;
+
+
+class ArticleRepository
+{
+	public function __construct(
+		private Nette\Database\Connection $database,
+	) {
+	}
+
+	public function findPublishedArticles(int $limit, int $offset): Nette\Database\ResultSet
+	{
+		return $this->database->query('
+			SELECT * FROM articles
+			WHERE created_at < ?
+			ORDER BY created_at DESC
+			LIMIT ?
+			OFFSET ?',
+			new \DateTime, $limit, $offset,
+		);
+	}
+
+	/**
+	 * Returns the total number of published articles
+	 */
+	public function getPublishedArticlesCount(): int
+	{
+		return $this->database->fetchField('SELECT COUNT(*) FROM articles WHERE created_at < ?', new \DateTime);
+	}
+}
+```
+
+Next, let's modify the presenter. We'll pass the current page number to the `renderDefault` method. If this number isn't part of the URL, we'll set a default value of 1 (the first page).
+
+We'll also extend the render method to create and configure a Paginator instance and select the appropriate articles for display in the template. The modified `HomePresenter` will look like this:
+
+```php
+namespace App\Presentation\Home;
+
+use Nette;
+use App\Model\ArticleRepository;
+
+class HomePresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private ArticleRepository $articleRepository,
+	) {
+	}
+
+	public function renderDefault(int $page = 1): void
+	{
+		// Get the total number of published articles
+		$articlesCount = $this->articleRepository->getPublishedArticlesCount();
+
+		// Create and configure the Paginator instance
+		$paginator = new Nette\Utils\Paginator;
+		$paginator->setItemCount($articlesCount); // total item count
+		$paginator->setItemsPerPage(10); // items per page
+		$paginator->setPage($page); // current page number
+
+		// Fetch a limited set of articles from the database based on Paginator's calculation
+		$articles = $this->articleRepository->findPublishedArticles($paginator->getLength(), $paginator->getOffset());
+
+		// pass them to the template
+		$this->template->articles = $articles;
+		// and also the Paginator itself for displaying pagination controls
+		$this->template->paginator = $paginator;
+	}
+}
+```
+
+The template now iterates only over the articles for the current page. We just need to add the pagination links:
+
+```latte
+{block content}
+<h1>Articles</h1>
+
+<div class="articles">
+	{foreach $articles as $article}
+		<h2>{$article->title}</h2>
+		<p>{$article->content}</p>
+	{/foreach}
+</div>
+
+<div class="pagination">
+	{if !$paginator->isFirst()}
+		<a n:href="default, 1">First</a>
+		&nbsp;|&nbsp;
+		<a n:href="default, $paginator->getPage() - 1">Previous</a>
+		&nbsp;|&nbsp;
+	{/if}
+
+	Page {$paginator->getPage()} of {$paginator->getPageCount()}
+
+	{if !$paginator->isLast()}
+		&nbsp;|&nbsp;
+		<a n:href="default, $paginator->getPage() + 1">Next</a>
+		&nbsp;|&nbsp;
+		<a n:href="default, $paginator->getPageCount()">Last</a>
+	{/if}
+</div>
+```
+
+This completes the pagination implementation using the Paginator. If you use [Nette Database Explorer](../database/explorer.md) instead of [Nette Database Core](../database/sql-way.md) as your database layer, you can implement pagination even without using the Paginator utility directly. The `Nette\Database\Table\Selection` class includes a [page()](https://api.nette.org/database/master/Nette/Database/Table/Selection.html#method_page) method that encapsulates the pagination logic.
+
+With this approach, the repository will look like this:
+
+```php
+namespace App\Model;
+
+use Nette;
+
+class ArticleRepository
+{
+	public function __construct(
+		private Nette\Database\Explorer $database,
+	) {
+	}
+
+	public function findPublishedArticles(): Nette\Database\Table\Selection
+	{
+		return $this->database->table('articles')
+			->where('created_at < ', new \DateTime)
+			->order('created_at DESC');
+	}
+}
+```
+
+In the presenter, we don't need to create a Paginator instance. Instead, we'll use the `page()` method provided by the `Selection` object returned from the repository:
+
+```php
+namespace App\Presentation\Home;
+
+use Nette;
+use App\Model\ArticleRepository;
+
+class HomePresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private ArticleRepository $articleRepository,
+	) {
+	}
+
+	public function renderDefault(int $page = 1): void
+	{
+		// Fetch the published articles
+		$articles = $this->articleRepository->findPublishedArticles();
+
+		// and pass only their portion limited by the page method calculation to the template
+		$lastPage = 0;
+		$this->template->articles = $articles->page($page, 10, $lastPage);
+
+		// and also the necessary data for displaying pagination options
+		$this->template->page = $page;
+		$this->template->lastPage = $lastPage;
+	}
+}
+```
+
+Since we are no longer passing the Paginator object to the template, we need to adjust the part that displays the pagination links:
+
+```latte
+{block content}
+<h1>Articles</h1>
+
+<div class="articles">
+	{foreach $articles as $article}
+		<h2>{$article->title}</h2>
+		<p>{$article->content}</p>
+	{/foreach}
+</div>
+
+<div class="pagination">
+	{if $page > 1}
+		<a n:href="default, 1">First</a>
+		&nbsp;|&nbsp;
+		<a n:href="default, $page - 1">Previous</a>
+		&nbsp;|&nbsp;
+	{/if}
+
+	Page {$page} of {$lastPage}
+
+	{if $page < $lastPage}
+		&nbsp;|&nbsp;
+		<a n:href="default, $page + 1">Next</a>
+		&nbsp;|&nbsp;
+		<a n:href="default, $lastPage">Last</a>
+	{/if}
+</div>
+```
+
+This way, we've implemented the pagination mechanism without explicitly using the Paginator utility.

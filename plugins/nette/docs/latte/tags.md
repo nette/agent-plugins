@@ -1,0 +1,1068 @@
+# Latte Tags
+
+Contents:
+
+- [Printing](#printing)
+  - [`{$var}` `{...}` `{=...}`](#var--)
+  - [Output Escaping](#output-escaping)
+  - [Printing in JavaScript](#printing-in-javascript)
+  - [Filters](#filters)
+- [Conditions](#conditions)
+  - [`{if}` `{elseif}` `{else}`](#if-elseif-else)
+  - [`n:else` `n:elseif` (since 3.0.12)](#nelse-nelseif-since-3012)
+  - [`{/if $cond}`](#if-cond)
+  - [`{ifset}` `{elseifset}`](#ifset-elseifset)
+  - [`{ifchanged}`](#ifchanged)
+  - [`{switch}` `{case}` `{default}`](#switch-case-default)
+- [Loops](#loops)
+  - [`{foreach}`](#foreach)
+  - [`{else}`](#else)
+  - [`$iterator`](#iterator)
+  - [`{first}` `{last}` `{sep}`](#first-last-sep)
+  - [`{iterateWhile}`](#iteratewhile)
+  - [`{for}`](#for)
+  - [`{while}`](#while)
+  - [`{continueIf}` `{skipIf}` `{breakIf}`](#continueif-skipif-breakif)
+  - [`{exitIf}` (since 3.0.5)](#exitif-since-305)
+- [Including Templates](#including-templates)
+  - [`{include 'file.latte'}`](#include-filelatte)
+  - [`{sandbox}`](#sandbox)
+- [`{block}`](#block)
+- [Exception Handling](#exception-handling)
+  - [`{try}`](#try)
+  - [`{rollback}`](#rollback)
+- [Variables](#variables)
+  - [`{var}` `{default}`](#var-default)
+  - [`{parameters}`](#parameters)
+  - [`{capture}`](#capture)
+- [Others](#others)
+  - [`{contentType}`](#contenttype)
+  - [`{debugbreak}`](#debugbreak)
+  - [`{do}`](#do)
+  - [`{dump}`](#dump)
+  - [`{php}`](#php)
+  - [`{spaceless}`](#spaceless)
+  - [`{syntax}`](#syntax)
+  - [`{trace}`](#trace)
+- [HTML Coder Helpers](#html-coder-helpers)
+  - [`n:class`](#nclass)
+  - [`n:attr`](#nattr)
+  - [`n:tag`](#ntag)
+  - [`n:ifcontent`](#nifcontent)
+- [Translation](#translation)
+  - [`{_...}`](#_)
+  - [`{translate}`](#translate)
+
+
+An overview and description of all the tags available by default in the Latte templating system.
+
+**Printing**
+
+|  |  |
+| --- | --- |
+| `{$var}`, `{...}` or `{=...}` | [prints an escaped variable or expression](#printing) |
+| `{$var\|filter}` | [prints with filters applied](#filters) |
+| `{l}` or `{r}` | prints the `{` or `}` character |
+
+**Conditions**
+
+|  |  |
+| --- | --- |
+| `{if}` … `{elseif}` … `{else}` … `{/if}` | [if condition](#if-elseif-else) |
+| `{ifset}` … `{elseifset}` … `{/ifset}` | [ifset condition](#ifset-elseifset) |
+| `{ifchanged}` … `{/ifchanged}` | [tests if a value has changed](#ifchanged) |
+| `{switch}` `{case}` `{default}` `{/switch}` | [switch condition](#switch-case-default) |
+| `n:else`, `n:elseif` | [alternative content for conditions](#nelse-nelseif-since-3012) |
+
+**Loops**
+
+|  |  |
+| --- | --- |
+| `{foreach}` … `{/foreach}` | [foreach](#foreach) |
+| `{for}` … `{/for}` | [for](#for) |
+| `{while}` … `{/while}` | [while](#while) |
+| `{continueIf $cond}` | [continue to the next iteration](#continueif-skipif-breakif) |
+| `{skipIf $cond}` | [skip the current loop iteration](#continueif-skipif-breakif) |
+| `{breakIf $cond}` | [break the loop](#continueif-skipif-breakif) |
+| `{exitIf $cond}` | [early exit](#exitif-since-305) |
+| `{first}` … `{/first}` | [is it the first iteration?](#first-last-sep) |
+| `{last}` … `{/last}` | [is it the last iteration?](#first-last-sep) |
+| `{sep}` … `{/sep}` | [will the next iteration follow?](#first-last-sep) |
+| `{iterateWhile}` … `{/iterateWhile}` | [structured foreach](#iteratewhile) |
+| `$iterator` | [special variable inside the foreach loop](#iterator) |
+
+**Including Other Templates**
+
+|  |  |
+| --- | --- |
+| `{include 'file.latte'}` | [includes a template from another file](#include-filelatte) |
+| `{sandbox 'file.latte'}` | [includes a template in sandbox mode](#sandbox) |
+
+**Blocks, Layouts, Template Inheritance**
+
+|  |  |
+| --- | --- |
+| `{block}` | [anonymous block](#block) |
+| `{block blockname}` | [defines a block](template-inheritance.md#blocks-block) |
+| `{define blockname}` | [defines a block for later use](template-inheritance.md#definitions-define) |
+| `{include blockname}` | [renders a block](template-inheritance.md#printing-blocks-include) |
+| `{include blockname from 'file.latte'}` | [renders a block from a file](template-inheritance.md#printing-blocks-include) |
+| `{import 'file.latte'}` | [imports blocks from a template](template-inheritance.md#horizontal-reuse-import) |
+| `{layout 'file.latte'}` / `{extends}` | [specifies a layout file](template-inheritance.md#layout-inheritance-layout) |
+| `{embed}` … `{/embed}` | [embeds a template or block and allows overriding blocks](template-inheritance.md#unit-inheritance-embed) |
+| `{ifset blockname}` … `{/ifset}` | [condition checking if a block exists](template-inheritance.md#checking-block-existence-ifset) |
+
+**Exception Handling**
+
+|  |  |
+| --- | --- |
+| `{try}` … `{else}` … `{/try}` | [catching exceptions](#try) |
+| `{rollback}` | [discards the try block](#rollback) |
+
+**Variables**
+
+|  |  |
+| --- | --- |
+| `{var $foo = value}` | [variable creation](#var-default) |
+| `{default $foo = value}` | [creates a variable if it doesn't exist](#var-default) |
+| `{parameters}` | [declares variables, types, and default values](#parameters) |
+| `{capture}` … `{/capture}` | [captures output into a variable](#capture) |
+
+**Types**
+
+|  |  |
+| --- | --- |
+| `{varType}` | [declares the type of a variable](type-system.md#vartype) |
+| `{varPrint}` | [suggests variable types](type-system.md#varprint) |
+| `{templateType}` | [declares variable types based on a class](type-system.md#templatetype) |
+| `{templatePrint}` | [suggests a class with variable types](type-system.md#templateprint) |
+
+**Translation**
+
+|  |  |
+| --- | --- |
+| `{_...}` | [prints translation](#translation) |
+| `{translate}` … `{/translate}` | [translates the content](#translation) |
+
+**Others**
+
+|  |  |
+| --- | --- |
+| `{contentType}` | [switches escaping and sends HTTP header](#contenttype) |
+| `{debugbreak}` | [places a breakpoint in the code](#debugbreak) |
+| `{do}` | [executes code without printing anything](#do) |
+| `{dump}` | [dumps variables to the Tracy Bar](#dump) |
+| `{php}` | [executes any PHP code](#php) |
+| `{spaceless}` … `{/spaceless}` | [removes unnecessary whitespace](#spaceless) |
+| `{syntax}` | [changes syntax at runtime](#syntax) |
+| `{trace}` | [displays stack trace](#trace) |
+
+**HTML Coder Helpers**
+
+|  |  |
+| --- | --- |
+| `n:class` | [dynamic HTML class attribute](#nclass) |
+| `n:attr` | [dynamic HTML attributes](#nattr) |
+| `n:tag` | [dynamic HTML element name](#ntag) |
+| `n:ifcontent` | [omits empty HTML tag](#nifcontent) |
+
+**Available only in Nette Framework**
+
+|  |  |
+| --- | --- |
+| `n:href` | [link used in `<a>` HTML elements](../application/creating-links.md#in-the-presenter-template) |
+| `{link}` | [prints a link](../application/creating-links.md#in-the-presenter-template) |
+| `{plink}` | [prints a link to a presenter](../application/creating-links.md#in-the-presenter-template) |
+| `{linkBase}` | [changing link base](../application/creating-links.md#changing-link-base-since-327) |
+| `{control}` | [renders a component](../application/components.md#rendering) |
+| `{snippet}` … `{/snippet}` | [a template snippet that can be sent via AJAX](../application/ajax.md#snippets-in-latte) |
+| `{snippetArea}` | [snippet wrapper](../application/ajax.md#snippet-areas) |
+| `{cache}` … `{/cache}` | [caches a part of the template](../caching/index.md#caching-in-latte) |
+
+**Available only with Nette Forms**
+
+|  |  |
+| --- | --- |
+| `{form}` … `{/form}` | [renders form tags](../forms/rendering.md#form) |
+| `{form scope}`, `{form detached}` | [form variants without the tag or detached](../forms/rendering.md#form) |
+| `{label}` … `{/label}` | [renders a form control label](../forms/rendering.md#label-input) |
+| `{input}` | [renders a form control](../forms/rendering.md#label-input) |
+| `{inputError}` | [prints the error message of a form control](../forms/rendering.md#inputerror) |
+| `n:name` | [activates a form control](../forms/rendering.md#nname) |
+| `{formContainer}` … `{/formContainer}` | [renders a form container](../forms/rendering.md#special-cases) |
+
+**Available only with Nette Assets**
+
+|  |  |
+| --- | --- |
+| `{asset}` | [renders an asset as HTML element or URL](../assets/index.md#asset) |
+| `{preload}` | [generates preload hints for performance optimization](../assets/index.md#preload) |
+| `n:asset` | [adds asset attributes to HTML elements](../assets/index.md#nasset) |
+
+## Printing
+
+### `{$var}` `{...}` `{=...}`
+
+In Latte, the `{=...}` tag is used to print any expression to the output. Latte cares about your comfort, so if the expression starts with a variable or a function call, there's no need to write the equals sign. Which in practice means it almost never needs to be written:
+
+```latte
+Name: {$name} {$surname}<br>
+Age: {date('Y') - $birth}<br>
+```
+
+You can write anything you know from PHP as an expression. You simply don't have to learn a new language. For example:
+
+```latte
+{='0' . ($num ?? $num * 3) . ', ' . \PHP_VERSION}
+```
+
+Please don't look for any meaning in the previous example, but if you find one, let us know :-)
+
+### Output Escaping
+
+What is the most important task of a templating system? To prevent security vulnerabilities. And that's exactly what Latte does whenever you print something. It automatically escapes it:
+
+```latte
+<p>{='one < two'}</p>   {* prints: '<p>one &lt; two</p>' *}
+```
+
+To be precise, Latte uses context-aware escaping, which is such an important and unique feature that we've dedicated [a separate chapter to it](safety-first.md#context-aware-escaping).
+
+And what if you're printing HTML-encoded content from a trusted source? Then you can easily disable escaping:
+
+```latte
+{$trustedHtmlString|noescape}
+```
+
+> [!WARNING]
+> Misuse of the `noescape` filter can lead to an XSS vulnerability! Never use it unless you are **absolutely sure** what you are doing and that the string you are printing comes from a trusted source.
+
+### Printing in JavaScript
+
+Thanks to context-aware escaping, it's wonderfully easy to print variables inside JavaScript, and Latte will handle the proper escaping.
+
+The variable doesn't have to be a string; any data type is supported, which is then encoded as JSON:
+
+```latte
+{var $foo = ['hello', true, 1]}
+<script>
+	alert({$foo});
+</script>
+```
+
+Generates:
+
+```latte
+<script>
+	alert(["hello", true, 1]);
+</script>
+```
+
+This is also why you **should not write quotes** around the variable: Latte adds them for strings automatically. And if you want to insert a string variable into another string, simply concatenate them:
+
+```latte
+<script>
+	alert('Hello ' + {$name} + '!');  // OK
+
+	alert({="Hello $name!"});         // OK
+
+	alert('Hello {$name} !');         // ERROR!
+</script>
+```
+
+### Filters
+
+The printed expression can be modified by [filters](syntax.md#filters). For example, this converts the string to uppercase and shortens it to a maximum of 30 characters:
+
+```latte
+{$string|upper|truncate:30}
+```
+
+You can also apply filters to parts of an expression like this:
+
+```latte
+{$left . ($middle|upper) . $right}
+```
+
+## Conditions
+
+### `{if}` `{elseif}` `{else}`
+
+Conditions behave the same way as their PHP counterparts. You can use the same expressions you know from PHP; you don't have to learn a new language.
+
+```latte
+{if $product->inStock > Stock::Minimum}
+	In stock
+{elseif $product->isOnWay()}
+	On the way
+{else}
+	Not available
+{/if}
+```
+
+Like any pair tag, the `{if} ... {/if}` pair can also be written using an [n:attribute](syntax.md#nattributes), for example:
+
+```latte
+<p n:if="$count > 0">In stock {$count} items</p>
+```
+
+Did you know you can add the `tag-` prefix to n:attributes? Then the condition will only affect the printing of HTML tags, and the content between them will always be printed:
+
+```latte
+<a href="..." n:tag-if="$clickable">Hello</a>
+
+{* prints 'Hello' when $clickable is falsey *}
+{* prints '<a href="...">Hello</a>' when $clickable is truthy *}
+```
+
+Awesome.
+
+### `n:else` `n:elseif` (since 3.0.12)
+
+If you write the `{if} ... {/if}` condition in the form of an [n:attribute](syntax.md#nattributes), you have the option to specify alternative branches using `n:else` (since 3.0.12) and `n:elseif` (since 3.1):
+
+```latte
+<strong n:if="$count > 0">In stock {$count} items</strong>
+
+<em n:elseif="$count < 0">Invalid count</em>
+
+<em n:else>not available</em>
+```
+
+The `n:else` attribute can also be used in conjunction with [`n:ifset`](#ifset-elseifset), [`n:foreach`](#foreach), [`n:try`](#try), [`n:ifcontent`](#nifcontent), and [`n:ifchanged`](#ifchanged).
+
+### `{/if $cond}`
+
+You might be surprised that the expression in the `{if}` condition can also be specified in the closing tag. This is useful in situations where we don't yet know its value when opening the condition. Let's call it a deferred decision.
+
+For example, we start listing a table with records from the database, and only after completing the output do we realize that there were no records in the database. So, we put the condition in the closing tag `{/if}`, and if there are no records, none of it will be printed:
+
+```latte
+{if}
+	<h1>List of rows from the database</h1>
+
+	<table>
+	{foreach $resultSet as $row}
+		...
+	{/foreach}
+	</table>
+{/if isset($row)}
+```
+
+Handy, isn't it?
+
+You can also use `{else}` in the deferred condition, but not `{elseif}`.
+
+### `{ifset}` `{elseifset}`
+
+See also [`{ifset block}`](template-inheritance.md#checking-block-existence-ifset)
+
+Use the `{ifset $var}` condition to determine if a variable (or multiple variables) exists and has a non-null value. It's actually the same as `if (isset($var))` in PHP. Like any pair tag, it can also be written using an [n:attribute](syntax.md#nattributes), so let's show an example:
+
+```latte
+<meta name="robots" content={$robots} n:ifset="$robots">
+```
+
+### `{ifchanged}`
+
+`{ifchanged}` checks if the value of a variable has changed since the last iteration in a loop (foreach, for, or while).
+
+If we provide one or more variables in the tag, it checks if any of them have changed and prints the content accordingly. For example, the following example prints the first letter of a name as a heading each time it changes during the listing of names:
+
+```latte
+{foreach ($names|sort) as $name}
+	{ifchanged $name[0]} <h2>{$name[0]}</h2> {/ifchanged}
+
+	<p>{$name}</p>
+{/foreach}
+```
+
+However, if no argument is given, the rendered content itself will be checked against its previous state. This means that in the previous example, we can safely omit the argument in the tag. And of course, we can also use an [n:attribute](syntax.md#nattributes):
+
+```latte
+{foreach ($names|sort) as $name}
+	<h2 n:ifchanged>{$name[0]}</h2>
+
+	<p>{$name}</p>
+{/foreach}
+```
+
+An `{else}` clause can also be used inside `{ifchanged}`.
+
+### `{switch}` `{case}` `{default}`
+
+Compares a value with multiple options. This is similar to the `switch` statement known from PHP. However, Latte improves it:
+
+- uses strict comparison (`===`)
+- does not require `break`
+
+It thus closely mirrors the `match` structure introduced in PHP 8.0.
+
+```latte
+{switch $transport}
+	{case train}
+		By train
+	{case plane}
+		By plane
+	{default}
+		Otherwise
+{/switch}
+```
+
+The `{case}` clause can contain multiple values separated by commas:
+
+```latte
+{switch $status}
+{case $status::New}<b>new item</b>
+{case $status::Sold, $status::Unknown}<i>not available</i>
+{/switch}
+```
+
+## Loops
+
+In Latte, you'll find all the loops you know from PHP: foreach, for, and while.
+
+### `{foreach}`
+
+You write the loop exactly the same way as in PHP:
+
+```latte
+{foreach $langs as $code => $lang}
+	<span>{$lang}</span>
+{/foreach}
+```
+
+Additionally, it has a few handy features we'll discuss now.
+
+For example, Latte checks that created variables do not accidentally overwrite global variables of the same name. This saves you from situations where you expect `$lang` to contain the current language of the page, and you don't realize that `foreach $langs as $lang` has overwritten that variable.
+
+The foreach loop can also be written very elegantly and economically using an [n:attribute](syntax.md#nattributes):
+
+```latte
+<ul>
+	<li n:foreach="$items as $item">{$item->name}</li>
+</ul>
+```
+
+Did you know you can add the `inner-` prefix to n:attributes? Then only the inner part of the element will be repeated in the loop:
+
+```latte
+<div n:inner-foreach="$items as $item">
+	<h4>{$item->title}</h4>
+	<p>{$item->description}</p>
+</div>
+```
+
+So it prints something like:
+
+```latte
+<div>
+	<h4>Foo</h4>
+	<p>Lorem ipsum.</p>
+	<h4>Bar</h4>
+	<p>Sit dolor.</p>
+</div>
+```
+
+### `{else}`
+
+Inside the `foreach` loop, you can specify an `{else}` clause, whose content is displayed if the loop is empty:
+
+```latte
+<ul>
+	{foreach $people as $person}
+		<li>{$person->name}</li>
+	{else}
+		<li><em>Sorry, there are no users in this list</em></li>
+	{/foreach}
+</ul>
+```
+
+### `$iterator`
+
+Inside the `foreach` loop, Latte creates the `$iterator` variable, which allows us to find useful information about the ongoing loop:
+
+- `$iterator->first` – is this the first iteration?
+- `$iterator->last` – is this the last iteration?
+- `$iterator->counter` – iteration counter, starting from one
+- `$iterator->counter0` – iteration counter, starting from zero
+- `$iterator->odd` – is this an odd iteration?
+- `$iterator->even` – is this an even iteration?
+- `$iterator->parent` – the iterator surrounding the current one
+- `$iterator->nextValue` – the next item in the loop
+- `$iterator->nextKey` – the key of the next item in the loop
+
+```latte
+{foreach $rows as $row}
+	{if $iterator->first}<table>{/if}
+
+	<tr id="row-{$iterator->counter}">
+		<td>{$row->name}</td>
+		<td>{$row->email}</td>
+	</tr>
+
+	{if $iterator->last}</table>{/if}
+{/foreach}
+```
+
+Latte is smart, and `$iterator->last` works not only for arrays but also when the loop runs over a general iterator where the number of items is not known in advance.
+
+### `{first}` `{last}` `{sep}`
+
+These tags can be used inside the `{foreach}` loop. The content of `{first}` is rendered if it's the first iteration. The content of `{last}` is rendered… can you guess? Yes, if it's the last iteration. These are actually shortcuts for `{if $iterator->first}` and `{if $iterator->last}`.
+
+The tags can also be elegantly used as [n:attributes](syntax.md#nattributes):
+
+```latte
+{foreach $rows as $row}
+	{first}<h1>List of names</h1>{/first}
+
+	<p>{$row->name}</p>
+
+	<hr n:last>
+{/foreach}
+```
+
+The content of the `{sep}` tag is rendered if the iteration is not the last, making it suitable for rendering delimiters, such as commas between listed items:
+
+```latte
+{foreach $items as $item} {$item} {sep}, {/sep} {/foreach}
+```
+
+That's quite practical, isn't it?
+
+### `{iterateWhile}`
+
+Simplifies the grouping of linear data during iteration in a foreach loop by performing the iteration in a nested loop as long as the condition is met. [Read the detailed instructions](cookbook/grouping.md).
+
+It can also elegantly replace `{first}` and `{last}` in the example above:
+
+```latte
+{foreach $rows as $row}
+	<table>
+
+	{iterateWhile}
+	<tr id="row-{$iterator->counter}">
+		<td>{$row->name}</td>
+		<td>{$row->email}</td>
+	</tr>
+	{/iterateWhile true}
+
+	</table>
+{/foreach}
+```
+
+See also the [batch](filters.md#batchint-length-mixed-restnull-generator) and [group](filters.md#groupstringintclosure-by-iterable-since-3016) filters.
+
+### `{for}`
+
+We write the loop exactly the same way as in PHP:
+
+```latte
+{for $i = 0; $i < 10; $i++}
+	<span>Item #{$i}</span>
+{/for}
+```
+
+The tag can also be written as an [n:attribute](syntax.md#nattributes):
+
+```latte
+<h1 n:for="$i = 0; $i < 10; $i++">{$i}</h1>
+```
+
+### `{while}`
+
+Again, we write the loop exactly the same way as in PHP:
+
+```latte
+{while $row = $result->fetch()}
+	<span>{$row->title}</span>
+{/while}
+```
+
+Or as an [n:attribute](syntax.md#nattributes):
+
+```latte
+<span n:while="$row = $result->fetch()">
+	{$row->title}
+</span>
+```
+
+A variant with a condition in the closing tag is also possible, corresponding to the do-while loop in PHP:
+
+```latte
+{while}
+	<span>{$item->title}</span>
+{/while $item = $item->getNext()}
+```
+
+### `{continueIf}` `{skipIf}` `{breakIf}`
+
+Special tags `{continueIf ?}` and `{breakIf ?}` can be used to control any loop. They jump to the next iteration or end the loop, respectively, if the condition is met:
+
+```latte
+{foreach $rows as $row}
+	{continueIf $row->date < $now}
+	{breakIf $row->parent === null}
+	...
+{/foreach}
+```
+
+The `{skipIf}` tag is very similar to `{continueIf}`, but it does not increment the `$iterator->counter`. This prevents gaps in numbering when printing the counter and skipping some items. Also, the `{else}` clause will be rendered if all items are skipped.
+
+```latte
+<ul>
+	{foreach $people as $person}
+		{skipIf $person->age < 18}
+		<li>{$iterator->counter}. {$person->name}</li>
+	{else}
+		<li><em>Sorry, there are no adults in this list</em></li>
+	{/foreach}
+</ul>
+```
+
+### `{exitIf}` (since 3.0.5)
+
+Ends the rendering of a template or block when a condition is met (i.e., “early exit”).
+
+```latte
+{exitIf !$messages}
+
+<h1>Messages</h1>
+<div n:foreach="$messages as $message">
+   {$message}
+</div>
+```
+
+## Including Templates
+
+### `{include 'file.latte'}`
+
+See also [`{include block}`](template-inheritance.md#printing-blocks-include) and [`{embed}`](template-inheritance.md#unit-inheritance-embed)
+
+The `{include}` tag loads and renders the specified template. In our favorite PHP language, it's something like:
+
+```php
+<?php include 'header.phtml'; ?>
+```
+
+Included templates do not have access to the variables of the active context, but they do have access to the global variables.
+
+You can pass variables to the included template like this:
+
+```latte
+{include 'template.latte', foo: 'bar', id: 123}
+```
+
+The template name can be any PHP expression:
+
+```latte
+{include $someVar}
+{include $ajax ? 'ajax.latte' : 'not-ajax.latte'}
+```
+
+Whether a template exists can be checked using the [`hasTemplate()`](functions.md#hastemplatestring-name-bool-since-3022) function.
+
+The included content can be modified using [filters](syntax.md#filters). The following example removes all HTML and adjusts the case:
+
+```latte
+<title>{include 'heading.latte' |stripHtml|capitalize}</title>
+```
+
+By default, [template inheritance](template-inheritance.md) is not involved in this. Although you can use blocks in included templates, they will not replace corresponding blocks in the template they are included into. Think of included templates as independent, shielded parts of pages or modules. This behavior can be changed using the `with blocks` modifier:
+
+```latte
+{include 'template.latte' with blocks}
+```
+
+The relationship between the file name specified in the tag and the file on disk depends on the [loader](loaders.md).
+
+### `{sandbox}`
+
+When including a template created by an end user, you should consider sandboxing it (more information in the [sandbox documentation](sandbox.md)):
+
+```latte
+{sandbox 'untrusted.latte', level: 3, data: $menu}
+```
+
+## `{block}`
+
+See also [`{block name}`](template-inheritance.md#blocks-block)
+
+Blocks without a name provide the ability to apply [filters](syntax.md#filters) to a part of the template. For example, you can apply a [spaceless](filters.md#spaceless) filter to remove unnecessary spaces:
+
+```latte
+{block|spaceless}
+<ul>
+	<li>Hello World</li>
+</ul>
+{/block}
+```
+
+## Exception Handling
+
+### `{try}`
+
+Thanks to this tag, it's extremely easy to create robust templates.
+
+If an exception occurs during the rendering of the `{try}` block, the entire block is discarded, and rendering continues after it:
+
+```latte
+{try}
+	<ul>
+		{foreach $twitter->loadTweets() as $tweet}
+  			<li>{$tweet->text}</li>
+		{/foreach}
+	</ul>
+{/try}
+```
+
+The content of the optional `{else}` clause is rendered only when an exception occurs:
+
+```latte
+{try}
+	<ul>
+		{foreach $twitter->loadTweets() as $tweet}
+  			<li>{$tweet->text}</li>
+		{/foreach}
+	</ul>
+	{else}
+	<p>Sorry, the tweets could not be loaded.</p>
+{/try}
+```
+
+The tag can also be written as an [n:attribute](syntax.md#nattributes):
+
+```latte
+<ul n:try>
+	...
+</ul>
+```
+
+It's also possible to define a custom [exception handler](develop.md#exception-handler), for example, for logging purposes.
+
+### `{rollback}`
+
+The `{try}` block can also be stopped and skipped manually using `{rollback}`. This way, you don't have to check all input data in advance, and only during rendering can you decide that the object shouldn't be rendered at all:
+
+```latte
+{try}
+<ul>
+	{foreach $people as $person}
+ 		{skipIf $person->age < 18}
+ 		<li>{$person->name}</li>
+	{else}
+		{rollback}
+	{/foreach}
+</ul>
+{/try}
+```
+
+## Variables
+
+### `{var}` `{default}`
+
+We create new variables in the template using the `{var}` tag:
+
+```latte
+{var $name = 'John Smith'}
+{var $age = 27}
+
+{* Multiple declaration *}
+{var $name = 'John Smith', $age = 27}
+```
+
+The `{default}` tag works similarly, but it creates variables only if they do not exist. If a variable already exists and contains the value `null`, it will not be overwritten:
+
+```latte
+{default $lang = 'en'}
+```
+
+You can also specify [variable types](type-system.md). For now, they are informative, and Latte does not check them.
+
+```latte
+{var string $name = $article->getTitle()}
+{default int $id = 0}
+```
+
+### `{parameters}`
+
+Just as a function declares its parameters, a template can declare its variables at the beginning:
+
+```latte
+{parameters
+	$a,
+	?int $b,
+	int|string $c = 10
+}
+```
+
+Variables `$a` and `$b` without a specified default value automatically have a default value of `null`. The declared types are currently informative, and Latte does not check them.
+
+Variables other than those declared are not passed to the template. This differs from the `{default}` tag.
+
+### `{capture}`
+
+Captures the output into a variable:
+
+```latte
+{capture $var}
+<ul>
+	<li>Hello World</li>
+</ul>
+{/capture}
+
+<p>Captured: {$var}</p>
+```
+
+Like any pair tag, this tag can also be written as an [n:attribute](syntax.md#nattributes):
+
+```latte
+<ul n:capture="$var">
+	<li>Hello World</li>
+</ul>
+```
+
+The HTML output is stored in the `$var` variable as a `Latte\Runtime\Html` object to [prevent unwanted escaping](develop.md#disabling-auto-escaping-of-variable) when printing.
+
+## Others
+
+### `{contentType}`
+
+Use this tag to specify the type of content the template represents. The options are:
+
+- `html` (default type)
+- `xml`
+- `javascript`
+- `css`
+- `calendar` (iCal)
+- `text`
+
+Its use is important because it sets [context-sensitive escaping](safety-first.md#context-aware-escaping) and only then can Latte escape correctly. For example, `{contentType xml}` switches to XML mode, `{contentType text}` turns off escaping completely.
+
+If the parameter is a full MIME type, such as `application/xml`, it also sends the `Content-Type` HTTP header to the browser:
+
+```latte
+{contentType application/xml}
+<?xml version="1.0"?>
+<rss version="2.0">
+	<channel>
+		<title>RSS feed</title>
+		<item>
+			...
+		</item>
+	</channel>
+</rss>
+```
+
+### `{debugbreak}`
+
+Specifies a point where program execution will pause. It is used for debugging purposes, allowing the programmer to inspect the runtime environment and ensure the code runs as expected. It supports [Xdebug](https://xdebug.org/). You can also add a condition that determines when the program should pause.
+
+```latte
+{debugbreak}                {* pauses the program *}
+
+{debugbreak $counter == 1}  {* pauses the program if the condition is met *}
+```
+
+### `{do}`
+
+Executes PHP code and prints nothing. As with all other tags, PHP code means a single expression, see [PHP Limitations](syntax.md#php-limitations-in-latte).
+
+```latte
+{do $num++}
+```
+
+### `{dump}`
+
+Dumps a variable or the current context.
+
+```latte
+{dump $name} {* Dumps the $name variable *}
+
+{dump}       {* Dumps all currently defined variables *}
+```
+
+> [!CAUTION]
+> Requires the [Tracy](https://tracy.nette.org/en) library.
+
+### `{php}`
+
+By default, `{php}` works as an obsolete alias for [`{do}`](#do) and evaluates only a single expression. To execute any PHP code, the tag must be activated using the [RawPhpExtension](develop.md#any-code-in-template-php-) extension.
+
+### `{spaceless}`
+
+Removes unnecessary whitespace from the output. It works similarly to the [spaceless](filters.md#spaceless) filter.
+
+```latte
+{spaceless}
+	<ul>
+		<li>Hello</li>
+	</ul>
+{/spaceless}
+```
+
+Generates:
+
+```latte
+<ul> <li>Hello</li> </ul>
+```
+
+The tag can also be written as an [n:attribute](syntax.md#nattributes).
+
+### `{syntax}`
+
+Latte tags don't have to be enclosed only in single curly braces. You can choose another separator, even at runtime. This is done using `{syntax …}`, where the parameter can be:
+
+- double: `{{...}}`
+- off: completely disables Latte tag processing
+
+Using n:attributes, you can disable Latte for just one block of JavaScript, for example:
+
+```latte
+<script n:syntax="off">
+	var obj = {var: 123}; // this is no longer a tag
+</script>
+```
+
+Latte can be used very comfortably inside JavaScript, just avoid constructs like in this example, where a letter immediately follows `{`, see [Latte inside JavaScript or CSS](recipes.md#latte-inside-javascript-or-css).
+
+If you disable Latte using `{syntax off}` (i.e., the tag, not the n:attribute), it will strictly ignore all tags up to `{/syntax}`.
+
+### `{trace}`
+
+Throws a `Latte\RuntimeException` exception, whose stack trace follows the spirit of templates. Thus, instead of function and method calls, it involves block calls and template inclusions. If you use a tool for clear display of thrown exceptions, such as [Tracy](https://tracy.nette.org/en), you will clearly see the call stack, including all passed arguments.
+
+## HTML Coder Helpers
+
+### `n:class`
+
+Since Latte 3.1, the standard HTML class attribute has gained the [same functionality](html-attributes.md#classes). So you don't need to use n:class anymore.
+
+Thanks to `n:class`, it's very easy to generate the HTML `class` attribute exactly as needed.
+
+Example: I need the active element to have the class `active`:
+
+```latte
+{foreach $items as $item}
+	<a n:class="$item->isActive() ? active">...</a>
+{/foreach}
+```
+
+And further, I need the first element to have the classes `first` and `main`:
+
+```latte
+{foreach $items as $item}
+	<a n:class="$item->isActive() ? active, $iterator->first ? 'first main'">...</a>
+{/foreach}
+```
+
+And all elements should have the class `list-item`:
+
+```latte
+{foreach $items as $item}
+	<a n:class="$item->isActive() ? active, $iterator->first ? 'first main', list-item">...</a>
+{/foreach}
+```
+
+Amazingly simple, isn't it?
+
+### `n:attr`
+
+The `n:attr` attribute can generate arbitrary HTML attributes with the same elegance as [class](#nclass).
+
+```latte
+{foreach $data as $item}
+	<input type="checkbox" n:attr="value: $item->getValue(), checked: $item->isActive()">
+{/foreach}
+```
+
+Depending on the returned values, it prints, for example:
+
+```latte
+<input type="checkbox">
+
+<input type="checkbox" value="Hello">
+
+<input type="checkbox" value="Hello" checked>
+```
+
+Smart attribute features in Latte 3.1, such as dropping `null` values or passing arrays into `class` or `style`, also work within `n:attr`:
+
+```latte
+<div n:attr="class: [a, b], title: $title"></div>
+```
+
+### `n:tag`
+
+The `n:tag` attribute can dynamically change the name of an HTML element.
+
+```latte
+<h1 n:tag="$heading" class="main">{$title}</h1>
+```
+
+If `$heading === null`, the `<h1>` tag is printed without change. Otherwise, the element name is changed to the value of the variable, so for `$heading === 'h3'`, it writes:
+
+```latte
+<h3 class="main">...</h3>
+```
+
+Because Latte is a secure templating system, it checks that the new tag name is valid and does not contain any unwanted or malicious values.
+
+### `n:ifcontent`
+
+Prevents an empty HTML element from being printed, i.e., an element containing nothing but whitespace.
+
+```latte
+<div>
+	<div class="error" n:ifcontent>{$error}</div>
+</div>
+```
+
+Depending on the value of the variable `$error`, this will print:
+
+```latte
+{* $error = '' *}
+<div>
+</div>
+
+{* $error = 'Required' *}
+<div>
+	<div class="error">Required</div>
+</div>
+```
+
+## Translation
+
+For the translation tags to work, you need to [activate the translator](develop.md#translation-in-templates). You can also use the [`translate`](filters.md#translateargs) filter for translation.
+
+### `{_...}`
+
+Translates values into other languages.
+
+```latte
+<a href="basket">{_'Basket'}</a>
+<span>{_$item}</span>
+```
+
+Other parameters can also be passed to the translator:
+
+```latte
+<a href="basket">{_'Basket', domain: order}</a>
+```
+
+### `{translate}`
+
+Translates parts of the template:
+
+```latte
+<h1>{translate}Order{/translate}</h1>
+
+{translate domain: order}Lorem ipsum ...{/translate}
+```
+
+The tag can also be written as an [n:attribute](syntax.md#nattributes), to translate the inside of the element:
+
+```latte
+<h1 n:translate>Order</h1>
+```

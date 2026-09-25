@@ -19,6 +19,7 @@ Each plugin contains:
 
 Some plugins also include:
 - `hooks/` - PostToolUse hooks for file validation/fixing (`nette-lint`, `php-fixer`)
+- `docs/` - Pages of the Nette documentation converted to Markdown (`nette`, `nette-dev`). Generated, never edited by hand: it holds exactly the pages the plugin's skills link to, and it is regenerated from the `nette/docs` repository by the maintainer's local build step.
 
 Duplicated across plugins:
 - `hooks/hook-input.php` - Adapts Claude Code `tool_input.file_path` and Codex `apply_patch` (`tool_input.command`, relative to event `cwd`) to the single-file hooks. Direct edits and one-file patches run without a subprocess. Multi-file patches run only matching extensions, preserve the PHP ini, and aggregate errors and rewrite feedback. Do not resolve symlinks when finding per-project configuration. Keep both copies identical; `tests/hook-input.phpt` checks this.
@@ -74,7 +75,7 @@ description: When to activate this skill (used for contextual matching)
 ---
 ```
 
-Detailed reference documentation goes into the `references/` subdirectory within each skill.
+The Nette documentation itself is not copied into skills. A skill links to its pages in the plugin's shared `docs/` directory as `../../docs/<area>/<page>.md`, in the closing `### Documentation` section and wherever the body refers to details; a page may be linked from several skills. Adding a link adds the page to `docs/` on the next build, and a page no skill links to is dropped. Every area whose documentation is bundled has a skill as its entry point; the body of a skill holds only what models get wrong (pitfalls, retired names, exact constants) and leaves the rest to the pages it indexes. Material that is not in the documentation (a project skeleton, tooling know-how) goes into the `references/` subdirectory within the skill.
 
 Keep skill bodies portable between clients. Preserve manual-only installation using Claude Code's `disable-model-invocation` and Codex's `agents/openai.yaml` policy. Do not assume a particular shell syntax or client-specific tool name in shared instructions.
 

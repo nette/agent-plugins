@@ -1,0 +1,124 @@
+# Structure Reflection
+
+Contents:
+
+- [Retrieving Tables](#retrieving-tables)
+- [Table Information](#table-information)
+- [Columns](#columns)
+- [Indexes](#indexes)
+- [Foreign Keys](#foreign-keys)
+
+
+(since 3.2.1) Nette Database provides tools for database structure introspection using the [Nette\Database\Reflection](https://api.nette.org/database/master/Nette/Database/Reflection.html) class. It allows obtaining information about tables, columns, indexes, and foreign keys. You can use reflection to generate schemas, create flexible applications working with the database, or general database tools.
+
+The reflection object is obtained from the database connection instance:
+
+```php
+$reflection = $database->getReflection();
+```
+
+## Retrieving Tables
+
+The readonly property `$reflection->tables` contains an associative array of all tables in the database:
+
+```php
+// Listing the names of all tables
+foreach ($reflection->tables as $name => $table) {
+	echo $name . "\n";
+}
+```
+
+Two additional methods are available:
+
+```php
+// Checking the existence of a table
+if ($reflection->hasTable('users')) {
+	echo "Table users exists";
+}
+
+// Returns the table object; throws an exception if it does not exist
+$table = $reflection->getTable('users');
+```
+
+## Table Information
+
+A table is represented by the [Table](https://api.nette.org/database/master/Nette/Database/Reflection/Table.html) object, which provides the following readonly properties:
+
+- `$name: string` – name of the table
+- `$view: bool` – whether it is a view
+- `$fullName: ?string` – full name of the table including schema (if it exists)
+- `$columns: array<string, Column>` – associative array of table columns
+- `$indexes: Index[]` – array of table indexes
+- `$primaryKey: ?Index` – primary key of the table or null
+- `$foreignKeys: ForeignKey[]` – array of table foreign keys
+- `$comment: ?string` – comment of the table
+
+## Columns
+
+The `columns` property of the table provides an associative array of columns, where the key is the column name and the value is an instance of [Column](https://api.nette.org/database/master/Nette/Database/Reflection/Column.html) with these properties:
+
+- `$name: string` – name of the column
+- `$table: ?Table` – reference to the column's table
+- `$nativeType: string` – native database type
+- `$size: ?int` – size/length of the type
+- `$nullable: bool` – whether the column can contain NULL
+- `$default: mixed` – default value of the column
+- `$autoIncrement: bool` – whether the column is auto-increment
+- `$primary: bool` – whether it is part of the primary key
+- `$vendor: array` – additional metadata specific to the given database system
+- `$comment: ?string` – comment of the column
+
+```php
+foreach ($table->columns as $name => $column) {
+	echo "Column: $name\n";
+	echo "Type: {$column->nativeType}\n";
+	echo "Nullable: " . ($column->nullable ? 'Yes' : 'No') . "\n";
+}
+```
+
+## Indexes
+
+The `indexes` property of the table provides an array of indexes, where each index is an instance of [Index](https://api.nette.org/database/master/Nette/Database/Reflection/Index.html) with these properties:
+
+- `$columns: Column[]` – array of columns forming the index
+- `$unique: bool` – whether the index is unique
+- `$primary: bool` – whether it is a primary key
+- `$name: ?string` – name of the index
+
+The primary key of the table can be obtained using the `primaryKey` property, which returns either an `Index` object or `null` if the table does not have a primary key.
+
+```php
+// Listing indexes
+foreach ($table->indexes as $index) {
+	$columns = implode(', ', array_map(fn($col) => $col->name, $index->columns));
+	echo "Index" . ($index->name ? " {$index->name}" : '') . ":\n";
+	echo "  Columns: $columns\n";
+	echo "  Unique: " . ($index->unique ? 'Yes' : 'No') . "\n";
+}
+
+// Listing the primary key
+if ($primaryKey = $table->primaryKey) {
+	$columns = implode(', ', array_map(fn($col) => $col->name, $primaryKey->columns));
+	echo "Primary Key: $columns\n";
+}
+```
+
+## Foreign Keys
+
+The `foreignKeys` property of the table provides an array of foreign keys, where each foreign key is an instance of [ForeignKey](https://api.nette.org/database/master/Nette/Database/Reflection/ForeignKey.html) with these properties:
+
+- `$foreignTable: Table` – the referenced table
+- `$localColumns: Column[]` – array of local columns
+- `$foreignColumns: Column[]` – array of referenced columns
+- `$name: string` – name of the foreign key
+
+```php
+// Listing foreign keys
+foreach ($table->foreignKeys as $fk) {
+	$localCols = implode(', ', array_map(fn($col) => $col->name, $fk->localColumns));
+	$foreignCols = implode(', ', array_map(fn($col) => $col->name, $fk->foreignColumns));
+
+	echo "FK" . ($fk->name ? " {$fk->name}" : '') . ":\n";
+	echo "  $localCols -> {$fk->foreignTable->name}($foreignCols)\n";
+}
+```

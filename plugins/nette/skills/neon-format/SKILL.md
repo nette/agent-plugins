@@ -210,8 +210,9 @@ Check syntax errors in `.neon` files:
 vendor/bin/neon-lint <path>
 ```
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [NEON Format](https://ne-on.org) – complete NEON specification and examples
+- [NEON Format](../../docs/neon/format.md) – the complete syntax
+- [Nette NEON](../../docs/neon/index.md) – `Neon::encode()`, `Neon::decode()`, the linter

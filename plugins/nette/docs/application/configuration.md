@@ -1,0 +1,180 @@
+# Application Configuration
+
+Contents:
+
+- [Application](#application)
+  - [Automatic Registration of Presenters](#automatic-registration-of-presenters)
+- [Latte Templates](#latte-templates)
+- [Routing](#routing)
+- [Constants](#constants)
+- [PHP](#php)
+- [DI Services](#di-services)
+
+
+Overview of configuration options for Nette Application.
+
+## Application
+
+```neon
+application:
+	# show the "Nette Application" panel in Tracy BlueScreen?
+	debugger: ...           # (bool) enabled if Tracy is available
+
+	# in production, exceptions are always handled by the error-presenter;
+	# this option only enables that behavior in development mode too
+	catchExceptions: ...    # (bool) defaults to false - i.e. off in dev, always on in production
+
+	# name of the error-presenter
+	errorPresenter: Error   # (string|array) defaults to 'Nette:Error'
+
+	# defines aliases for presenters and actions
+	aliases: ...
+
+	# defines the rules for translating the presenter name to a class
+	mapping: ...
+
+	# suppress warnings for invalid links?
+	# effective only in development mode
+	silentLinks: ...        # (bool) defaults to false
+```
+
+Since `nette/application` version 3.2, it is possible to define a pair of error presenters:
+
+```neon
+application:
+	errorPresenter:
+		4xx: Error4xx   # for Nette\Application\BadRequestException
+		5xx: Error5xx   # for other exceptions
+```
+
+Splitting them is useful because both situations are fundamentally different. A `BadRequestException` (codes 4xx) means that the application is fine and only the visitor asked for something that does not exist. Therefore, you can use a full-featured presenter that displays a friendly message in the layout of your website. On the contrary, a 5xx error means that something in the application has broken and you do not know what. Keep the 5xx presenter as minimal as possible, so that nothing else can fail while rendering it – ideally, it should not touch the database, the layout, or the logged-in user.
+
+The `silentLinks` option determines how Nette behaves in development mode when link generation fails (for example, because the presenter does not exist, etc.). The default value `false` means that Nette triggers an `E_USER_WARNING` error. Setting it to `true` suppresses this error message. In a production environment, `E_USER_WARNING` is always triggered. This behavior can also be influenced by setting the presenter variable [$invalidLinkMode](creating-links.md#invalid-links).
+
+[Aliases simplify referencing](creating-links.md#aliases-since-323) frequently used presenters.
+
+The [mapping defines the rules](directory-structure.md#presenter-mapping) by which the class name is derived from the presenter name.
+
+### Automatic Registration of Presenters
+
+Nette automatically adds presenters as services to the DI container, which significantly speeds up their creation. How Nette locates presenters can be configured:
+
+```neon
+application:
+	# look for presenters in Composer class map?
+	scanComposer: ...      # (bool) defaults to true
+
+	# a mask that the class and file name must match
+	scanFilter: ...        # (string) defaults to '*Presenter'
+
+	# in which directories to look for presenters?
+	scanDirs:              # (string[]|false) defaults to '%appDir%'
+		- %vendorDir%/mymodule
+```
+
+The directories listed in `scanDirs` do not override the default value `%appDir%`, but complement it, so `scanDirs` will contain both paths `%appDir%` and `%vendorDir%/mymodule`. If we want to omit the default directory, we use an [exclamation mark](../dependency-injection/configuration.md#merging):
+
+```neon
+application:
+	scanDirs!:
+		- %vendorDir%/mymodule
+```
+
+Directory scanning can be turned off by setting the value to `false`. Presenters are then no longer registered as services, so they can't be adjusted via the [decorator](../dependency-injection/configuration.md#decorator) section and their creation is slower. We therefore do not recommend completely suppressing automatic registration, as it will reduce application performance.
+
+## Latte Templates
+
+This setting globally affects the behavior of Latte in components and presenters.
+
+```neon
+latte:
+	# show the Latte panel in the Tracy Bar for the main template (true) or for all components (all)?
+	debugger: ...        # (true|false|'all') enabled if Tracy is available (debug mode only)
+
+	# generate templates with declare(strict_types=1) header
+	strictTypes: ...     # (bool) defaults to false
+
+	# enable [strict parser mode |latte:develop#strict mode]
+	strictParsing: ...   # (bool) default is false
+
+	# limits the scope of variables to the loop body
+	scopedLoopVariables: ... # (bool) default is false
+
+	# removes indentation caused by nesting in paired tags
+	dedent: ...          # (bool) default is false
+
+	# enable [checking of generated code |latte:develop#Checking Generated Code]
+	phpLinter: ...       # (string) default is null
+
+	# set the locale
+	locale: cs_CZ        # (string) default is null
+
+	# class of the $this->template object
+	templateClass: App\MyTemplateClass # defaults to Nette\Bridges\ApplicationLatte\DefaultTemplate
+```
+
+You can add new [extensions](../latte/extending-latte.md#the-robust-way-latte-extension) using:
+
+```neon
+latte:
+	extensions:
+		- Latte\Essential\TranslatorExtension(@Nette\Localization\Translator)
+```
+
+## Routing
+
+Basic settings:
+
+```neon
+routing:
+	# show the routing panel in Tracy Bar?
+	debugger: ...   # (bool) enabled if Tracy is available (debug mode only)
+
+	# serialize the router into the DI container
+	cache: ...      # (bool) defaults to false
+```
+
+Routing is usually defined in the [RouterFactory](routing.md#route-collection) class. Alternatively, routes can also be defined in the configuration using `mask: action` pairs, but this method does not offer much flexibility:
+
+```neon
+routing:
+	routes:
+		'detail/<id>': Admin:Home:default
+		'<presenter>/<action>': Front:Home:default
+```
+
+## Constants
+
+Creating PHP constants.
+
+```neon
+constants:
+	Foobar: 'baz'
+```
+
+The `Foobar` constant will be created after the application starts.
+
+Constants should not serve as globally available variables. To pass values to objects, use [dependency injection](../dependency-injection/passing-dependencies.md).
+
+## PHP
+
+Setting PHP directives. An overview of all directives can be found at [php.net](https://www.php.net/manual/en/ini.list.php).
+
+```neon
+php:
+	date.timezone: Europe/Prague
+```
+
+## DI Services
+
+These services are added to the DI container:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `application.application` | [Nette\Application\Application](https://api.nette.org/application/master/Nette/Application/Application.html) | the [application runner](how-it-works.md#nette-application) |
+| `application.linkGenerator` | [Nette\Application\LinkGenerator](https://api.nette.org/application/master/Nette/Application/LinkGenerator.html) | [LinkGenerator](creating-links.md#linkgenerator) |
+| `application.presenterFactory` | [Nette\Application\IPresenterFactory](https://api.nette.org/application/master/Nette/Application/IPresenterFactory.html) | presenter factory |
+| `application.###` | [Nette\Application\UI\Presenter](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html) | individual presenters |
+| `routing.router` | [Nette\Routing\Router](https://api.nette.org/routing/master/Nette/Routing/Router.html) | router |
+| `latte.latteFactory` | [Nette\Bridges\ApplicationLatte\LatteFactory](https://api.nette.org/bridges/master/Nette/Bridges/ApplicationLatte/LatteFactory.html) | factory for `Latte\Engine` object |
+| `latte.templateFactory` | [Nette\Application\UI\TemplateFactory](https://api.nette.org/application/master/Nette/Application/UI/TemplateFactory.html) | factory for [`$this->template`](templates.md) |

@@ -138,6 +138,8 @@ final class FormFactory
 }
 ```
 
+CSRF protection is built in and needs no hidden token. A form that must accept a cross-origin POST calls `$form->allowCrossOrigin()`; there is no `setCrossOrigin()`.
+
 For specific forms used in multiple places, create a dedicated factory:
 
 ```php
@@ -206,7 +208,7 @@ protected function createComponentProductForm(): Form
 | `addSubmit($name, $caption)` | Submit button |
 | `addButton($name, $caption)` | Button |
 
-See [the complete control reference](references/controls.md) for all form controls.
+See [the complete control reference](../../docs/forms/controls.md) for all form controls.
 
 ### Basic Validation
 
@@ -234,7 +236,7 @@ $form->addPassword('password2')
 
 Mark every required field with `setRequired()`. Rules added by `addRule()` run only when the control is filled, so an empty field passes them all and its empty value reaches `onSuccess`.
 
-See [the complete validation reference](references/validation.md) for all rules and conditions.
+See [the complete validation reference](../../docs/forms/validation.md) for all rules and conditions.
 
 ### Conditional Validation
 
@@ -281,7 +283,7 @@ $form->addEmail('email')
 {/form}
 ```
 
-See [the complete rendering reference](references/rendering.md) for all rendering options.
+See [the complete rendering reference](../../docs/forms/rendering.md) for all rendering options.
 
 ### Form Events
 
@@ -327,11 +329,17 @@ private function productFormSucceeded(Form $form, \stdClass $data): void
 
 `redirect()` works by throwing `AbortException` (a `\LogicException`), so keep it outside the `try`: a catch-all `\Exception` there would swallow the redirect.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Forms](https://doc.nette.org/en/forms) – complete forms guide
-- [Controls](https://doc.nette.org/en/forms/controls) – all form controls
-- [Validation](https://doc.nette.org/en/forms/validation) – validation rules and conditions
-- [Rendering](https://doc.nette.org/en/forms/rendering) – rendering and Bootstrap integration
+- [Forms in Presenters](../../docs/forms/in-presenter.md) – creating, processing, defaults, CSRF
+- [Standalone Forms](../../docs/forms/standalone.md) – forms without Nette Application
+- [Form Controls](../../docs/forms/controls.md) – every `add*()` method with its options
+- [Validation](../../docs/forms/validation.md) – rules, conditions, error messages, JavaScript
+- [Rendering](../../docs/forms/rendering.md) – Latte, renderers, Bootstrap
+- [Custom Controls](../../docs/forms/custom-controls.md) – writing your own control
+- [Configuration](../../docs/forms/configuration.md) – the `forms:` section
+- [Form Reuse](../../docs/best-practices/form-reuse.md) – sharing forms between presenters
+- [Create and Edit Form](../../docs/best-practices/creating-editing-form.md) – one form for both operations
+- [Contact Form](../../docs/best-practices/lets-create-contact-form.md) – a complete example

@@ -1,0 +1,5 @@
+# Upgrading
+
+## Upgrading to Version 2.4
+
+- the methods `setDocuments()`, `getDocuments()`, and `addDocument()` were replaced by `setComment()`, `getComment()`, and `addComment()`

@@ -291,10 +291,24 @@ Credentials do not belong in committed config files, but where they live is the 
 - a gitignored NEON file holding them as parameters (`secrets.neon`, or one file per environment such as `env.local.neon`), included from `common.neon` and referenced as `%dbPassword%`
 - environment variables, exposed in `Bootstrap` by `$this->configurator->addDynamicParameters(['env' => getenv()])` and referenced as `%env.DB_PASSWORD%`; as dynamic parameters they are read at runtime, not frozen into the compiled container
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [DI Services](https://doc.nette.org/en/dependency-injection/services) – service registration and autowiring
-- [DI Configuration](https://doc.nette.org/en/dependency-injection/configuration) – config file format
-- [Application Configuration](https://doc.nette.org/en/application/configuration) – application, http, session settings
+- [What is Dependency Injection](../../docs/dependency-injection/introduction.md) – the principle
+- [What Is a DI Container](../../docs/dependency-injection/container.md) – the concept
+- [Nette DI Container](../../docs/dependency-injection/nette-container.md) – using the container
+- [Service Definitions](../../docs/dependency-injection/services.md) – the `services:` section in detail
+- [Autowiring](../../docs/dependency-injection/autowiring.md) – how services are matched by type
+- [DI Configuration](../../docs/dependency-injection/configuration.md) – the config file format and its sections
+- [Generated Factories](../../docs/dependency-injection/factory.md) – factory and accessor interfaces
+- [Passing Dependencies](../../docs/dependency-injection/passing-dependencies.md) – constructor, setter, property injection
+- [DI Extensions](../../docs/dependency-injection/extensions.md) – writing a compiler extension
+- [DI FAQ](../../docs/dependency-injection/faq.md) – common questions
+- [Global State](../../docs/dependency-injection/global-state.md) – why singletons and static state are avoided
+- [Container Compilation](../../docs/dependency-injection/compilation-internals.md) – what the compiled container looks like
+- [Application Configuration](../../docs/application/configuration.md) – the `application:`, `latte:` and related sections
+- [Configuring Nette](../../docs/nette/configuring.md) – index of all configuration sections
+- [Bootstrap](../../docs/bootstrap/index.md) – the Configurator: loading configuration, parameters
+- [Inject Methods and Attributes](../../docs/best-practices/inject-method-attribute.md) – `inject*()` and `#[Inject]`
+- [Passing Settings to Presenters](../../docs/best-practices/passing-settings-to-presenters.md) – parameters for presenters

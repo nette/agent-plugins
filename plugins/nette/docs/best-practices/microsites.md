@@ -1,0 +1,60 @@
+# How to Write Microsites
+
+Imagine needing to quickly create a small website for your company's upcoming event. It needs to be simple, fast, and without unnecessary complications. You might think a robust framework isn't necessary for such a small project. But what if using the Nette Framework could actually simplify and accelerate this process?
+
+Even when creating simple websites, you don't want to sacrifice convenience. You don't want to reinvent what has already been solved. Feel free to be lazy and let yourself be pampered. The Nette Framework is also excellent for use as a micro-framework.
+
+What might such a microsite look like? For instance, the entire website code could reside in a single `index.php` file within the public directory:
+
+```php
+<?php
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$configurator = new Nette\Bootstrap\Configurator;
+$configurator->enableTracy(__DIR__ . '/../log');
+$configurator->setTempDirectory(__DIR__ . '/../temp');
+
+// create DI container based on configuration in config.neon
+$configurator->addConfig(__DIR__ . '/../app/config.neon');
+$container = $configurator->createContainer();
+
+// set up routing
+$router = new Nette\Application\Routers\RouteList;
+$container->addService('router', $router);
+
+// route for URL https://example.com/
+$router->addRoute('', function ($presenter, Nette\Http\Request $httpRequest) {
+	// detect browser language and redirect to URL /en or /de etc.
+	$supportedLangs = ['en', 'de', 'cs'];
+	$lang = $httpRequest->detectLanguage($supportedLangs) ?: reset($supportedLangs);
+	return $presenter->redirectUrl("/$lang");
+});
+
+// route for URL https://example.com/cs or https://example.com/en
+$router->addRoute('<lang cs|en|de>', function ($presenter, string $lang) {
+	// display the appropriate template, for example ../templates/en.latte
+	$template = $presenter->createTemplate()
+		->setFile(__DIR__ . '/../templates/' . $lang . '.latte');
+	return $template;
+});
+
+// run the application!
+$container->getByType(Nette\Application\Application::class)->run();
+```
+
+Everything else will be templates stored in the parent `/templates` directory.
+
+The PHP code in `index.php` first [sets up the environment](../bootstrap/index.md), then defines [routes](../application/routing.md#dynamic-routing-with-callbacks), and finally runs the application. The advantage is that the second parameter of the `addRoute()` function can be a callable, which gets executed when the corresponding page is accessed.
+
+## Why use Nette for Microsites?
+
+- Programmers who have tried [Tracy](https://tracy.nette.org/en) can hardly imagine coding without it today.
+- Above all, you'll benefit from the [Latte](https://latte.nette.org/en) templating system, because even with just two pages, you'll want to separate the [layout and content](../latte/template-inheritance.md).
+- And you definitely want to rely on [automatic escaping](../latte/safety-first.md) to prevent XSS vulnerabilities.
+- Nette also ensures that in case of an error, raw PHP error messages are never displayed; instead, a user-friendly page is shown.
+- If you want to gather user feedback, perhaps through a contact form, you can easily add [forms](https://doc.nette.org/en/forms) and [database](../database/index.md) support.
+- You can also easily have completed forms [sent via email](../mail/index.md).
+- Sometimes, [caching](../caching/index.md) might be useful, for example, when downloading and displaying feeds.
+
+In today's fast-paced world, where speed and efficiency are crucial, having tools that enable you to achieve results without unnecessary delays is vital. The Nette Framework offers precisely that – rapid development, security, and a wide array of tools like Tracy and Latte that streamline the process. Just install a few Nette packages, and building such a microsite becomes incredibly easy. And you can be confident there are no hidden security vulnerabilities.

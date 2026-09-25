@@ -1,0 +1,80 @@
+# Helper Functions
+
+[Nette\Utils\Helpers](https://api.nette.org/utils/master/Nette/Utils/Helpers.html) is a static class containing useful helper functions.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Helpers;
+```
+
+## `capture(callable $func): string`
+
+Executes a callback and returns the captured output as a string.
+
+```php
+$res = Helpers::capture(function () use ($template) {
+	$template->render();
+});
+```
+
+## `clamp(int|float $value, int|float $min, int|float $max): int|float`
+
+Clamps a value within the inclusive range specified by min and max.
+
+```php
+Helpers::clamp($level, 0, 255);
+```
+
+## `compare(mixed $left, string $operator, mixed $right): bool`
+
+Compares two values the same way PHP does. It supports the operators `>`, `>=`, `<`, `<=`, `=`, `==`, `===`, `!=`, `!==`, `<>`. The function is useful in situations where the operator is determined dynamically (is a variable).
+
+```php
+Helpers::compare(10, '<', 20); // true
+```
+
+## `falseToNull(mixed $value): mixed`
+
+Converts `false` to `null`; other values remain unchanged.
+
+```php
+Helpers::falseToNull(false); // null
+Helpers::falseToNull(123);   // 123
+```
+
+## `getLastError(): string`
+
+Returns the last occurred PHP error or an empty string if no error occurred. Unlike `error_get_last()`, it's not affected by the PHP directive `html_errors` and always returns text, not HTML.
+
+```php
+Helpers::getLastError();
+```
+
+## `getSuggestion(string[] $possibilities, string $value): ?string`
+
+From the given `$possibilities`, it finds the string most similar to `$value`, but not identical. It only supports 8-bit encodings.
+
+This is useful when a certain option is invalid, and you want to suggest a similar alternative to the user (but a different one, which is why identical strings are ignored). This is how Nette generates the “did you mean …?” messages.
+
+```php
+$items = ['foo', 'bar', 'baz'];
+Helpers::getSuggestion($items, 'fo');   // 'foo'
+Helpers::getSuggestion($items, 'barr'); // 'bar'
+Helpers::getSuggestion($items, 'baz');  // 'bar', not 'baz'
+```
+
+## `splitClassName(string $name): array` (since 4.0.10)
+
+Splits a PHP class name into a namespace and a short class name. Returns an array of two strings where the first is the namespace and the second is the class name.
+
+```php
+Helpers::splitClassName('Nette\Utils\Helpers'); // ['Nette\Utils', 'Helpers']
+Helpers::splitClassName('Foo');                 // ['', 'Foo']
+```

@@ -305,8 +305,8 @@ $createUserSchema = Expect::structure([
 `['user', 'admin']` – the default silently survives. That is harmless for config
 (where merging is the point) and a privilege bug for API input.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Schema](https://doc.nette.org/en/schema) – complete Schema library guide with all Expect methods
+- [Schema](../../docs/schema/index.md) – every Expect method and the Processor

@@ -171,13 +171,13 @@ For `http://nette.org/admin/script.php/pathinfo/?name=param#footer` with script 
 
 When generating links or asset paths by hand, prefix with `getBasePath()` – a bare `/css/style.css` breaks as soon as the app lives in a subdirectory. `getBasePath()`, `getBaseUrl()` and `getRelativeUrl()` on plain `Url` are deprecated (3.1); they belong to `UrlScript`. `$url->getFragment()` on a request URL is always empty – browsers never send the fragment.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [HTTP Request](https://doc.nette.org/en/http/request) – Request, RequestFactory, isFrom, uploads, FileUpload
-- [HTTP Response](https://doc.nette.org/en/http/response) – Response, headers, cookies
-- [Sessions](https://doc.nette.org/en/http/sessions) – Session, SessionSection, expiration
-- [SSRF Protection](https://doc.nette.org/en/http/ssrf) – UrlValidator, IPAddress
-- [URL Parsing](https://doc.nette.org/en/http/urls) – Url, UrlImmutable, UrlScript
-- [HTTP Configuration](https://doc.nette.org/en/http/configuration) – the `http:` and `session:` sections
+- [HTTP Request](../../docs/http/request.md) – Request, RequestFactory, isFrom, uploads, FileUpload
+- [HTTP Response](../../docs/http/response.md) – Response, headers, cookies
+- [Sessions](../../docs/http/sessions.md) – Session, SessionSection, expiration
+- [URLs](../../docs/http/urls.md) – Url, UrlImmutable, UrlScript
+- [SSRF Protection](../../docs/http/ssrf.md) – UrlValidator, IPAddress
+- [HTTP Configuration](../../docs/http/configuration.md) – the `http:` and `session:` sections

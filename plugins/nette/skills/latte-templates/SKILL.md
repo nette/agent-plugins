@@ -66,7 +66,7 @@ The filter `|` applies to the entire expression before it. Parentheses around PH
 {($a ?? $b)|texyLine|noescape}      {* redundant – parentheses change nothing *}
 ```
 
-See [the complete filter reference](references/filters.md) for all available filters.
+See [the complete filter reference](../../docs/latte/filters.md) for all available filters.
 
 ### n:attributes
 
@@ -188,7 +188,7 @@ Pair tags can be written as HTML attributes:
 | `{php expression}` | Obsolete alias for `{do}` – a single expression only. Real PHP code needs `RawPhpExtension` |
 | `{dump $var}` | Debug dump (Tracy) |
 
-See [the complete tag reference](references/tags.md) for all available tags.
+See [the complete tag reference](../../docs/latte/tags.md) for all available tags.
 
 ### Smart HTML Attributes (Latte 3.1)
 
@@ -458,13 +458,30 @@ latte:
 
 Enable `strictParsing` to catch template errors early (missing variables, typos in tag names).
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Syntax](https://latte.nette.org/en/syntax) – complete syntax guide
-- [Tags](https://latte.nette.org/en/tags) – all available tags
-- [Filters](https://latte.nette.org/en/filters) – all filters with examples
-- [Template Inheritance](https://latte.nette.org/en/template-inheritance) – layouts, blocks, embed
-- [Extending Latte](https://latte.nette.org/en/extending-latte) – custom tags, filters, extensions
-- [Type System](https://latte.nette.org/en/type-system) – template types and IDE support
+- [Syntax](../../docs/latte/syntax.md) – tags, n:attributes, filters, comments
+- [Tags](../../docs/latte/tags.md) – every tag with its options
+- [Filters](../../docs/latte/filters.md) – every filter with its signature
+- [Functions](../../docs/latte/functions.md) – built-in template functions
+- [Template Inheritance](../../docs/latte/template-inheritance.md) – layouts, blocks, `{embed}`, `{import}`
+- [Smart HTML Attributes](../../docs/latte/html-attributes.md) – how attribute values are printed
+- [Type System](../../docs/latte/type-system.md) – `{varType}`, `{templateType}`, template classes
+- [Safety](../../docs/latte/safety-first.md) – context-aware escaping, what it protects against
+- [Practices for Developers](../../docs/latte/develop.md) – installing, rendering, caching, linter, debugging
+- [Tips and Tricks](../../docs/latte/recipes.md) – Latte inside JavaScript or CSS, XML output, editors
+- [Loaders](../../docs/latte/loaders.md) – loading templates from files, strings or a database
+- [Sandbox](../../docs/latte/sandbox.md) – running untrusted templates
+- [Extending Latte](../../docs/latte/extending-latte.md) – overview of the ways to extend it
+- [Custom Filters](../../docs/latte/custom-filters.md) – writing and registering filters
+- [Custom Functions](../../docs/latte/custom-functions.md) – writing and registering functions
+- [Custom Tags](../../docs/latte/custom-tags.md) – writing tags: parsing, nodes, compiling
+- [Compiler Passes](../../docs/latte/compiler-passes.md) – transforming the template AST
+- [Grouping](../../docs/latte/cookbook/grouping.md) – `{iterateWhile}`, the `group` and `batch` filters
+- [Passing Variables](../../docs/latte/cookbook/passing-variables.md) – what reaches included and embedded templates
+- [SQL Queries in Latte](../../docs/latte/cookbook/how-to-write-sql-queries-in-latte.md) – escaping for SQL
+- [Migration from PHP](../../docs/latte/cookbook/migration-from-php.md) – converting PHP templates
+- [Migration from Twig](../../docs/latte/cookbook/migration-from-twig.md) – converting Twig templates
+- [Templates in Nette Application](../../docs/application/templates.md) – template lookup, variables, layouts in presenters

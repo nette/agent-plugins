@@ -1,0 +1,86 @@
+# Working with JSON
+
+[Nette\Utils\Json](https://api.nette.org/utils/master/Nette/Utils/Json.html) is a static class with functions for encoding and decoding the JSON format. It addresses vulnerabilities in various PHP versions and throws exceptions upon errors.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Json;
+```
+
+## Usage
+
+### `encode(mixed $value, bool $pretty=false, bool $asciiSafe=false, bool $htmlSafe=false, bool $forceObjects=false): string`
+
+Converts `$value` to JSON format.
+
+Setting `$pretty` to `true` formats the JSON for better readability and clarity:
+
+```php
+Json::encode($value); // returns JSON
+Json::encode($value, pretty: true); // returns more readable JSON
+```
+
+With `$asciiSafe` set to `true`, it generates ASCII output, meaning Unicode characters are replaced with `\uxxxx` sequences:
+
+```php
+Json::encode('žluťoučký', asciiSafe: true);
+// '"\u017elu\u0165ou\u010dk\u00fd"'
+```
+
+The `$htmlSafe` parameter ensures that the output does not contain characters with special meaning in HTML:
+
+```php
+Json::encode('one<two & three', htmlSafe: true);
+// '"one\u003Ctwo \u0026 three"'
+```
+
+With `$forceObjects` set to `true`, even arrays with numeric keys will be encoded as JavaScript objects:
+
+```php
+Json::encode(['a', 'b', 'c']);
+// '["a","b","c"]'
+Json::encode(['a', 'b', 'c'], forceObjects: true);
+// '{"0":"a","1":"b","2":"c"}'
+```
+
+Throws a `Nette\Utils\JsonException` on error.
+
+```php
+try {
+	$json = Json::encode($value);
+} catch (Nette\Utils\JsonException $e) {
+	// Exception handling
+}
+```
+
+### `decode(string $json, bool $forceArrays=false): mixed`
+
+Parses a JSON string into a PHP value.
+
+Setting `$forceArrays` to `true` forces the return of arrays instead of objects:
+
+```php
+Json::decode('{"variable": true}'); // returns an object of type stdClass
+Json::decode('{"variable": true}', forceArrays: true); // returns an array
+```
+
+Throws a `Nette\Utils\JsonException` on error.
+
+```php
+try {
+	$value = Json::decode($json);
+} catch (Nette\Utils\JsonException $e) {
+	// Exception handling
+}
+```
+
+## How to Send JSON from a Presenter?
+
+You can use the `$this->sendJson($data)` method, which can be called, for example, within an `action*()` method. See [Sending a Response](../application/presenters.md#sending-a-response).

@@ -1,0 +1,54 @@
+# How to Properly Use POST Links
+
+In web applications, particularly in administrative interfaces, a fundamental rule should be that actions modifying server state are not performed using the HTTP GET method. As the name implies, GET should only be used for retrieving data, not altering it. For actions like deleting records, using the POST method is more appropriate. While the DELETE method would be ideal, it cannot be invoked without JavaScript, which is why POST has historically been used for such actions.
+
+How to implement this in practice? Use this simple trick. At the beginning of your layout template, create a helper form with the ID `postForm`. You will then use this form for actions like delete buttons:
+
+```latte
+<form method="post" id="postForm"></form>
+```
+
+Thanks to this form, instead of a standard `<a>` link, you can use a `<button>`. This button can be styled to look like a regular link. For example, the Bootstrap CSS framework provides the `btn btn-link` classes, making the button visually indistinguishable from other links. Using the `form="postForm"` attribute, link the button to the prepared helper form:
+
+```latte
+<table>
+	<tr n:foreach="$posts as $post">
+		<td>{$post->title}</td>
+		<td>
+			<button class="btn btn-link" form="postForm" formaction="{link delete $post->id}">delete</button>
+			<!-- instead of <a n:href="delete $post->id">delete</a> -->
+		</td>
+	</tr>
+</table>
+```
+
+Clicking this button now invokes the `delete` action. To ensure requests are accepted only via the POST method and originate from the same domain (an effective defense against CSRF attacks), use the `#[Requires]` attribute:
+
+```php
+use Nette\Application\Attributes\Requires;
+
+class AdminPresenter extends Nette\Application\UI\Presenter
+{
+	#[Requires(methods: 'POST', sameOrigin: true)]
+	public function actionDelete(int $id): void
+	{
+		$this->facade->deletePost($id); // hypothetical code for deleting a record
+		$this->redirect('default');
+	}
+}
+```
+
+This attribute is available since Nette Application 3.2. You can learn more about its capabilities on the [How to Use the #Requires Attribute](attribute-requires.md) page.
+
+If you were using the `handleDelete()` signal instead of the `actionDelete()` action, specifying `sameOrigin: true` is unnecessary, as signals have this protection enabled by default:
+
+```php
+#[Requires(methods: 'POST')]
+public function handleDelete(int $id): void
+{
+	$this->facade->deletePost($id);
+	$this->redirect('this');
+}
+```
+
+This approach not only enhances your application's security but also promotes adherence to proper web standards and practices. Using POST methods for state-changing actions results in a more robust and secure application.

@@ -1,0 +1,5 @@
+# Upgrading
+
+## Upgrading to Version 2.3
+
+- it is recommended to change the `safe://...` protocol to the namespaced `nette.safe://...`

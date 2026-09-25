@@ -1,0 +1,47 @@
+# Passing Settings to Presenters
+
+Do you need to pass non-object arguments to presenters (like a flag indicating debug mode, directory paths, etc.) which cannot be automatically passed via autowiring? The solution is to encapsulate them within a dedicated `Settings` object.
+
+The `Settings` service provides a very simple yet effective way to supply information about the running application to presenters. Its specific structure depends entirely on your particular needs. Example:
+
+```php
+namespace App;
+
+class Settings
+{
+	public function __construct(
+		// since PHP 8.1, readonly can be used
+		public bool $debugMode,
+		public string $appDir,
+		// and so on
+	) {}
+}
+```
+
+Example of registering it in the configuration:
+
+```neon
+services:
+	- App\Settings(
+		%debugMode%,
+		%appDir%,
+	)
+```
+
+When a presenter requires the information provided by this service, it simply requests it in its constructor:
+
+```php
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private App\Settings $settings,
+	) {}
+
+	public function renderDefault()
+	{
+		if ($this->settings->debugMode) {
+			// ...
+		}
+	}
+}
+```

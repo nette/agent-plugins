@@ -1,0 +1,445 @@
+# Nette Assets
+
+Contents:
+
+- [Why Nette Assets?](#why-nette-assets)
+- [Installation](#installation)
+- [First Steps](#first-steps)
+- [How It Works](#how-it-works)
+  - [Assets – Your Files Made Smart](#assets-your-files-made-smart)
+  - [Mappers – Where Files Come From](#mappers-where-files-come-from)
+  - [Registry – Your Main Interface](#registry-your-main-interface)
+- [Working with Assets in PHP](#working-with-assets-in-php)
+  - [Specifying Mappers](#specifying-mappers)
+  - [Asset Properties and Types](#asset-properties-and-types)
+- [Using Assets in Latte Templates](#using-assets-in-latte-templates)
+  - [`{asset}`](#asset)
+  - [`n:asset`](#nasset)
+  - [`asset()`](#asset-1)
+  - [Optional Assets](#optional-assets)
+  - [`{preload}`](#preload)
+- [Advanced Features](#advanced-features)
+  - [Extension Auto-Detection](#extension-auto-detection)
+  - [Smart Versioning](#smart-versioning)
+  - [Font Assets](#font-assets)
+- [Custom Mappers](#custom-mappers)
+- [Further Reading](#further-reading)
+
+
+Tired of manually managing static files in your web applications? Forget about hardcoding paths, dealing with cache invalidation, or worrying about file versioning. Nette Assets transforms how you work with images, stylesheets, scripts, and other static resources.
+
+- **Smart versioning** ensures browsers always load the latest files
+- **Automatic detection** of file types and dimensions
+- **Seamless Latte integration** with intuitive tags
+- **Flexible architecture** supporting filesystems, CDNs, and Vite
+- **Lazy loading** for optimal performance
+
+## Why Nette Assets?
+
+Working with static files often means repetitive, error-prone code. You manually construct URLs, add version parameters for cache busting, and handle different file types differently. This leads to code like:
+
+```latte
+<img src="/images/logo.png?v=1699123456" width="200" height="100" alt="Logo">
+<link rel="stylesheet" href="/css/style.css?v=2">
+```
+
+With Nette Assets, all this complexity disappears:
+
+```latte
+{* Everything automated - URL, versioning, dimensions *}
+<img n:asset="images/logo.png">
+<link n:asset="css/style.css">
+
+{* Or just *}
+{asset 'css/style.css'}
+```
+
+That's it! The library automatically:
+
+- Adds version parameters based on file modification time
+- Detects image dimensions and includes them in the HTML
+- Generates the correct HTML element for each file type
+- Handles both development and production environments
+
+## Installation
+
+Install Nette Assets using [Composer](https://doc.nette.org/en/best-practices/composer):
+
+```shell
+composer require nette/assets
+```
+
+It requires PHP 8.1 or higher and works perfectly with Nette Framework, but can also be used standalone.
+
+## First Steps
+
+Nette Assets works out of the box with zero configuration. Place your static files in the `www/assets/` directory and start using them:
+
+```latte
+{* Display an image with automatic dimensions *}
+{asset 'logo.png'}
+
+{* Include a stylesheet with versioning *}
+{asset 'style.css'}
+
+{* Load a script *}
+{asset 'app.js'}
+```
+
+For more control over the generated HTML, use the `n:asset` attribute or the `asset()` function.
+
+## How It Works
+
+Nette Assets is built around three core concepts that make it powerful yet simple to use:
+
+### Assets – Your Files Made Smart
+
+An **asset** represents any static file in your application. Each file becomes an object with useful readonly properties:
+
+```php
+$image = $assets->getAsset('photo.jpg');
+echo $image->url;      // '/assets/photo.jpg?v=1699123456'
+echo $image->file;     // '/var/www/assets/photo.jpg' (local path, or null)
+echo $image->width;    // 1920
+echo $image->height;   // 1080
+echo $image->mimeType; // 'image/jpeg'
+```
+
+Different file types provide different properties:
+
+- **Images**: width, height, alternative text, lazy loading
+- **Scripts**: module type, integrity hashes, crossorigin
+- **Stylesheets**: media queries, integrity
+- **Audio/Video**: duration, dimensions (video only)
+- **Fonts**: proper preloading with CORS
+
+The library automatically detects file types and creates the appropriate asset class.
+
+### Mappers – Where Files Come From
+
+A **mapper** knows how to find files and create URLs for them. You can have multiple mappers for different purposes – local files, CDN, cloud storage, or build tools (each of them has a name). The built-in `FilesystemMapper` handles local files, while `ViteMapper` integrates with modern build tools.
+
+Mappers are defined in the [configuration](configuration.md).
+
+### Registry – Your Main Interface
+
+The **registry** manages all mappers and provides the main API:
+
+```php
+// Inject the registry in your service
+public function __construct(
+	private Nette\Assets\Registry $assets
+) {}
+```
+
+```php
+// Get assets from different mappers
+$logo = $this->assets->getAsset('images:logo.png'); // 'images' mapper
+$app = $this->assets->getAsset('app:main.js'); // 'app' mapper
+$style = $this->assets->getAsset('style.css'); // uses default mapper
+```
+
+The registry automatically selects the right mapper and caches results for performance.
+
+## Working with Assets in PHP
+
+The Registry provides two methods for retrieving assets:
+
+```php
+// Throws Nette\Assets\AssetNotFoundException if file doesn't exist
+$logo = $assets->getAsset('logo.png');
+
+// Returns null if file doesn't exist
+$banner = $assets->tryGetAsset('banner.jpg');
+if ($banner) {
+	echo $banner->url;
+}
+```
+
+### Specifying Mappers
+
+You can explicitly choose which mapper to use:
+
+```php
+// Use default mapper
+$file = $assets->getAsset('document.pdf');
+
+// Use specific mapper with prefix
+$image = $assets->getAsset('images:photo.jpg');
+
+// Use specific mapper with array syntax
+$script = $assets->getAsset(['scripts', 'app.js']);
+```
+
+### Asset Properties and Types
+
+Each asset type provides relevant readonly properties:
+
+```php
+// Image properties
+$image = $assets->getAsset('photo.jpg');
+echo $image->width;     // 1920
+echo $image->height;    // 1080
+echo $image->mimeType;  // 'image/jpeg'
+
+// Script properties
+$script = $assets->getAsset('app.js');
+echo $script->type;     // null ('module' for Vite entry points)
+
+// Audio properties
+$audio = $assets->getAsset('song.mp3');
+echo $audio->duration;  // duration in seconds
+
+// All assets can be cast to string (returns URL)
+$url = (string) $assets->getAsset('document.pdf');
+```
+
+Properties like dimensions or duration are loaded lazily only when accessed, keeping the library fast.
+
+> [!TIP]
+> For precise static analysis, install the [nette/phpstan-rules](https://doc.nette.org/en/tools/phpstan-rules#toc-assets) extension. PHPStan then knows the concrete type of each asset, so `getAsset('photo.jpg')` is understood as `ImageAsset` and accessing `->width` raises no error.
+
+## Using Assets in Latte Templates
+
+Nette Assets provides intuitive [Latte](https://latte.nette.org/en) integration with tags and functions.
+
+### `{asset}`
+
+The `{asset}` tag renders complete HTML elements:
+
+```latte
+{* Renders: <img src="/assets/hero.jpg?v=123" width="1920" height="1080"> *}
+{asset 'hero.jpg'}
+
+{* Renders: <script src="/assets/app.js?v=456"></script> *}
+{asset 'app.js'}
+
+{* Renders: <link rel="stylesheet" href="/assets/style.css?v=789"> *}
+{asset 'style.css'}
+```
+
+The tag automatically:
+
+- Detects asset type and generates appropriate HTML
+- Includes versioning for cache busting
+- Adds dimensions for images
+- Sets correct attributes (type, media, etc.)
+
+When used inside HTML attributes or inside `<style>` and `<script>` elements, it outputs just the URL:
+
+```latte
+<div style="background-image: url({asset 'bg.jpg'})">
+<img srcset="{asset 'logo@2x.png'} 2x">
+```
+
+### `n:asset`
+
+For full control over HTML attributes:
+
+```latte
+{* The n:asset attribute fills in src, dimensions, etc. *}
+<img n:asset="product.jpg" alt="Product" class="rounded">
+
+{* Works with any relevant element *}
+<script n:asset="analytics.js" defer></script>
+<link n:asset="print.css" media="print">
+<audio n:asset="podcast.mp3" controls></audio>
+```
+
+Use variables and mappers:
+
+```latte
+{* Variables work naturally *}
+<img n:asset="$product->image">
+
+{* Specify mapper with curly brackets *}
+<img n:asset="images:{$product->image}">
+
+{* Specify mapper with array notation *}
+<img n:asset="[images, $product->image]">
+```
+
+`n:asset` also works on `<a>`, where it fills in `href`, and on `<link>`, where it creates a preload hint:
+
+```latte
+<a n:asset="hero.jpg">Download image</a>
+```
+
+Note that the `<a>` and `<link>` variants work only for renderable assets (an image, a script, and so on), never for a `GenericAsset` such as a PDF.
+
+For images it's enough to set just `width` (or just `height`) and the other dimension is calculated automatically to preserve the aspect ratio:
+
+```latte
+{* height is completed from the aspect ratio *}
+<img n:asset="product.jpg" width="200">
+```
+
+### `asset()`
+
+For maximum flexibility, use the `asset()` function:
+
+```latte
+{var $logo = asset('logo.png')}
+<img src={$logo} width={$logo->width} height={$logo->height}>
+
+{* Or directly *}
+<img src={asset('logo.png')} alt="Logo">
+```
+
+### Optional Assets
+
+Handle missing assets gracefully with `{asset?}`, `n:asset?` and `tryAsset()`:
+
+```latte
+{* Optional tag - renders nothing if asset missing *}
+{asset? 'optional-banner.jpg'}
+
+{* Optional attribute - skips if asset missing *}
+<img n:asset?="user-avatar.jpg" alt="Avatar" class="avatar">
+
+{* With fallback *}
+{var $avatar = tryAsset('user-avatar.jpg') ?? asset('default-avatar.jpg')}
+<img n:asset=$avatar alt="Avatar">
+```
+
+### `{preload}`
+
+Improve page load performance:
+
+```latte
+{* In your <head> section *}
+{preload 'critical.css'}
+{preload 'important-font.woff2'}
+{preload 'hero-image.jpg'}
+```
+
+Generates appropriate preload links:
+
+```latte
+<link rel="preload" href="/assets/critical.css?v=123" as="style">
+<link rel="preload" href="/assets/important-font.woff2?v=456" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/hero-image.jpg?v=789" as="image" type="image/jpeg">
+```
+
+When your response sets a `Content-Security-Policy` header with a `nonce`, Nette automatically adds the matching `nonce` attribute to every generated `<script>`, `<link>`, and `<style>` element, so they aren't blocked by the browser's security policy.
+
+## Advanced Features
+
+### Extension Auto-Detection
+
+Handle multiple formats automatically:
+
+```neon
+assets:
+	mapping:
+		images:
+			path: img
+			extension: [webp, jpg, png]  # Try in order
+```
+
+Now you can request without extension:
+
+```latte
+{* Finds logo.webp, logo.jpg, or logo.png automatically *}
+{asset 'images:logo'}
+```
+
+Perfect for progressive enhancement with modern formats.
+
+### Smart Versioning
+
+Files are automatically versioned based on modification time:
+
+```latte
+{asset 'style.css'}
+{* Output: <link rel="stylesheet" href="/assets/style.css?v=1699123456"> *}
+```
+
+When you update the file, the timestamp changes, forcing a browser cache refresh.
+
+Control versioning per asset:
+
+```php
+// Disable versioning for specific asset
+$asset = $assets->getAsset('style.css', ['version' => false]);
+```
+
+```latte
+{* In Latte *}
+{asset 'style.css', version: false}
+```
+
+The same `reference, key: value` syntax passes options to `n:asset` and `{preload}` as well:
+
+```latte
+<img n:asset="photo.jpg, version: false">
+{preload 'style.css', version: false}
+```
+
+### Font Assets
+
+Fonts get special treatment with proper CORS:
+
+```latte
+{* Proper preload with crossorigin *}
+{preload 'fonts:OpenSans-Regular.woff2'}
+
+{* Use in CSS *}
+<style>
+@font-face {
+	font-family: 'Open Sans';
+	src: url('{asset 'fonts:OpenSans-Regular.woff2'}') format('woff2');
+	font-display: swap;
+}
+</style>
+```
+
+## Custom Mappers
+
+Create custom mappers for special needs like cloud storage or dynamic generation:
+
+```php
+use Nette\Assets\Mapper;
+use Nette\Assets\Asset;
+use Nette\Assets\Helpers;
+
+class CloudStorageMapper implements Mapper
+{
+	public function __construct(
+		private CloudClient $client,
+		private string $bucket,
+	) {}
+
+	public function getAsset(string $reference, array $options = []): Asset
+	{
+		if (!$this->client->exists($this->bucket, $reference)) {
+			throw new Nette\Assets\AssetNotFoundException("Asset '$reference' not found");
+		}
+
+		$url = $this->client->getPublicUrl($this->bucket, $reference);
+		return Helpers::createAssetFromUrl($url);
+	}
+}
+```
+
+Register in configuration:
+
+```neon
+assets:
+	mapping:
+		cloud: CloudStorageMapper(@cloudClient, 'my-bucket')
+```
+
+Use like any other mapper:
+
+```latte
+{asset 'cloud:user-uploads/photo.jpg'}
+```
+
+The `Helpers::createAssetFromUrl()` method automatically creates the correct asset type based on the file extension.
+
+Asset types that implement the `Nette\Assets\HtmlRenderable` interface (images, scripts, styles, and so on) can be rendered by `{asset}` as a complete HTML element. Other file types become a `GenericAsset` (for example a PDF), which cannot be rendered as an HTML element but still provides a URL (and other metadata). Trying to render such an asset as an HTML element throws `Nette\InvalidArgumentException`; you can still use its URL inside an attribute.
+
+## Further Reading
+
+- [Nette Assets: Finally unified API for everything from images to Vite](https://blog.nette.org/en/introducing-nette-assets)

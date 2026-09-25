@@ -1,0 +1,138 @@
+# Working with Floats
+
+Contents:
+
+- [Motivation](#motivation)
+- [Float Comparison](#float-comparison)
+  - [`areEqual(float $a, float $b): bool`](#areequalfloat-a-float-b-bool)
+  - [`isLessThan(float $a, float $b): bool`](#islessthanfloat-a-float-b-bool)
+  - [`isLessThanOrEqualTo(float $a, float $b): bool`](#islessthanorequaltofloat-a-float-b-bool)
+  - [`isGreaterThan(float $a, float $b): bool`](#isgreaterthanfloat-a-float-b-bool)
+  - [`isGreaterThanOrEqualTo(float $a, float $b): bool`](#isgreaterthanorequaltofloat-a-float-b-bool)
+  - [`compare(float $a, float $b): int`](#comparefloat-a-float-b-int)
+- [Helper Functions](#helper-functions)
+  - [`isZero(float $value): bool`](#iszerofloat-value-bool)
+  - [`isInteger(float $value): bool`](#isintegerfloat-value-bool)
+
+
+[Nette\Utils\Floats](https://api.nette.org/utils/master/Nette/Utils/Floats.html) is a static class containing useful functions for comparing floating-point numbers.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Floats;
+```
+
+## Motivation
+
+Are you wondering why we need a class for comparing floats? After all, you can use the operators `<`, `>`, `===`, and you're done, right? Well, it's not entirely true. What do you think this code will output?
+
+```php
+$a = 0.1 + 0.2;
+$b = 0.3;
+echo $a === $b ? 'same' : 'not same';
+```
+
+If you run the code, some of you might be surprised that the program outputs `not same`.
+
+Mathematical operations with floating-point numbers can lead to precision errors due to the conversion between decimal and binary representations. For example, `0.1 + 0.2` results in something like `0.300000000000000044…`. Therefore, when comparing floats, we need to tolerate a small difference, an epsilon.
+
+And that's exactly what the `Floats` class does. The following comparison will now work as expected:
+
+```php
+echo Floats::areEqual($a, $b) ? 'same' : 'not same'; // same
+```
+
+Trying to compare `NAN` throws a `\LogicException`.
+
+> [!TIP]
+> The `Floats` class compares with a relative precision of about `1e-10`. If you need to work with higher precision, consider using the BCMath library instead.
+
+## Float Comparison
+
+### `areEqual(float $a, float $b): bool`
+
+Returns `true` if `$a` = `$b`.
+
+```php
+Floats::areEqual(10, 10.0); // true
+```
+
+### `isLessThan(float $a, float $b): bool`
+
+Returns `true` if `$a` \< `$b`.
+
+```php
+Floats::isLessThan(9.5, 10.2); // true
+Floats::isLessThan(INF, 10.2); // false
+```
+
+### `isLessThanOrEqualTo(float $a, float $b): bool`
+
+Returns `true` if `$a` \<= `$b`.
+
+```php
+Floats::isLessThanOrEqualTo(9.5, 10.2);    // true
+Floats::isLessThanOrEqualTo(10.25, 10.25); // true
+```
+
+### `isGreaterThan(float $a, float $b): bool`
+
+Returns `true` if `$a` \> `$b`.
+
+```php
+Floats::isGreaterThan(9.5, -10.2); // true
+Floats::isGreaterThan(9.5, 10.2);  // false
+```
+
+### `isGreaterThanOrEqualTo(float $a, float $b): bool`
+
+Returns `true` if `$a` \>= `$b`.
+
+```php
+Floats::isGreaterThanOrEqualTo(9.5, 10.2);  // false
+Floats::isGreaterThanOrEqualTo(10.2, 10.2); // true
+```
+
+### `compare(float $a, float $b): int`
+
+Returns `-1` if `$a` \< `$b`, `0` if they are equal, and `1` if `$a` \> `$b`.
+
+It can be used, for example, with the `usort()` function.
+
+```php
+$arr = [1, 5, 2, -3.5];
+usort($arr, [Floats::class, 'compare']);
+// $arr is now [-3.5, 1, 2, 5]
+```
+
+## Helper Functions
+
+### `isZero(float $value): bool`
+
+Returns `true` if the value is zero.
+
+```php
+Floats::isZero(0.0); // true
+Floats::isZero(0);   // true
+```
+
+### `isInteger(float $value): bool`
+
+Returns `true` if the value is an integer.
+
+```php
+Floats::isInteger(0);    // true
+Floats::isInteger(0.0);  // true
+Floats::isInteger(-5.0); // true
+
+Floats::isInteger(-5.1); // false
+Floats::isInteger(INF);  // false
+Floats::isInteger(NAN);  // false
+```

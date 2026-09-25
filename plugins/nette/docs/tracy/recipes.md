@@ -1,0 +1,245 @@
+# Recipes
+
+Contents:
+
+- [Content Security Policy](#content-security-policy)
+- [Faster Loading](#faster-loading)
+- [Locating the Source of Output](#locating-the-source-of-output)
+- [Debugging AJAX Requests](#debugging-ajax-requests)
+- [Data Storage](#data-storage)
+- [Custom Scrubber](#custom-scrubber)
+- [Custom Logger](#custom-logger)
+  - [Monolog Integration](#monolog-integration)
+  - [Sentry Integration](#sentry-integration)
+- [nginx](#nginx)
+
+
+## Content Security Policy
+
+If your site uses Content Security Policy (CSP), you'll need to add `'nonce-<value>'` and `'strict-dynamic'` to the `script-src` directive for Tracy to function correctly. Some third-party plugins might require additional directives. A nonce is not supported in the `style-src` directive; if you use this directive, you must add `'unsafe-inline'`, but this should be avoided in production mode.
+
+Configuration example for [Nette Framework](../nette/configuring.md):
+
+```neon
+http:
+	csp:
+		script-src: [nonce, strict-dynamic]
+```
+
+Example in pure PHP:
+
+```php
+$nonce = base64_encode(random_bytes(20));
+header("Content-Security-Policy: script-src 'nonce-$nonce' 'strict-dynamic';");
+```
+
+## Faster Loading
+
+Basic integration is straightforward. However, if you have slow-loading blocking scripts on your webpage, they can slow down Tracy's loading. The solution is to place `<?php Tracy\Debugger::renderLoader() ?>` in your template before any scripts:
+
+```latte
+<!DOCTYPE html>
+<html>
+<head>
+	<title>...<title>
+	<?php Tracy\Debugger::renderLoader() ?>
+	<link rel="stylesheet" href="assets/style.css">
+	<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+</head>
+```
+
+## Locating the Source of Output
+
+Have you ever run into *Cannot modify header information – headers already sent*? It shows up when something (a stray space, a blank line, or a BOM at the beginning of a file) is sent to the browser before your code sets an HTTP header or starts a session. Finding the culprit is tedious.
+
+`Tracy\OutputDebugger` helps. Enable it as the very first thing in your program:
+
+```php
+Tracy\OutputDebugger::enable();
+```
+
+It watches all output and at the end of the page prints a list of every place from which output was sent, together with the file, the line, and a link that opens it in your editor. A byte order mark (BOM) at the start of a file is highlighted too, as it is a common invisible cause of the problem.
+
+## Debugging AJAX Requests
+
+Tracy automatically captures AJAX requests made using jQuery or the native `fetch` API. These requests are displayed as additional rows in the Tracy bar, enabling easy and convenient AJAX debugging.
+
+If you do not want to capture AJAX requests automatically, you can disable this feature by setting the JavaScript variable:
+
+```js
+window.TracyAutoRefresh = false;
+```
+
+For manual monitoring of specific AJAX requests, add the HTTP header `X-Tracy-Ajax` with the value returned by `Tracy.getAjaxHeader()`. Here is an example of using it with the `fetch` function:
+
+```js
+fetch(url, {
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Tracy-Ajax': Tracy.getAjaxHeader(),
+    }
+})
+```
+
+This approach allows for selective debugging of AJAX requests.
+
+## Data Storage
+
+Tracy can display Tracy bar panels and Bluescreens for AJAX requests and redirects. Tracy creates its own sessions, stores data in its own temporary files, and uses a `tracy-session` cookie.
+
+Tracy can also be configured to use a native PHP session, which must be started before enabling Tracy:
+
+```php
+session_start();
+Debugger::setSessionStorage(new Tracy\NativeSession);
+Debugger::enable();
+```
+
+In case starting a session requires more complex initialization, you can start Tracy immediately (so that it can handle any errors that occur) and then initialize the session handler. Finally, inform Tracy that the session is ready to be used using the `dispatch()` function:
+
+```php
+Debugger::setSessionStorage(new Tracy\NativeSession);
+Debugger::enable();
+
+// followed by session initialization
+// and start the session
+session_start();
+
+Debugger::dispatch();
+```
+
+The `setSessionStorage()` function has existed since version 2.9; before that, Tracy always used the native PHP session.
+
+## Custom Scrubber
+
+A Scrubber is a filter that prevents sensitive data from leaking from dumps, such as passwords or credentials. The filter is called for each item of the dumped array or object and returns `true` if the value is sensitive. In this case, `*****` is printed instead of the value.
+
+```php
+// prevents dumping values of keys and properties like `password`,
+// `password_repeat`, `check_password`, `DATABASE_PASSWORD`, etc.
+$scrubber = function(string $key, $value, ?string $class): bool
+{
+	return preg_match('#password#i', $key) && $value !== null;
+};
+
+// use it for all dumps inside BlueScreen
+Tracy\Debugger::getBlueScreen()->scrubber = $scrubber;
+```
+
+## Custom Logger
+
+We can create a custom logger that will log errors, uncaught exceptions, and will also be invoked by the `Tracy\Debugger::log()` method. The logger must implement the [Tracy\ILogger](https://api.nette.org/tracy/master/Tracy/ILogger.html) interface.
+
+```php
+use Tracy\ILogger;
+
+class SlackLogger implements ILogger
+{
+	public function log($value, $priority = ILogger::INFO)
+	{
+		// sends a request to Slack
+	}
+}
+```
+
+And then we activate it:
+
+```php
+Tracy\Debugger::setLogger(new SlackLogger);
+```
+
+If you are using the full Nette Framework, you can set it in the NEON configuration file:
+
+```neon
+services:
+	tracy.logger: SlackLogger
+```
+
+### Monolog Integration
+
+The Tracy package provides a PSR-3 adapter, allowing for integration of [monolog/monolog](https://github.com/Seldaek/monolog).
+
+```php
+$monolog = new Monolog\Logger('main-channel');
+$monolog->pushHandler(new Monolog\Handler\StreamHandler($logFilePath, Monolog\Logger::DEBUG));
+
+$tracyLogger = new Tracy\Bridges\Psr\PsrToTracyLoggerAdapter($monolog);
+Debugger::setLogger($tracyLogger);
+Debugger::enable();
+
+Debugger::log('info'); // writes: [<TIMESTAMP>] main-channel.INFO: info [] []
+Debugger::log('warning', Debugger::WARNING); // writes: [<TIMESTAMP>] main-channel.WARNING: warning [] []
+```
+
+### Sentry Integration
+
+You can forward errors to a service like [Sentry](https://sentry.io) while keeping Tracy's own logging. The idea is to wrap the original logger: the new logger passes the message to Sentry and then delegates to the previous one, so file logs and e-mail notifications keep working.
+
+```php
+use Sentry\Severity;
+use Tracy\Debugger;
+use Tracy\ILogger;
+
+class SentryLogger implements ILogger
+{
+	private ILogger $originalLogger;
+
+	public function __construct(string $dsn)
+	{
+		$this->originalLogger = Debugger::getLogger();
+		\Sentry\init(['dsn' => $dsn]);
+	}
+
+	public function log(mixed $value, string $level = self::INFO)
+	{
+		// send to Sentry
+		if ($severity = $this->getSeverity($level)) {
+			$value instanceof \Throwable
+				? \Sentry\captureException($value)
+				: \Sentry\captureMessage((string) $value, $severity);
+		}
+
+		// keep Tracy's original logging (files, e-mail)
+		return $this->originalLogger->log($value, $level);
+	}
+
+	private function getSeverity(string $level): ?Severity
+	{
+		return match ($level) {
+			ILogger::DEBUG => Severity::debug(),
+			ILogger::INFO => Severity::info(),
+			ILogger::WARNING => Severity::warning(),
+			ILogger::ERROR, ILogger::EXCEPTION => Severity::error(),
+			ILogger::CRITICAL => Severity::fatal(),
+			default => null,
+		};
+	}
+}
+```
+
+Activate it the same way as any other custom logger:
+
+```php
+Debugger::setLogger(new SentryLogger('https://public@sentry.example.com/1'));
+```
+
+In a Nette application, register it as the `tracy.logger` service instead:
+
+```neon
+services:
+	tracy.logger: SentryLogger('https://public@sentry.example.com/1')
+```
+
+## nginx
+
+If Tracy does not work on nginx, it is probably misconfigured. If there is something like:
+
+```nginx
+try_files $uri $uri/ /index.php;
+```
+
+change it to:
+
+```nginx
+try_files $uri $uri/ /index.php$is_args$args;
+```

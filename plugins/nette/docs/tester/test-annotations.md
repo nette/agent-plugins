@@ -1,0 +1,172 @@
+# Test Annotations
+
+Contents:
+
+- [`TEST`](#test)
+- [`@skip`](#skip)
+- [`@phpVersion`](#phpversion)
+- [`@phpExtension`](#phpextension)
+- [`@dataProvider`](#dataprovider)
+- [`@multiple`](#multiple)
+- [`@testCase`](#testcase)
+- [`@exitCode`](#exitcode)
+- [`@httpCode`](#httpcode)
+- [`@outputMatch and @outputMatchFile`](#outputmatch-and-outputmatchfile)
+- [`@phpIni`](#phpini)
+
+
+Annotations determine how tests will be handled by the [command-line test runner](running-tests.md). They are written at the beginning of the test file.
+
+Annotations are case-insensitive. They also have no effect if the test is run manually as a regular PHP script.
+
+Example:
+
+```php
+/**
+ * TEST: Basic database query test.
+ *
+ * @dataProvider files/databases.ini
+ * @exitCode 56
+ * @phpVersion < 8.4
+ */
+
+require __DIR__ . '/../bootstrap.php';
+```
+
+## `TEST`
+
+This isn't actually an annotation. It simply specifies the test title, which is displayed in case of failure or in logs.
+
+## `@skip`
+
+The test is skipped. Useful for temporarily disabling tests.
+
+## `@phpVersion`
+
+The test is skipped if it is not run with the corresponding PHP version. Write the annotation as `@phpVersion [operator] version`. The operator can be omitted; the default is `>=`. Examples:
+
+```php
+/**
+ * @phpVersion 8.1
+ * @phpVersion < 8.4
+ * @phpVersion != 8.2.5
+ */
+```
+
+## `@phpExtension`
+
+The test is skipped if not all the specified PHP extensions are loaded. Multiple extensions can be listed in a single annotation, or the annotation can be used multiple times.
+
+```php
+/**
+ * @phpExtension pdo, pdo_pgsql, pdo_mysql
+ * @phpExtension json
+ */
+```
+
+## `@dataProvider`
+
+This annotation is useful when you want to run the test file multiple times with different input data. (Do not confuse it with the annotation of the same name for [TestCase](testcase.md#dataprovider).)
+
+Write it as `@dataProvider file.ini`. The file path is relative to the test file. The test will be run as many times as there are sections in the INI file. Assume the INI file `databases.ini`:
+
+```ini
+[mysql]
+dsn = "mysql:host=127.0.0.1"
+user = root
+password = ******
+
+[postgresql]
+dsn = "pgsql:host=127.0.0.1;dbname=test"
+user = postgres
+password = ******
+
+[sqlite]
+dsn = "sqlite::memory:"
+```
+
+and the file `database.phpt` in the same directory:
+
+```php
+/**
+ * @dataProvider databases.ini
+ */
+
+$args = Tester\Environment::loadData();
+```
+
+The test will run three times, and `$args` will contain the values from the `mysql`, `postgresql`, or `sqlite` section, respectively.
+
+There is another variation where you write the annotation with a question mark: `@dataProvider? file.ini`. In this case, the test is skipped if the INI file does not exist.
+
+The possibilities of this annotation don't end here. You can specify conditions after the INI file name that determine whether the test runs for a specific section. Let's extend the INI file:
+
+```ini
+[mysql]
+dsn = "mysql:host=127.0.0.1"
+user = root
+password = ******
+
+[postgresql 8.4]
+dsn = "pgsql:host=127.0.0.1;dbname=test"
+user = postgres
+password = ******
+
+[postgresql 9.1]
+dsn = "pgsql:host=127.0.0.1;dbname=test;port=5433"
+user = postgres
+password = ******
+
+[sqlite]
+dsn = "sqlite::memory:"
+```
+
+and use the annotation with a condition:
+
+```php
+/**
+ * @dataProvider  databases.ini  postgresql, >=9.0
+ */
+```
+
+The test will run only once, for the `postgresql 9.1` section. Other sections do not meet the condition filter.
+
+Similarly, instead of an INI file, you can reference a PHP script. It must return an array or a Traversable object. File `databases.php`:
+
+```php
+return [
+	'postgresql 8.4' => [
+		'dsn' => '...',
+		'user' => '...',
+	],
+
+	'postgresql 9.1' => [
+		'dsn' => '...',
+		'user' => '...',
+	],
+];
+```
+
+## `@multiple`
+
+Write it as `@multiple N`, where `N` is an integer. The test will run exactly N times.
+
+## `@testCase`
+
+This annotation has no parameters. Use it when writing tests as [TestCase](testcase.md) classes. In this case, the command-line test runner will execute individual methods in separate processes and in parallel using multiple threads. This can significantly speed up the entire testing process.
+
+## `@exitCode`
+
+Write it as `@exitCode N`, where `N` is the expected exit code of the test. For example, if `exit(10)` is called in the test, write the annotation as `@exitCode 10`. If the test ends with a different code, it is considered a failure. If the annotation is omitted, an exit code of 0 (zero) is verified.
+
+## `@httpCode`
+
+This annotation applies only if the PHP binary is CGI; otherwise, it is ignored. Write it as `@httpCode NNN`, where `NNN` is the expected HTTP code. If the annotation is omitted, an HTTP code of 200 is verified. If `NNN` is written as a string that evaluates to zero (e.g., `any`), the HTTP code is not checked.
+
+## `@outputMatch and @outputMatchFile`
+
+The function of these annotations is identical to the `Assert::match()` and `Assert::matchFile()` assertions. However, the pattern is searched for in the text that the test sent to its standard output. This is useful when you expect a test to end with a fatal error and need to verify its output.
+
+## `@phpIni`
+
+Sets INI configuration values for the test. For example, write it as `@phpIni precision=20`. It works the same way as if you specified the value from the command line using the `-d precision=20` parameter.

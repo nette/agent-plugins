@@ -1,0 +1,61 @@
+# Multiplier: Dynamic Components
+
+A tool for dynamic creation of interactive components.
+
+Let's start with a typical example: imagine a product list in an e-shop where you want an ‘Add to Cart’ form for each item. One possible approach is to wrap the entire listing in a single form. However, a much more convenient method is offered by [Nette\Application\UI\Multiplier](https://api.nette.org/application/master/Nette/Application/UI/Multiplier.html).
+
+Multiplier allows you to conveniently define a factory for multiple components. It works on the principle of nested components – any component inheriting from [Nette\ComponentModel\Container](https://api.nette.org/component-model/master/Nette/ComponentModel/Container.html) can contain other components.
+
+> [!TIP]
+> See the chapter on the [component model](components.md#components-in-depth) in the documentation.
+
+The essence of Multiplier is that it acts as a parent that can dynamically create its children using a callback passed in the constructor. See the example:
+
+```php
+protected function createComponentShopForm(): Multiplier
+{
+	return new Multiplier(function () {
+		$form = new Nette\Application\UI\Form;
+		$form->addInteger('amount', 'Amount:')
+			->setRequired();
+		$form->addSubmit('send', 'Add to cart');
+		return $form;
+	});
+}
+```
+
+Now, in the template, we can simply render the form for each product – and each one will truly be a unique component.
+
+```latte
+{foreach $items as $item}
+	<h2>{$item->title}</h2>
+	{$item->description}
+
+	{control "shopForm-$item->id"}
+{/foreach}
+```
+
+The argument passed in the `{control}` tag follows a format that means:
+
+1. Get the component `shopForm`.
+2. From it, get the child named `$item->id`.
+
+During the first call of point **1**, the `shopForm` component doesn't exist yet, so its factory `createComponentShopForm` is called. Then, on the obtained component (an instance of Multiplier), the factory for the specific form is called – which is the anonymous function we passed to the Multiplier's constructor.
+
+In the next iteration of the foreach loop, the `createComponentShopForm` method will not be called again (as the component already exists). However, because we are looking for a different child (since `$item->id` will be different in each iteration), the anonymous function will be called again, returning a new form.
+
+The only thing left is to ensure that the form adds the correct product to the cart – currently, the form is identical for every product. A feature of Multiplier (and generally of any component factory in Nette Framework) helps us here: every factory receives the name of the component being created as its first argument. Additionally, a Multiplier factory receives the Multiplier instance itself as its second argument. In our case, the first argument will be `$item->id`, which is precisely the information we need. So, we just need to slightly modify the form creation:
+
+```php
+protected function createComponentShopForm(): Multiplier
+{
+	return new Multiplier(function (string $itemId) {
+		$form = new Nette\Application\UI\Form;
+		$form->addInteger('amount', 'Amount:')
+			->setRequired();
+		$form->addHidden('itemId', $itemId);
+		$form->addSubmit('send', 'Add to cart');
+		return $form;
+	});
+}
+```

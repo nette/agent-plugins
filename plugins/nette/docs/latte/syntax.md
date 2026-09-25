@@ -1,0 +1,330 @@
+# Syntax
+
+Contents:
+
+- [Tags](#tags)
+- [Latte Understands PHP](#latte-understands-php)
+- [n:attributes](#nattributes)
+- [Smart HTML Attributes (since 3.1.0)](#smart-html-attributes-since-310)
+- [Filters](#filters)
+- [Dynamic HTML Tags (since 3.0.9)](#dynamic-html-tags-since-309)
+- [Comments](#comments)
+- [Whitespace Control](#whitespace-control)
+- [Syntactic Sugar](#syntactic-sugar)
+  - [Strings Without Quotation Marks](#strings-without-quotation-marks)
+  - [Constants](#constants)
+  - [Short Ternary Operator](#short-ternary-operator)
+  - [Modern Key Notation in Arrays](#modern-key-notation-in-arrays)
+  - [Filters](#filters-1)
+  - [Operator `in`](#operator-in)
+  - [A Window into History](#awindow-into-history)
+- [PHP Limitations in Latte](#php-limitations-in-latte)
+
+
+Latte syntax originated from the practical requirements of web designers. We were looking for the most user-friendly syntax, with which you can elegantly write constructs that are otherwise a real challenge. At the same time, all expressions are written exactly the same as in PHP, so you don't have to learn a new language. You simply leverage what you already know.
+
+Below is a minimal template that illustrates several basic elements: tags, n:attributes, comments, and filters.
+
+```latte
+{* this is a comment *}
+<ul n:if=$items>                  {* n:if is an n:attribute *}
+{foreach $items as $item}         {* tag representing a foreach loop *}
+	<li>{$item|capitalize}</li>   {* tag that prints a variable with a filter *}
+{/foreach}                        {* end of the loop *}
+</ul>
+```
+
+Let's take a closer look at these important elements and how they can help you create an amazing template.
+
+## Tags
+
+A template contains tags that control the template logic (for example, *foreach* loops) or output expressions. A single delimiter `{ ... }` is used for both, so you don't have to think about which delimiter to use in which situation, unlike other systems. If the `{` character is immediately followed by whitespace, a quote, or another `{` or `}`, Latte does not consider it the beginning of a tag, allowing you to use JavaScript constructs, JSON, or CSS rules in your templates without problems.
+
+See the [overview of all tags](tags.md). Additionally, you can create your own [custom tags](custom-tags.md). You can also change the `{ }` delimiters or turn them off entirely (using `{syntax double}`, `{syntax off}`, or the `n:syntax` attribute); see [changing the syntax](tags.md#syntax).
+
+## Latte Understands PHP
+
+Inside the tags, you can use PHP expressions that you are familiar with:
+
+- variables
+- strings (including HEREDOC and NOWDOC), arrays, numbers, etc.
+- [operators](https://www.php.net/manual/en/language.operators.php)
+- function and method calls (which can be restricted by [sandbox](sandbox.md))
+- [match](https://www.php.net/manual/en/control-structures.match.php)
+- [arrow functions](https://www.php.net/manual/en/functions.arrow.php)
+- [first class callable syntax](https://www.php.net/manual/en/functions.first_class_callable_syntax.php)
+- multi-line comments `/* ... */`
+- etc…
+
+Furthermore, Latte enhances PHP syntax with several [nice extensions](#syntactic-sugar).
+
+## n:attributes
+
+Every pair tag, such as `{if} … {/if}`, operating on a single HTML element, can be rewritten in the form of n:attributes. For example, the `{foreach}` in the introductory example could also be written this way:
+
+```latte
+<ul n:if=$items>
+	<li n:foreach="$items as $item">{$item|capitalize}</li>
+</ul>
+```
+
+The functionality then applies to the HTML element in which it is placed:
+
+```latte
+{var $items = ['I', '♥', 'Latte']}
+
+<p n:foreach="$items as $item">{$item}</p>
+```
+
+outputs:
+
+```latte
+<p>I</p>
+<p>♥</p>
+<p>Latte</p>
+```
+
+Using the `inner-` prefix, we can modify the behavior so that it applies only to the inner part of the element:
+
+```latte
+<div n:inner-foreach="$items as $item">
+	<p>{$item}</p>
+	<hr>
+</div>
+```
+
+Outputs:
+
+```latte
+<div>
+	<p>I</p>
+	<hr>
+	<p>♥</p>
+	<hr>
+	<p>Latte</p>
+	<hr>
+</div>
+```
+
+Or, using the `tag-` prefix, we apply the functionality only to the HTML tags themselves:
+
+```latte
+<p><a href={$url} n:tag-if="$url">Title</a></p>
+```
+
+Which outputs, depending on the variable `$url`:
+
+```latte
+{* when $url is empty *}
+<p>Title</p>
+
+{* when $url contains 'https://nette.org' *}
+<p><a href="https://nette.org">Title</a></p>
+```
+
+However, n:attributes are not only a shortcut for pair tags; there are some pure n:attributes as well, for example the coder's best friend [n:class](tags.md#nclass) or the very handy [n:href](../application/creating-links.md#in-the-presenter-template).
+
+In addition to the syntax using quotes `<div n:if="$foo">`, you can use alternative syntax with curly braces `<div n:if={$foo}>`. The main advantage is that you can freely use both single and double quotes inside `{...}`:
+
+```latte
+<div n:if={str_contains($val, "foo")}> ... </div>
+```
+
+## Smart HTML Attributes (since 3.1.0)
+
+Latte makes working with standard HTML attributes incredibly easy. It handles boolean attributes like `checked` for you, removes attributes containing `null`, and allows you to compose `class` and `style` values using arrays. It even automatically serializes data for `data-` attributes into JSON.
+
+```latte
+{* null removes the attribute *}
+<div title={$title}>
+
+{* boolean controls presence of boolean attributes *}
+<input type="checkbox" checked={$isChecked}>
+
+{* arrays work in class *}
+<div class={['btn', 'btn-primary', active => $isActive]}>
+
+{* arrays are JSON-encoded in data- attributes *}
+<div data-config={[theme: dark, version: 2]}>
+```
+
+Read more in the separate chapter [Smart HTML Attributes](html-attributes.md).
+
+## Filters
+
+See the overview of [standard filters](filters.md).
+
+Filters are written after the pipe symbol (a preceding space is allowed):
+
+```latte
+<h1>{$heading|upper}</h1>
+```
+
+Filters can be chained, and they are applied in order from left to right:
+
+```latte
+<h1>{$heading|lower|capitalize}</h1>
+```
+
+Arguments follow the filter name after a colon and any further ones are separated by commas; a parenthesized call works as well:
+
+```latte
+<h1>{$heading|truncate:20,''}</h1>
+<h1>{$heading|truncate(20, '')}</h1>
+```
+
+Filters can also be applied to an expression:
+
+```latte
+{var $name = ($title|upper) . ($subtitle|lower)}
+```
+
+On a block:
+
+```latte
+<h1>{block |lower}{$heading}{/block}</h1>
+```
+
+Or directly on a value (in combination with the [`{=expr}`](tags.md#printing) tag):
+
+```latte
+<h1>{='  Hello world  '|trim}</h1>
+```
+
+If the value can be `null` and you want to avoid applying the filter in that case, use the [nullsafe filter](filters.md#nullsafe-filters-since-310) `?|`:
+
+```latte
+<h1>{$heading?|upper}</h1>
+```
+
+## Dynamic HTML Tags (since 3.0.9)
+
+Latte supports dynamic HTML tags, which are useful when you need flexibility in tag names:
+
+```latte
+<h{$level}>Heading</h{$level}>
+```
+
+For example, the code above can generate `<h1>Heading</h1>` or `<h2>Heading</h2>` depending on the value of the variable `$level`. Dynamic HTML tags in Latte must always be paired. Their alternative is [n:tag](tags.md#ntag).
+
+Because Latte is a secure templating system, it checks that the resulting tag name is valid and does not contain any unwanted or malicious values. It also ensures that the end tag name always matches the opening tag name.
+
+## Comments
+
+Comments are written this way and do not get into the output:
+
+```latte
+{* this is a comment in Latte *}
+```
+
+PHP comments work inside tags:
+
+```latte
+{include 'file.info', /* value: 123 */}
+```
+
+## Whitespace Control
+
+Latte handles whitespace intelligently. You can freely indent your code for readability, and the output stays clean. When a control tag appears alone on a line, the entire line (indentation and newline) is removed from the output (this does not apply to tags that print output, such as `{$var}`, `{=...}`, or `{_...}`, which keep their indentation and trailing newline):
+
+```latte
+<ul>
+	{foreach $items as $item}
+	<li>{$item}</li>
+	{/foreach}
+</ul>
+```
+
+Outputs:
+
+```latte
+<ul>
+	<li>foo</li>
+	<li>bar</li>
+</ul>
+```
+
+What if a tag isn't alone on a line, but appears alongside other content? The whitespace before the tag then belongs *inside* the tag:
+
+```latte
+<div>
+	{if $foo}hello{/if}
+</div>
+```
+
+The indentation is effectively inside `{if}`: when `$foo` is false, nothing is output – not even the indentation or a blank line. When `$foo` is true, the output naturally includes the indentation. You simply write well-structured templates and the output is always clean.
+
+For even cleaner output, you can enable the [Dedent](develop.md#automatic-dedentation-since-313) feature, which also removes indentation caused by nesting within paired tags like `{if}` or `{foreach}`.
+
+## Syntactic Sugar
+
+### Strings Without Quotation Marks
+
+Quotation marks can be omitted for simple strings:
+
+```latte
+as in PHP:   {var $arr = ['hello', 'btn--default', '€']}
+
+abbreviated: {var $arr = [hello, btn--default, €]}
+```
+
+Simple strings are those composed purely of letters, digits, underscores, hyphens, and periods. They must not start with a digit and must not start or end with a hyphen. They must not consist solely of uppercase letters and underscores, as they are then considered constants (e.g., `PHP_VERSION`). And they must not conflict with the keywords: `and`, `array`, `clone`, `default`, `false`, `in`, `instanceof`, `new`, `null`, `or`, `return`, `true`, `xor`.
+
+### Constants
+
+Use the global namespace separator to distinguish global constants from simple strings:
+
+```latte
+{if \PROJECT_ID === 1} ... {/if}
+```
+
+This notation is entirely valid in PHP itself, where the backslash indicates that the constant is in the global namespace.
+
+### Short Ternary Operator
+
+If the third value of the ternary operator is empty, it can be omitted:
+
+```latte
+as in PHP:   {$stock ? 'In stock' : ''}
+
+abbreviated: {$stock ? 'In stock'}
+```
+
+### Modern Key Notation in Arrays
+
+Array keys can be written similarly to named parameters when calling functions:
+
+```latte
+as in PHP:   {var $arr = ['one' => 'item 1', 'two' => 'item 2']}
+
+modern:      {var $arr = [one: 'item 1', two: 'item 2']}
+```
+
+### Filters
+
+Filters can be used for any expression; just enclose the whole expression in parentheses:
+
+```latte
+{var $content = ($text|truncate: 30|upper)}
+```
+
+### Operator `in`
+
+The `in` operator can replace the `in_array()` function. The comparison is always strict:
+
+```latte
+{* like in_array($item, $items, true) *}
+{if $item in $items}
+	...
+{/if}
+```
+
+### A Window into History
+
+Over its history, Latte introduced several syntactic sugar features that appeared in PHP itself a few years later. For example, in Latte, it was possible to write arrays as `[1, 2, 3]` instead of `array(1, 2, 3)` or use the nullsafe operator `$obj?->foo` long before it was possible in PHP itself. Latte also introduced the array expansion operator `(expand) $arr`, which is equivalent to today's `...$arr` operator from PHP.
+
+## PHP Limitations in Latte
+
+Only PHP expressions can be written in Latte. That is, statements ending with a semicolon cannot be used. You cannot declare classes or use [control structures](https://www.php.net/manual/en/language.control-structures.php), such as `if`, `foreach`, `switch`, `return`, `try`, `throw`, and others, for which Latte offers its [tags](tags.md). You also cannot use [attributes](https://www.php.net/manual/en/language.attributes.php), [backticks](https://www.php.net/manual/en/language.operators.execution.php), or some [magic constants](https://www.php.net/manual/en/language.constants.magic.php). You cannot use `unset`, `echo`, `include`, `require`, `exit`, `eval` either, because they are not functions but special PHP language constructs, and thus not expressions. Only multi-line comments `/* ... */` are supported.
+
+However, these limitations can be bypassed by activating the [RawPhpExtension](develop.md#any-code-in-template-php-) extension, which allows you to use any PHP code within the `{php ...}` tag at the template author's responsibility.

@@ -1,0 +1,227 @@
+# Troubleshooting
+
+Contents:
+
+- [Nette Is Not Working, White Page Is Displayed](#nette-is-not-working-white-page-is-displayed)
+- [Error 500 *Server Error: We're sorry! …*](#error-500server-error-were-sorry-)
+- [Error 404, Routing Not Working](#error-404-routing-not-working)
+- [Changes in Templates or Configuration Are Not Reflected](#changes-in-templates-or-configuration-are-not-reflected)
+- [How to Disable Cache During Development?](#how-to-disable-cache-during-development)
+- [Error `#[\ReturnTypeWillChange] attribute should be used`](#error-returntypewillchange-attribute-should-be-used)
+- [Setting Directory Permissions](#setting-directory-permissions)
+- [How to Change or Remove `www` Directory from URL?](#how-to-change-or-remove-www-directory-from-url)
+- [How to Configure a Server for Nice URLs?](#how-to-configure-a-server-for-nice-urls)
+- [Test If `.htaccess` Is Working](#test-if-htaccess-is-working)
+- [Test If `mod_rewrite` Is Enabled](#test-if-mod_rewrite-is-enabled)
+- [Links Are Generated Without `https:`](#links-are-generated-without-https)
+- [Use of Characters { } in JavaScript](#use-of-characters---in-javascript)
+- [Error `Cannot modify header information - headers already sent`](#error-cannot-modify-header-information---headers-already-sent)
+- [Notice `Presenter::getContext() is deprecated`](#notice-presentergetcontext-is-deprecated)
+
+
+## Nette Is Not Working, White Page Is Displayed
+
+- Try putting `ini_set('display_errors', '1'); error_reporting(E_ALL);` after `declare(strict_types=1);` in the `index.php` file to force the display of errors.
+- If you still see a white screen, there is probably an error in the server configuration, and you will find the reason in the server log. To be sure, check if PHP is working at all by trying to print something using `echo 'test';`.
+- If you see the error *Server Error: We're sorry! …*, continue with the next section:
+
+## Error 500 *Server Error: We're sorry! …*
+
+This error page is displayed by Nette in production mode. If you see it on your development machine, [switch to developer mode](../application/bootstrapping.md#development-vs-production-mode), and Tracy will display a detailed report.
+
+You can always find the reason for the error in the log in the `log/` directory. However, if the error message shows the phrase `Tracy is unable to log error`, first determine why errors cannot be logged. You can do this, for example, by temporarily [switching](../application/bootstrapping.md#development-vs-production-mode) to developer mode and letting Tracy log anything after it starts:
+
+```php
+// Bootstrap.php
+$configurator->setDebugMode('23.75.345.200'); // your IP address
+$configurator->enableTracy($rootDir . '/log');
+\Tracy\Debugger::log('hello');
+```
+
+Tracy will tell you why it cannot log. The cause might be [insufficient permissions](#setting-directory-permissions) to write to the `log/` directory.
+
+One of the most common reasons for a 500 error is an outdated cache. While Nette smartly updates the cache automatically in development mode, in production mode, it focuses on maximizing performance, and clearing the cache after each code modification is your responsibility. Try deleting `temp/cache`.
+
+## Error 404, Routing Not Working
+
+When all pages (except the homepage) return a 404 error, it seems like a server configuration problem for [pretty URLs](#how-to-configure-a-server-for-nice-urls).
+
+## Changes in Templates or Configuration Are Not Reflected
+
+“I modified the template or configuration, but the website still displays the old version.” This behavior occurs in [production mode](../application/bootstrapping.md#development-vs-production-mode), which, for performance reasons, does not check for file changes and maintains the previously generated cache.
+
+To avoid manually clearing the cache on the production server after every modification, enable development mode for your IP address in the `Bootstrap.php` file:
+
+```php
+$this->configurator->setDebugMode('your.ip.address');
+```
+
+## How to Disable Cache During Development?
+
+Nette is smart, and you don't need to disable caching in it. During development, it automatically updates the cache whenever there's a change in the template or the DI container configuration. Moreover, the development mode is activated by auto-detection, so there's usually no need to configure anything, [or just the IP address](../application/bootstrapping.md#development-vs-production-mode).
+
+When debugging the router, we recommend disabling the browser cache, where, for example, redirects might be stored: open Developer Tools (Ctrl+Shift+I or Cmd+Option+I) and in the Network panel, check the box to disable the cache.
+
+## Error `#[\ReturnTypeWillChange] attribute should be used`
+
+This error occurs if you have upgraded PHP to version 8.1 but are using a version of Nette that is not compatible with it. The solution is to update Nette to a newer version using `composer update`. Nette has supported PHP 8.1 since version 3.0. If you are using an older version (check your `composer.json`), [upgrade Nette](../migrations/index.md) or stay with PHP 8.0.
+
+## Setting Directory Permissions
+
+If you're developing on macOS or Linux (or any other Unix-based system), you need to configure write privileges for the web server. Assuming your application is located in the default directory `/var/www/html` (Fedora, CentOS, RHEL):
+
+```shell
+cd /var/www/html/MY_PROJECT
+chmod -R a+rw temp log
+```
+
+On some Linux systems (Fedora, CentOS, …), SELinux may be enabled by default. You may need to update SELinux policies or set the paths of the `temp` and `log` directories with the correct SELinux security context. The `temp` and `log` directories should be set to the `httpd_sys_rw_content_t` context; for the rest of the application – mainly the `app` folder – the `httpd_sys_content_t` context will be sufficient. Run on the server as root:
+
+```shell
+semanage fcontext -at httpd_sys_rw_content_t '/var/www/html/MY_PROJECT/log(/.*)?'
+semanage fcontext -at httpd_sys_rw_content_t '/var/www/html/MY_PROJECT/temp(/.*)?'
+restorecon -Rv /var/www/html/MY_PROJECT/
+```
+
+Next, the SELinux boolean `httpd_can_network_connect_db` needs to be enabled to permit Nette to connect to the database over the network. By default, it is disabled. The `setsebool` command can be used for this task, and if the `-P` option is specified, this setting will be persistent across reboots:
+
+```shell
+setsebool -P httpd_can_network_connect_db on
+```
+
+## How to Change or Remove `www` Directory from URL?
+
+The `www/` directory used in Nette's sample projects represents the public directory or document-root of the project. It is the only directory whose content is accessible to the browser. It contains the `index.php` file, the entry point that starts the Nette web application.
+
+To run the application on a hosting service, you need to configure the document-root correctly. You have two options:
+
+1. Set the document-root to this directory in the hosting configuration.
+2. If the hosting has a pre-prepared folder (e.g., `public_html`), rename `www/` to this name.
+
+> [!WARNING]
+> Never try to secure your application by only using `.htaccess` or router rules to prevent access to other folders.
+
+If the hosting service does not allow setting the document-root to a subdirectory (i.e., creating directories one level above the public directory), look for another provider. Otherwise, you would face a significant security risk. It would be like living in an apartment where the front door cannot be closed and is always wide open.
+
+## How to Configure a Server for Nice URLs?
+
+**Apache**: You need to enable and configure mod_rewrite rules in the `.htaccess` file:
+
+```apacheconf
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule !\.(pdf|js|ico|gif|jpg|png|css|rar|zip|tar\.gz)$ index.php [L]
+```
+
+If you encounter problems, make sure that:
+
+- the `.htaccess` file is located in the document-root directory (i.e., next to the `index.php` file)
+- [Apache is processing `.htaccess` files](#test-if-htaccess-is-working)
+- [mod_rewrite is enabled](#test-if-mod_rewrite-is-enabled)
+
+If you are setting up the application in a subfolder, you might need to uncomment the line for the `RewriteBase` setting and set it to the correct folder.
+
+**nginx**: Redirection needs to be configured using the `try_files` directive inside the `location /` block in the server configuration.
+
+```nginx
+location / {
+	try_files $uri $uri/ /index.php$is_args$args;  # $is_args$args IS IMPORTANT!
+}
+```
+
+The `location` block must appear only once for each filesystem path within the `server` block. If you already have a `location /` block in your configuration, add the `try_files` directive into the existing block.
+
+## Test If `.htaccess` Is Working
+
+The simplest way to test if Apache uses or ignores your `.htaccess` file is to intentionally break it. Put the line `Test` at the beginning of the file. Now, if you refresh the page in your browser, you should see an *Internal Server Error*.
+
+If you see this error, that's actually good! It means that Apache is parsing the `.htaccess` file and encountering the error we put there. Remove the `Test` line.
+
+If you do not see an *Internal Server Error*, your Apache setup ignores the `.htaccess` file. Generally, Apache ignores it because the configuration directive `AllowOverride All` is missing.
+
+If you are hosting it yourself, it's easy enough to fix. Open your `httpd.conf` or `apache.conf` in a text editor, locate the relevant `<Directory>` section, and add/change this directive:
+
+```apacheconf
+<Directory "/var/www/htdocs"> # path to your document root
+    AllowOverride All
+    ...
+```
+
+If your site is hosted elsewhere, check your control panel to see if you can enable `.htaccess` there. If not, contact your hosting provider to do it for you.
+
+## Test If `mod_rewrite` Is Enabled
+
+If you have verified that [`.htaccess` works](#test-if-htaccess-is-working), you can verify that the mod_rewrite extension is enabled. Put the line `RewriteEngine On` at the beginning of the `.htaccess` file and refresh the page in your browser. If you see an *Internal Server Error*, it means that mod_rewrite is not enabled. There are several ways to enable it. See Stack Overflow for various ways this can be done on different setups.
+
+## Links Are Generated Without `https:`
+
+Nette generates links with the same protocol as the current page is using. So, on an `https://foo` page, it generates links starting with `https:`, and vice versa. If you are behind an HTTPS-stripping reverse proxy (for example, in Docker), you need to [set up a proxy](../http/configuration.md#http-proxy) in the configuration so that protocol detection works correctly.
+
+If you use Nginx as a proxy, you need to have redirection set up, for example, like this:
+
+```
+location / {
+	proxy_set_header Host $host;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_pass http://IP-aplikace:80;  # IP or hostname of the server/container where the application is running
+}
+```
+
+Furthermore, you need to specify the proxy IP and optionally the IP range of your local network where you run the infrastructure in the configuration:
+
+```neon
+http:
+	proxy: IP-proxy/IP-range
+```
+
+## Use of Characters { } in JavaScript
+
+The characters `{` and `}` are used for writing Latte tags. Anything following the `{` character (except space and quotation mark) is considered a tag. If you need to print the character `{` directly (often in JavaScript), you can put a space (or another whitespace character) right after `{`. This prevents it from being interpreted as a tag.
+
+If it's necessary to print these characters in a situation where the text would be interpreted as a tag, you can use special tags to output these characters – `{l}` for `{` and `{r}` for `}`.
+
+```
+{is a tag}
+{ is not a tag }
+{l}is not a tag{r}
+```
+
+## Error `Cannot modify header information - headers already sent`
+
+This error occurs when the application tries to send an HTTP header (a cookie, a redirect, or the start of a session) at a moment when some output has already been sent to the browser. Headers must always precede the body of the response.
+
+There are two possible causes: either the output leaves too early, or the header is sent too late.
+
+The output usually leaves too early because of a stray space or blank line before `<?php`, after the closing `?>`, or because of a BOM that the editor inserted at the beginning of the file and does not display. Therefore, never end PHP files with `?>`. To find out which place printed first, use [Tracy\OutputDebugger](../tracy/recipes.md#locating-the-source-of-output).
+
+The header is sent too late typically when working with a session. Nette starts the session automatically the first time you read from it or write into it, and if this happens only while the template is being rendered, the output is already on its way. Therefore, work with the session at the latest in the `beforeRender()` method, in components also in the `handle<Signal>()` methods.
+
+Do not try to solve the problem by setting [autoStart: true](../http/configuration.md#session). This starts the session for every visitor, including robots, and needlessly creates a huge number of files on the disk. The default value `smart` starts the session only when it is really needed.
+
+## Notice `Presenter::getContext() is deprecated`
+
+Nette was by far the first PHP framework to switch to dependency injection and guided programmers to use it consistently, starting right from the presenters. If a presenter needs a dependency, [it asks for it](../dependency-injection/passing-dependencies.md). Conversely, passing the entire DI container to a class and having it pull dependencies directly is considered an antipattern (known as the service locator pattern). This approach was used in Nette 0.x before the advent of dependency injection, and the method `Presenter::getContext()`, long marked as deprecated, is a remnant of that era.
+
+If you are porting a very old Nette application, you might find that it still uses this method. Since `nette/application` version 3.1, you will encounter the warning `Nette\Application\UI\Presenter::getContext() is deprecated, use dependency injection`, and since version 4.0, an error stating the method does not exist.
+
+The clean solution, of course, is to refactor the application to pass dependencies using dependency injection. As a workaround, you can add your own `getContext()` method to your base presenter to bypass the message:
+
+```php
+abstract class BasePresenter extends Nette\Application\UI\Presenter
+{
+	private Nette\DI\Container $context;
+
+	public function injectContext(Nette\DI\Container $context): void
+	{
+		$this->context = $context;
+	}
+
+	public function getContext(): Nette\DI\Container
+	{
+		return $this->context;
+	}
+}
+```

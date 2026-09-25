@@ -1,0 +1,5 @@
+# Upgrading
+
+## Upgrading to Version 2.3
+
+- RobotLoader is now case-sensitive and warns you if you use the wrong case in a class name

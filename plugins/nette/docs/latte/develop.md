@@ -1,0 +1,434 @@
+# Practices for Developers
+
+Contents:
+
+- [Installation](#installation)
+- [How to Render a Template](#how-to-render-a-template)
+- [Performance and Caching](#performance-and-caching)
+- [Ways to Extend Latte](#ways-to-extend-latte)
+- [Parameters as a Class](#parameters-as-a-class)
+- [Disabling Auto-Escaping of Variable](#disabling-auto-escaping-of-variable)
+- [How to Extend Latte with Filters, Tags, etc.](#how-to-extend-latte-with-filters-tags-etc)
+- [Any Code in Template `{php ...}`](#any-code-in-template-php-)
+- [Checking Generated Code (since 3.0.7)](#checking-generated-code-since-307)
+- [Locale (since 3.0.18)](#locale-since-3018)
+- [Strict Mode (since 3.0.8)](#strict-mode-since-308)
+- [Migration Warnings (since 3.1.0)](#migration-warnings-since-310)
+- [Scoped Loop Variables (since 3.1.3)](#scoped-loop-variables-since-313)
+- [Automatic Dedentation (since 3.1.3)](#automatic-dedentation-since-313)
+- [Translation in Templates](#translation-in-templates)
+- [Debugging and Tracy](#debugging-and-tracy)
+- [Linter: Validating the Template Syntax](#linter-validating-the-template-syntax)
+- [Loading Templates from a String](#loading-templates-from-a-string)
+- [Exception Handler](#exception-handler)
+- [Automatic Layout Lookup](#automatic-layout-lookup)
+
+
+## Installation
+
+The best way to install Latte is via Composer:
+
+```shell
+composer require latte/latte
+```
+
+Supported PHP versions (applies to the latest patch Latte versions):
+
+| version | compatible with PHP |
+| --- | --- |
+| Latte 3.1 | PHP 8.2 – 8.5 |
+| Latte 3.0 | PHP 8.0 – 8.5 |
+
+## How to Render a Template
+
+How to render a template? Just use this simple code:
+
+```php
+$latte = new Latte\Engine;
+// cache directory
+$latte->setCacheDirectory('/path/to/tempdir');
+
+$params = [ /* template variables */ ];
+// or $params = new TemplateParameters(/* ... */);
+
+// render to output
+$latte->render('template.latte', $params);
+// or render to variable
+$output = $latte->renderToString('template.latte', $params);
+```
+
+Parameters can be arrays or even better [object](#parameters-as-a-class), which will provide type checking and suggestion in the editor.
+
+Do you want to learn Latte step by step? Work through the course [Latte by Example](https://github.com/nette-examples/latte-by-example), seventeen runnable chapters leading from the first template to the sandbox.
+
+## Performance and Caching
+
+Latte templates are extremely fast, because Latte compiles them directly into PHP code and caches them on disk. Thus, they have no extra overhead compared to templates written in pure PHP.
+
+The cache is automatically regenerated every time you change the source file. So you can conveniently edit your Latte templates during development and see the changes immediately in the browser. You can disable this feature in a production environment and save a little performance:
+
+```php
+$latte->setAutoRefresh(false);
+```
+
+When deployed on a production server, the initial cache generation, especially for larger applications, can understandably take a while. Latte has built-in prevention against [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede). This is a situation where the server receives a large number of concurrent requests and because Latte's cache does not yet exist, they would all generate it at the same time. Which spikes CPU. Latte is smart, and when there are multiple concurrent requests, only the first thread generates the cache, the others wait and then use it.
+
+You can also pre-generate the cache during deployment (for example, in a deploy script) using the `Engine::warmupCache()` method. It compiles the given template into the cache in advance, so the first visitor doesn't have to wait: `$latte->warmupCache('template.latte')`.
+
+## Ways to Extend Latte
+
+Latte can be customized in several ways, from simple helpers to entirely new language constructs. The page [extending Latte](extending-latte.md) covers them in detail; here is a quick overview:
+
+- **[Custom Filters](custom-filters.md):** for formatting or transforming data in the template output (e.g., `{$var|myFilter}`).
+- **[Custom Functions](custom-functions.md):** for custom logic you call within template expressions (e.g., `{myFunction($arg)}`).
+- **[Custom Tags](custom-tags.md):** for entirely new language constructs (`{mytag}...{/mytag}` or `n:mytag`).
+- **[Compiler Passes](compiler-passes.md):** functions that modify the template's AST between parsing and PHP code generation (for example, optimizations or security checks).
+- **[Custom Loaders](loaders.md):** for changing how Latte locates and loads template files.
+
+If you want to reuse your extensions across projects or share them with others, bundle them into a [Latte Extension](extending-latte.md#the-robust-way-latte-extension) class.
+
+## Parameters as a Class
+
+Better than passing variables to the template as arrays is to create a class. You get [type-safe notation](type-system.md), [nice suggestion in IDE](recipes.md#editors-and-ide) and a way to [register filters](custom-filters.md#filters-using-a-class-with-attributes) and [functions](custom-functions.md#functions-using-a-class-with-attributes).
+
+```php
+class MailTemplateParameters
+{
+	public function __construct(
+		public string $lang,
+		public Address $address,
+		public string $subject,
+		public array $items,
+		public ?float $price = null,
+	) {}
+}
+
+$latte->render('mail.latte', new MailTemplateParameters(
+	lang: $this->lang,
+	subject: $title,
+	price: $this->getPrice(),
+	items: [],
+	address: $userAddress,
+));
+```
+
+## Disabling Auto-Escaping of Variable
+
+If the variable contains an HTML string, you can mark it so that Latte does not automatically (and therefore double) escape it. This avoids the need to specify `|noescape` in the template.
+
+The easiest way is to wrap the string in a `Latte\Runtime\Html` object:
+
+```php
+$params = [
+	'articleBody' => new Latte\Runtime\Html($article->htmlBody),
+];
+```
+
+Latte also does not escape all objects that implement the `Latte\Runtime\HtmlStringable` interface. So you can create your own class whose `__toString()` method will return HTML code that will not be escaped automatically:
+
+```php
+class Emphasis implements Latte\Runtime\HtmlStringable
+{
+	public function __construct(
+		private string $str,
+	) {
+	}
+
+	public function __toString(): string
+	{
+		return '<em>' . htmlspecialchars($this->str) . '</em>';
+	}
+}
+
+$params = [
+	'foo' => new Emphasis('hello'),
+];
+```
+
+> [!WARNING]
+> The `__toString` method must return correct HTML and provide parameter escaping, otherwise an XSS vulnerability may occur!
+
+## How to Extend Latte with Filters, Tags, etc.
+
+How to add a custom filter, function, tag, etc. to Latte? Find out in the chapter [extending Latte](extending-latte.md). If you want to reuse your changes in different projects or if you want to share them with others, you should then [create an extension](extending-latte.md#the-robust-way-latte-extension).
+
+## Any Code in Template `{php ...}`
+
+Only PHP expressions can be written inside the [`{do}`](tags.md#do) tag, so you can't, for example, insert constructs like `if ... else` or semicolon-terminated statements.
+
+However, you can register the `RawPhpExtension` extension, which adds the `{php ...}` tag. You can use this to insert any PHP code. It is not subject to any sandbox mode rules, so its use is the responsibility of the template author.
+
+```php
+$latte->addExtension(new Latte\Essential\RawPhpExtension);
+```
+
+## Checking Generated Code (since 3.0.7)
+
+Latte compiles templates into PHP code. Of course, it ensures that the generated code is syntactically valid. However, when using third-party extensions or `RawPhpExtension`, Latte cannot guarantee the correctness of the generated file. Also, in PHP, you can write code that is syntactically correct but is forbidden (for example, assigning a value to the `$this` variable) and causes a PHP Compile Error. If you write such an operation in a template, it will also be included in the generated PHP code. Since there are over two hundred different forbidden operations in PHP, Latte does not aim to detect them. PHP itself will flag them upon rendering, which usually isn't a problem.
+
+However, there are situations where you want to know during the template compilation that it contains no PHP Compile Errors. Especially when templates can be edited by users, or you use [Sandbox](sandbox.md). In such a case, have the templates checked during compilation. You can activate this functionality using the `Engine::enablePhpLinter()` method. Since it needs to call the PHP binary for the check, pass its path as a parameter:
+
+```php
+$latte = new Latte\Engine;
+$latte->enablePhpLinter('/path/to/php');
+
+try {
+	$latte->compile('home.latte');
+} catch (Latte\CompileException $e) {
+	// catches Latte errors and also Compile Error in PHP
+	echo 'Error: ' . $e->getMessage();
+}
+```
+
+## Locale (since 3.0.18)
+
+Latte allows you to set the locale, which affects the formatting of numbers, dates, and sorting. It is set using the `setLocale()` method. The locale identifier follows the IETF language tag standard, which uses the PHP `intl` extension. It consists of a language code and possibly a country code, for example, `en_US` for English in the United States, `de_DE` for German in Germany, etc.
+
+```php
+$latte = new Latte\Engine;
+$latte->setLocale('en_US');
+```
+
+The locale setting affects the filters [localDate](filters.md#localdatestring-formatnull-string-datenull-string-timenull), [sort](filters.md#sortclosure-comparisonnull-stringintclosurenull-bynull-stringintclosurebool-bykeyfalse), [number](filters.md#numberint-decimals0-string-decpoint-string-thousandssep), and [bytes](filters.md#bytesint-precision2).
+
+Requires the PHP `intl` extension. The setting in Latte does not affect the global locale setting in PHP.
+
+## Strict Mode (since 3.0.8)
+
+In strict parsing mode, Latte checks for missing closing HTML tags and also disables the use of the `$this` variable. To turn it on:
+
+```php
+$latte = new Latte\Engine;
+$latte->setFeature(Latte\Feature::StrictParsing);
+```
+
+To generate templates with the `declare(strict_types=1)` header, do the following:
+
+```php
+$latte = new Latte\Engine;
+$latte->setFeature(Latte\Feature::StrictTypes);
+```
+
+Since Latte 3.1, strict types are enabled by default. You can disable them with `$latte->setFeature(Latte\Feature::StrictTypes, false)`.
+
+## Migration Warnings (since 3.1.0)
+
+Latte 3.1 changes the behavior of some [HTML attributes](html-attributes.md). For example, `null` values now drop the attribute instead of printing an empty string. To easily find places where this change affects your templates, you can enable migration warnings:
+
+```php
+$latte->setFeature(Latte\Feature::MigrationWarnings);
+```
+
+When enabled, Latte checks rendered attributes and triggers a user warning (`E_USER_WARNING`) if the output differs from what Latte 3.0 would have produced. When you encounter a warning, apply one of the solutions:
+
+1. If the new output is correct for your use case (e.g., you prefer the attribute to disappear when `null`), suppress the warning by adding the `|accept` filter
+2. If you want the attribute to be rendered as empty (e.g. `title=""`) instead of being dropped when the variable is `null`, provide an empty string as a fallback: `title={$val ?? ''}`
+3. If you strictly require the old behavior (e.g., printing `"1"` for `true` instead of `"true"`), explicitly cast the value to a string: `data-foo={(string) $val}`
+
+Once all warnings are resolved, disable migration warnings and **remove all** `|accept` filters from your templates, as they are no longer needed.
+
+## Scoped Loop Variables (since 3.1.3)
+
+By default, variables defined in a `{foreach}` loop (like `$key` and `$value`) remain accessible after the loop ends – just like in PHP itself. This can lead to unintended variable overwrites when a loop variable has the same name as an existing template variable.
+
+The `ScopedLoopVariables` feature limits the scope of loop variables to the loop body. After the loop ends, the original variable value is restored (if it existed before), or the variable is unset:
+
+```php
+$latte = new Latte\Engine;
+$latte->setFeature(Latte\Feature::ScopedLoopVariables);
+```
+
+Example of the difference:
+
+```latte
+{var $item = 'original'}
+{foreach [1, 2] as $item}{$item}, {/foreach}
+{$item}
+```
+
+Without `ScopedLoopVariables`: outputs `1, 2, 2` (variable is overwritten) With `ScopedLoopVariables`: outputs `1, 2, original` (variable is restored)
+
+This also works with destructuring syntax, e.g. `{foreach $array as [$a, $b]}`.
+
+Loop variables using references (`{foreach $array as &$value}`) or property assignments (`{foreach $array as $obj->prop}`) are not scoped, as this would break their intended purpose.
+
+## Automatic Dedentation (since 3.1.3)
+
+When using paired tags like `{if}`, `{foreach}`, or `{block}`, you often indent the nested content for readability. However, this indentation is included in the generated output by default. The `Dedent` feature automatically removes it, so the output stays clean regardless of how deeply you nest your Latte tags:
+
+```php
+$latte = new Latte\Engine;
+$latte->setFeature(Latte\Feature::Dedent);
+```
+
+Example:
+
+```latte
+{if true}
+	Hello
+	World
+{/if}
+```
+
+Without `Dedent`, the output would include the indentation (`\tHello\n\tWorld\n`). With `Dedent`, the indentation is stripped and the output is `Hello\nWorld\n`.
+
+Deeper indentation within a block is preserved relative to the base indentation:
+
+```latte
+{if true}
+	Hello
+		Indented
+{/if}
+```
+
+Output: `Hello\n\tIndented\n`.
+
+Indentation within a block must be consistent (either tabs or spaces). If they are mixed, Latte throws an `Inconsistent indentation` exception.
+
+## Translation in Templates
+
+Use the `TranslatorExtension` extension to add [`{_...}`](tags.md), [`{translate}`](tags.md#translate) and filter [`translate`](filters.md#translateargs) to the template. They are used to translate values or parts of the template into other languages. The parameter is the callable that performs the translation, or an object of type `Nette\Localization\Translator` (pass `null` to disable translations):
+
+```php
+class MyTranslator
+{
+	public function __construct(private string $lang)
+	{}
+
+	public function translate(string $original): string
+	{
+		// create $translated from $original according to $this->lang
+		return $translated;
+	}
+}
+
+$translator = new MyTranslator($lang);
+$extension = new Latte\Essential\TranslatorExtension(
+	$translator->translate(...), // [$translator, 'translate'] in PHP 8.0
+);
+$latte->addExtension($extension);
+```
+
+The translator is called at runtime when the template is rendered. However, Latte can translate all static texts during template compilation. This saves performance because each string is translated only once and the resulting translation is written to the compiled file. This creates multiple compiled versions of the template in the cache directory, one for each language. To do this, you only need to specify the language as the second parameter:
+
+```php
+$extension = new Latte\Essential\TranslatorExtension(
+	$translator->translate(...),
+	$lang,
+);
+```
+
+By static text we mean, for example, `{_'hello'}` or `{translate}hello{/translate}`. Non-static text, such as `{_$foo}`, will continue to be translated at runtime.
+
+The template can also pass additional parameters to the translator via `{_$original, foo: bar}` or `{translate foo: bar}`, which it receives as the `$params` array:
+
+```php
+public function translate(string $original, ...$params): string
+{
+	// $params['foo'] === 'bar'
+}
+```
+
+## Debugging and Tracy
+
+Latte tries to make the development as pleasant as possible. For debugging purposes, there are three tags [`{dump}`](tags.md#dump), [`{debugbreak}`](tags.md#debugbreak) and [`{trace}`](tags.md#trace).
+
+You'll get the most comfort if you install the great [debugging tool Tracy](https://tracy.nette.org/en) and activate the Latte plugin:
+
+```php
+// enables Tracy
+Tracy\Debugger::enable();
+
+$latte = new Latte\Engine;
+// activates Tracy's extension
+$latte->addExtension(new Latte\Bridges\Tracy\TracyExtension);
+```
+
+You will now see all errors in a neat red screen, including errors in templates with row and column highlighting ([video](https://github.com/nette/tracy/releases/tag/v2.9.0)). At the same time, in the bottom right corner in the so-called Tracy Bar, a tab for Latte appears, where you can clearly see all rendered templates and their relationships (including the possibility to click into the template or compiled code), as well as variables:
+
+![](https://files.nette.org/git/latte/3.x/latte-debugging.webp)
+
+Since Latte compiles templates into readable PHP code, you can conveniently step through them in your IDE.
+
+## Linter: Validating the Template Syntax
+
+The **Linter** tool is used to validate all templates. Its purpose is to scan the specified files and ensure that they contain no syntax errors and no references to non-existent tags, filters, functions, classes, or similar constructs.
+
+The Linter is executed from the command line:
+
+```shell
+vendor/bin/latte-lint <path>
+```
+
+Use the `--strict` parameter to activate [strict mode](#strict-mode-since-308). The `--debug` parameter prints the name of each processed file and full exception details, which helps when troubleshooting.
+
+If you use custom tags, filters, or other Latte extensions, you need to create your own variant of the Linter, for example `custom-latte-lint`. In this script, you register all required extensions before the actual template validation takes place:
+
+```php
+#!/usr/bin/env php
+<?php
+
+// enter the actual path to the autoload.php file
+require __DIR__ . '/vendor/autoload.php';
+
+$path = $argv[1] ?? '.';
+
+$linter = new Latte\Tools\Linter;
+$latte = $linter->getEngine();
+// add your individual extensions here
+$latte->addExtension(/* ... */);
+
+$ok = $linter->scanDirectory($path);
+exit($ok ? 0 : 1);
+```
+
+Alternatively, you can pass your own `Latte\Engine` object to the Linter:
+
+```php
+$latte = new Latte\Engine;
+// here we configure the $latte object
+$linter = new Latte\Tools\Linter(engine: $latte);
+```
+
+The resulting customized linter can then be used in the same way as the standard tool, but with full knowledge of all your custom extensions.
+
+## Loading Templates from a String
+
+Need to load templates from strings instead of files, perhaps for testing purposes? [StringLoader](loaders.md#stringloader) will help you:
+
+```php
+$latte->setLoader(new Latte\Loaders\StringLoader([
+	'main.file' => '{include other.file}',
+	'other.file' => '{if true} {$var} {/if}',
+]));
+
+$latte->render('main.file', $params);
+```
+
+## Exception Handler
+
+You can define your own handler for expected exceptions. Exceptions raised inside [`{try}`](tags.md#try) and in the [sandbox](sandbox.md) are passed to it.
+
+```php
+$loggingHandler = function (Throwable $e, Latte\Runtime\Template $template) use ($logger) {
+	$logger->log($e);
+};
+
+$latte = new Latte\Engine;
+$latte->setExceptionHandler($loggingHandler);
+```
+
+## Automatic Layout Lookup
+
+Using the tag [`{layout}`](template-inheritance.md#layout-inheritance-layout), the template determines its parent template. It's also possible to have the layout searched automatically, which will simplify writing templates since they won't need to include the `{layout}` tag.
+
+This is achieved as follows:
+
+```php
+// it returns the path to the parent template file
+$finder = fn(Latte\Runtime\Template $template) => 'automatic.layout.latte';
+$latte = new Latte\Engine;
+$latte->addProvider('coreParentFinder', $finder);
+```
+
+If the template should not have a layout, it will indicate this with the `{layout none}` tag.

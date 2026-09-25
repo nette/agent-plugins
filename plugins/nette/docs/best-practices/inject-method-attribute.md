@@ -1,0 +1,55 @@
+# Inject Methods and Attributes
+
+This article focuses on various ways to pass dependencies into presenters within the Nette framework. We'll compare the preferred method, constructor injection, with alternatives like `inject` methods and attributes.
+
+For presenters, as with other classes, passing dependencies via the [constructor](../dependency-injection/passing-dependencies.md#constructor-injection) is the preferred approach. However, if you create a common ancestor from which other presenters inherit (e.g., `BasePresenter`), and this ancestor also requires dependencies, a problem known as [constructor hell](../dependency-injection/passing-dependencies.md#constructor-hell) can arise. This can be circumvented using alternative methods, namely inject methods and attributes (formerly annotations).
+
+## `inject*()` Methods
+
+This is a form of dependency passing via [setters](../dependency-injection/passing-dependencies.md#setter-injection). The names of these setters must start with the prefix `inject`. Nette DI automatically calls methods named this way immediately after creating the presenter instance, passing all required dependencies. Therefore, they must be declared as public.
+
+`inject*()` methods can be seen as extensions of the constructor, split into multiple methods. This allows `BasePresenter` to receive its dependencies via a separate method, leaving the constructor free for its descendants:
+
+```php
+abstract class BasePresenter extends Nette\Application\UI\Presenter
+{
+	private Foo $foo;
+
+	public function injectBase(Foo $foo): void
+	{
+		$this->foo = $foo;
+	}
+}
+
+class MyPresenter extends BasePresenter
+{
+	private Bar $bar;
+
+	public function __construct(Bar $bar)
+	{
+		$this->bar = $bar;
+	}
+}
+```
+
+A presenter can have any number of `inject*()` methods, and each can accept any number of parameters. This approach is also well-suited for cases where a presenter is [composed of traits](presenter-traits.md), and each trait requires its own dependencies.
+
+## `Inject` Attributes
+
+This is a form of [injecting into properties](../dependency-injection/passing-dependencies.md#property-injection). Simply mark the properties that should be injected, and Nette DI will automatically pass the dependencies immediately after creating the presenter instance. To allow injection, these properties must be declared as public.
+
+Properties are marked with an attribute (previously, the `/** @inject */` annotation was used):
+
+```php
+use Nette\DI\Attributes\Inject;  // this line is important
+
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+	#[Inject]
+	public Cache $cache;
+}
+```
+
+The advantage of this dependency passing method was its very concise syntax. However, with the introduction of [constructor property promotion](https://blog.nette.org/en/php-8-0-complete-overview-of-news#toc-constructor-property-promotion), using the constructor often appears simpler.
+
+Conversely, this method suffers from the same drawbacks as property injection in general: we lack control over changes to the variable, and the variable becomes part of the class's public interface, which is generally undesirable.

@@ -1,0 +1,214 @@
+# Extending Latte
+
+Contents:
+
+- [Ways to Extend Latte](#ways-to-extend-latte)
+- [Direct Registration](#direct-registration)
+- [The Robust Way: Latte Extension](#the-robust-way-latte-extension)
+  - [Registering an Extension](#registering-an-extension)
+  - [Creating an Extension](#creating-an-extension)
+  - [`beforeCompile(Latte\Engine $engine): void`](#beforecompilelatteengine-engine-void)
+  - [`getTags(): array`](#gettags-array)
+  - [`getPasses(): array`](#getpasses-array)
+  - [`beforeRender(Latte\Runtime\Template $template): void`](#beforerenderlatteruntimetemplate-template-void)
+  - [`afterRender(Latte\Runtime\Template $template): void` (since 3.1.6)](#afterrenderlatteruntimetemplate-template-void-since-316)
+  - [`getFilters(): array`](#getfilters-array)
+  - [`getFunctions(): array`](#getfunctions-array)
+  - [`getProviders(): array`](#getproviders-array)
+  - [`getCacheKey(Latte\Engine $engine): mixed`](#getcachekeylatteengine-engine-mixed)
+
+
+Latte is designed with extensibility in mind. While its standard set of tags, filters, and functions covers many use cases, you often need to add your own specific logic or helpers. This page provides an overview of how you can extend Latte to perfectly fit your project's requirements, from simple helpers to complex new syntax.
+
+## Ways to Extend Latte
+
+Here's a quick overview of the main ways you can customize and extend Latte:
+
+- **[Custom Filters](custom-filters.md):** For formatting or transforming data directly in the template output (e.g., `{$var|myFilter}`). Ideal for tasks like date formatting, text manipulation, or applying specific escaping. You can also use them to modify larger blocks of HTML content by wrapping the content in an anonymous [`{block}`](tags.md#block) and applying a custom filter.
+- **[Custom Functions](custom-functions.md):** For adding reusable logic that can be called within template expressions (e.g., `{myFunction($arg1, $arg2)}`). Useful for calculations, accessing application helpers, or generating small pieces of content.
+- **[Custom Tags](custom-tags.md):** For creating entirely new language constructs (`{mytag}...{/mytag}` or `n:mytag`). Tags offer the most power, allowing you to define custom structures, control template parsing, and implement complex rendering logic.
+- **[Compiler Passes](compiler-passes.md):** Functions that modify the template's Abstract Syntax Tree (AST) after parsing but before PHP code generation. Used for advanced optimizations, security checks (like the Sandbox), or automatic code modifications.
+- **[Custom Loaders](loaders.md):** For changing how Latte finds and loads template files (e.g., loading from a database, encrypted storage, etc.).
+
+Choosing the right extension method is key. Before creating a complex tag, consider if a simpler filter or function would suffice. Let's illustrate with an example: implementing a *Lorem ipsum* generator that takes the number of words to generate as an argument.
+
+- **As a tag?** `{lipsum 40}` – Possible, but tags are better suited for control structures or complex markup generation. Tags cannot be used directly within expressions.
+- **As a filter?** `{=40|lipsum}` – Technically works, but filters are meant to *transform* input. Here, `40` is an *argument*, not the value being transformed. It feels semantically incorrect.
+- **As a function?** `{lipsum(40)}` – This is the most natural fit! Functions accept arguments and return values, making them perfect for use within any expression: `{var $text = lipsum(40)}`.
+
+**General Guidance:** Use functions for calculations/generation, filters for transformation, and tags for new language structures or complex markup. Use passes for AST manipulation and loaders for template retrieval.
+
+## Direct Registration
+
+For project-specific helpers or quick additions, Latte allows direct registration of filters and functions onto the `Latte\Engine` object.
+
+Use `addFilter()` to register a filter. The first argument to your filter function will be the value before the `|` pipe, and subsequent arguments are those passed after the `:` colon.
+
+```php
+$latte = new Latte\Engine;
+
+// Filter definition (callable: function, static method, etc.)
+$myTruncate = fn(string $s, int $length = 50) => mb_substr($s, 0, $length);
+
+// Register it
+$latte->addFilter('truncate', $myTruncate);
+
+// Template usage: {$text|truncate} or {$text|truncate:100}
+```
+
+Use `addFunction()` to register a function usable within template expressions.
+
+```php
+$latte = new Latte\Engine;
+
+// Function definition
+$isWeekend = fn(DateTimeInterface $date) => $date->format('N') >= 6;
+
+// Register it
+$latte->addFunction('isWeekend', $isWeekend);
+
+// Template usage: {if isWeekend($myDate)}Weekend!{/if}
+```
+
+For more details, see [Creating Custom Filters](custom-filters.md) and [Functions](custom-functions.md).
+
+## The Robust Way: Latte Extension
+
+While direct registration is simple, the standard and recommended way to bundle and distribute Latte customizations is through **Extension classes**. An Extension acts as a central configuration point for registering multiple tags, filters, functions, compiler passes, and more.
+
+Why use Extensions?
+
+- **Organization:** Keeps related customizations (tags, filters, etc. for a specific feature) together in one class.
+- **Reusability & Sharing:** Easily package your extensions for use in other projects or for sharing with the community (e.g., via Composer).
+- **Full Power:** Custom tags and compiler passes *can only* be registered via Extensions.
+
+### Registering an Extension
+
+An extension is registered with Latte using `addExtension()` (or via the [configuration file](../application/configuration.md#latte-templates)):
+
+```php
+$latte = new Latte\Engine;
+$latte->addExtension(new MyProjectExtension);
+```
+
+If you register multiple extensions and they define identically named tags, filters, or functions, the last added extension wins. This also implies that your extensions can override native tags/filters/functions.
+
+Whenever you make a change to a class and auto-refresh is not turned off, Latte will automatically recompile your templates.
+
+### Creating an Extension
+
+To create your own extension, you need to create a class that inherits from [Latte\Extension](https://api.nette.org/latte/master/Latte/Extension.html). For an idea of what the extension looks like, take a look at the built-in [CoreExtension](https://github.com/nette/latte/blob/master/src/Latte/Essential/CoreExtension.php).
+
+Let's look at what methods you can implement:
+
+### `beforeCompile(Latte\Engine $engine): void`
+
+Called before the template is compiled. The method can be used for compilation-related initializations, for example.
+
+### `getTags(): array`
+
+Called when the template is compiled. Returns an associative array *tag name ⇒ callable*, which are tag parsing functions. [Learn more](custom-tags.md).
+
+```php
+public function getTags(): array
+{
+	return [
+		'foo' => FooNode::create(...),
+		'bar' => BarNode::create(...),
+		'n:baz' => NBazNode::create(...),
+		// ...
+	];
+}
+```
+
+The `n:baz` tag represents a pure [n:attribute](syntax.md#nattributes), i.e. it is a tag that can only be written as an attribute.
+
+In the case of the `foo` and `bar` tags, Latte will automatically recognize whether they are pairs, and if so, they can be written automatically using n:attributes, including variants with the `n:inner-foo` and `n:tag-foo` prefixes.
+
+The order of execution of such n:attributes is determined by their order in the array returned by `getTags()`. Thus, `n:foo` is always executed before `n:bar`, even if the attributes are listed in reverse order in the HTML tag as `<div n:bar="..." n:foo="...">`.
+
+If you need to determine the order of n:attributes across multiple extensions, use the `order()` helper method, where the `before` and/or `after` parameter determines which tags are ordered before or after the tag.
+
+```php
+public function getTags(): array
+{
+	return [
+		'foo' => self::order(FooNode::create(...), before: 'bar'),
+		'bar' => self::order(BarNode::create(...), after: ['block', 'snippet']),
+	];
+}
+```
+
+### `getPasses(): array`
+
+It is called when the template is compiled. Returns an associative array *pass name ⇒ callable*, which are functions representing so-called [compiler passes](compiler-passes.md) that traverse and modify the AST.
+
+Again, the `order()` helper method can be used. The value of the `before` or `after` parameters can be `*` with the meaning before/after all.
+
+```php
+public function getPasses(): array
+{
+	return [
+		'optimize' => Passes::optimizePass(...),
+		'sandbox' => self::order($this->sandboxPass(...), before: '*'),
+		// ...
+	];
+}
+```
+
+### `beforeRender(Latte\Runtime\Template $template): void`
+
+It is called before each template rendering. The method can be used, for example, to initialize variables used during rendering.
+
+### `afterRender(Latte\Runtime\Template $template): void` (since 3.1.6)
+
+It is called after each template rendering. It runs even when rendering ends early via `{exitIf}` or is interrupted by an exception, making it the right place for cleanup or measurement.
+
+### `getFilters(): array`
+
+It is called when the extension is registered using the `addExtension()` method. Returns filters as an associative array *filter name ⇒ callable*. [Learn more](custom-filters.md).
+
+```php
+public function getFilters(): array
+{
+	return [
+		'batch' => $this->batchFilter(...),
+		'trim' => $this->trimFilter(...),
+		// ...
+	];
+}
+```
+
+### `getFunctions(): array`
+
+It is called when the extension is registered using the `addExtension()` method. Returns functions as an associative array *function name ⇒ callable*. [Learn more](custom-functions.md).
+
+```php
+public function getFunctions(): array
+{
+	return [
+		'clamp' => $this->clampFunction(...),
+		'divisibleBy' => $this->divisibleByFunction(...),
+		// ...
+	];
+}
+```
+
+### `getProviders(): array`
+
+It is called when the extension is registered using the `addExtension()` method. Returns an array of providers, which are usually objects that use tags at runtime. They are accessed via `$this->global->...`. [Learn more](custom-tags.md#introducing-providers).
+
+```php
+public function getProviders(): array
+{
+	return [
+		'myFoo' => $this->foo,
+		'myBar' => $this->bar,
+		// ...
+	];
+}
+```
+
+### `getCacheKey(Latte\Engine $engine): mixed`
+
+It is called before the template is rendered. The return value becomes part of the key whose hash is contained in the name of the compiled template file. Thus, for different return values, Latte will generate different cache files.

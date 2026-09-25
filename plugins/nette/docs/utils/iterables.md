@@ -1,0 +1,180 @@
+# Working with Iterators
+
+Contents:
+
+- [`contains(iterable $iterable, $value): bool`](#containsiterable-iterable-value-bool)
+- [`containsKey(iterable $iterable, $key): bool`](#containskeyiterable-iterable-key-bool)
+- [`every(iterable $iterable, callable $predicate): bool`](#everyiterable-iterable-callable-predicate-bool)
+- [`filter(iterable $iterable, callable $predicate): Generator`](#filteriterable-iterable-callable-predicate-generator)
+- [`first(iterable $iterable, ?callable $predicate=null, ?callable $else=null): mixed`](#firstiterable-iterable-callable-predicatenull-callable-elsenull-mixed)
+- [`firstKey(iterable $iterable, ?callable $predicate=null, ?callable $else=null): mixed`](#firstkeyiterable-iterable-callable-predicatenull-callable-elsenull-mixed)
+- [`map(iterable $iterable, callable $transformer): Generator`](#mapiterable-iterable-callable-transformer-generator)
+- [`mapWithKeys(iterable $iterable, callable $transformer): Generator`](#mapwithkeysiterable-iterable-callable-transformer-generator)
+- [`memoize(iterable $iterable): IteratorAggregate`](#memoizeiterable-iterable-iteratoraggregate)
+- [`repeatable(callable $factory): IteratorAggregate` (since 4.0.10)](#repeatablecallable-factory-iteratoraggregate-since-4010)
+- [`some(iterable $iterable, callable $predicate): bool`](#someiterable-iterable-callable-predicate-bool)
+- [`toIterator(iterable $iterable): Iterator`](#toiteratoriterable-iterable-iterator)
+
+
+(since 4.0.4) [Nette\Utils\Iterables](https://api.nette.org/utils/master/Nette/Utils/Iterables.html) is a static class with functions for working with iterators. Its counterpart for arrays is [Nette\Utils\Arrays](arrays.md).
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following alias is created:
+
+```php
+use Nette\Utils\Iterables;
+```
+
+## `contains(iterable $iterable, $value): bool`
+
+Searches for a given value within an iterator. Uses strict comparison (`===`) to check for a match. Returns `true` if the value is found, otherwise `false`.
+
+```php
+Iterables::contains(new ArrayIterator([1, 2, 3]), 1);    // true
+Iterables::contains(new ArrayIterator([1, 2, 3]), '1');  // false
+```
+
+This method is useful when you need to quickly determine if a specific value exists in an iterator without manually iterating through all elements.
+
+## `containsKey(iterable $iterable, $key): bool`
+
+Searches for a given key within an iterator. Uses strict comparison (`===`) to check for a match. Returns `true` if the key is found, otherwise `false`.
+
+```php
+Iterables::containsKey(new ArrayIterator([1, 2, 3]), 0);  // true
+Iterables::containsKey(new ArrayIterator([1, 2, 3]), 4);  // false
+```
+
+## `every(iterable $iterable, callable $predicate): bool`
+
+Checks if all elements of the iterator satisfy the condition defined in `$predicate`. The callback `$predicate` has the signature `function ($value, $key, iterable $iterable): bool` and must return `true` for every element for the `every()` method to return `true`.
+
+```php
+$iterator = new ArrayIterator([1, 30, 39, 29, 10, 13]);
+$isBelowThreshold = fn($value) => $value < 40;
+$res = Iterables::every($iterator, $isBelowThreshold); // true
+```
+
+This method is useful for verifying that all elements in a collection meet a certain condition, for example, whether all numbers are less than a specific value.
+
+## `filter(iterable $iterable, callable $predicate): Generator`
+
+Creates a new iterator containing only those elements from the original iterator that satisfy the condition defined in `$predicate`. The callback `$predicate` has the signature `function ($value, $key, iterable $iterable): bool` and must return `true` for elements that should be retained.
+
+```php
+$iterator = new ArrayIterator([1, 2, 3]);
+$iterator = Iterables::filter($iterator, fn($v) => $v < 3);
+// 1, 2
+```
+
+The method uses a generator, meaning filtering occurs incrementally as you iterate through the result. This is memory-efficient and allows processing very large collections. If you don't iterate through all elements of the resulting iterator, you save computational power because not all elements of the original iterator are processed.
+
+## `first(iterable $iterable, ?callable $predicate=null, ?callable $else=null): mixed`
+
+Returns the first element of the iterator. If `$predicate` is provided, it returns the first element that satisfies the condition. The callback `$predicate` has the signature `function ($value, $key, iterable $iterable): bool`. If no matching element is found, the `$else` callback (if provided) is called, and its result is returned. If `$else` is not provided, `null` is returned.
+
+```php
+Iterables::first(new ArrayIterator([1, 2, 3]));                   // 1
+Iterables::first(new ArrayIterator([1, 2, 3]), fn($v) => $v > 2); // 3
+Iterables::first(new ArrayIterator([]));                          // null
+Iterables::first(new ArrayIterator([]), else: fn() => false);     // false
+```
+
+This method is useful when you need to quickly get the first element of a collection, or the first element satisfying a specific condition, without manually iterating through the entire collection.
+
+## `firstKey(iterable $iterable, ?callable $predicate=null, ?callable $else=null): mixed`
+
+Returns the key of the first element of the iterator. If `$predicate` is provided, it returns the key of the first element that satisfies the condition. The callback `$predicate` has the signature `function ($value, $key, iterable $iterable): bool`. If no matching element is found, the `$else` callback (if provided) is called, and its result is returned. If `$else` is not provided, `null` is returned.
+
+```php
+Iterables::firstKey(new ArrayIterator([1, 2, 3]));                   // 0
+Iterables::firstKey(new ArrayIterator([1, 2, 3]), fn($v) => $v > 2); // 2
+Iterables::firstKey(new ArrayIterator(['a' => 1, 'b' => 2]));        // 'a'
+Iterables::firstKey(new ArrayIterator([]));                          // null
+```
+
+## `map(iterable $iterable, callable $transformer): Generator`
+
+Creates a new iterator by applying the `$transformer` callback to each element of the original iterator. The callback `$transformer` has the signature `function ($value, $key, iterable $iterable): mixed`, and its return value is used as the new value of the element.
+
+```php
+$iterator = new ArrayIterator([1, 2, 3]);
+$iterator = Iterables::map($iterator, fn($v) => $v * 2);
+// 2, 4, 6
+```
+
+The method uses a generator, meaning the transformation occurs incrementally as you iterate through the result. This is memory-efficient and allows processing very large collections. If you don't iterate through all elements of the resulting iterator, you save computational power because not all elements of the original iterator are processed.
+
+## `mapWithKeys(iterable $iterable, callable $transformer): Generator`
+
+Creates a new iterator by transforming the values and keys of the original iterator. The callback `$transformer` has the signature `function ($value, $key, iterable $iterable): ?array{$newKey, $newValue}`. If `$transformer` returns `null`, the element is skipped. For retained elements, the first element of the returned array is used as the new key, and the second element as the new value.
+
+```php
+$iterator = new ArrayIterator(['a' => 1, 'b' => 2]);
+$iterator = Iterables::mapWithKeys($iterator, fn($v, $k) => $v > 1 ? [$v * 2, strtoupper($k)] : null);
+// [4 => 'B']
+```
+
+Like `map()`, this method uses a generator for incremental processing and memory efficiency. This allows working with large collections and saving computational power when only partially iterating through the result.
+
+## `memoize(iterable $iterable): IteratorAggregate`
+
+Creates a wrapper around an iterator that caches its keys and values during iteration. This allows repeated iteration over the data without needing to traverse the original data source again.
+
+```php
+$iterator = /* ... */; // data that cannot be iterated multiple times
+$memoized = Iterables::memoize($iterator);
+// Now you can iterate $memoized multiple times without data loss
+```
+
+This method is useful in situations where you need to iterate over the same dataset multiple times, but the original iterator doesn't allow repeated iteration, or re-traversing would be costly (e.g., reading data from a database or file).
+
+## `repeatable(callable $factory): IteratorAggregate` (since 4.0.10)
+
+Allows repeated iteration of objects that otherwise do not support it, typically [PHP generators](https://www.php.net/manual/en/language.generators.overview.php). The `repeatable()` method solves this problem elegantly: instead of passing the iterator itself, you pass a function that creates it. This factory is then called automatically during each iteration loop.
+
+```php
+// A standard generator that cannot be iterated twice
+$generator = function () {
+	yield 'A';
+	yield 'B';
+};
+
+$iterator = Iterables::repeatable($generator);
+
+foreach ($iterator as $v) echo $v; // Prints: AB
+foreach ($iterator as $v) echo $v; // Prints: AB (generator ran again)
+```
+
+This method is an alternative to [memoize()](#memoizeiterable-iterable-iteratoraggregate) in situations where you are working with **large amounts of data**, since `repeatable()` does not cache data, but generates it again during each iteration.
+
+## `some(iterable $iterable, callable $predicate): bool`
+
+Checks if at least one element of the iterator satisfies the condition defined in `$predicate`. The callback `$predicate` has the signature `function ($value, $key, iterable $iterable): bool` and must return `true` for at least one element for the `some()` method to return `true`.
+
+```php
+$iterator = new ArrayIterator([1, 30, 39, 29, 10, 13]);
+$isEven = fn($value) => $value % 2 === 0;
+$res = Iterables::some($iterator, $isEven); // true
+```
+
+This method is useful for quickly verifying if at least one element in a collection meets a certain condition, for example, whether the collection contains at least one even number.
+
+See [every()](#everyiterable-iterable-callable-predicate-bool).
+
+## `toIterator(iterable $iterable): Iterator`
+
+Converts any iterable object (array, Traversable) into an Iterator. If the input is already an Iterator, it is returned unchanged.
+
+```php
+$array = [1, 2, 3];
+$iterator = Iterables::toIterator($array);
+// Now you have an Iterator instead of an array
+```
+
+This method is useful when you need to ensure you have an Iterator available, regardless of the input data type. This can be helpful when creating functions that work with various types of iterable data.

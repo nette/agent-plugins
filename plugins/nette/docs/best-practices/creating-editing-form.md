@@ -1,0 +1,197 @@
+# Form for Creating and Editing a Record
+
+Contents:
+
+- [Adding a Record](#adding-a-record)
+- [Editing a Record](#editing-a-record)
+- [Same Form for Adding and Editing](#same-form-for-adding-and-editing)
+
+
+How to properly implement adding and editing a record in Nette, using the same form for both?
+
+In many cases, the forms for adding and editing records are identical, perhaps differing only in the button label. We will show examples of simple presenters where we use the form first to add a record, then to edit it, and finally combine the two solutions.
+
+## Adding a Record
+
+Example of a presenter for adding a record. We'll leave the actual database interaction to a `Facade` class, whose code isn't essential for this example.
+
+```php
+use Nette\Application\UI\Form;
+
+class RecordPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private Facade $facade,
+	) {
+	}
+
+	protected function createComponentRecordForm(): Form
+	{
+		$form = new Form;
+
+		// ... add form fields ...
+
+		$form->onSuccess[] = $this->recordFormSucceeded(...);
+		return $form;
+	}
+
+	private function recordFormSucceeded(Form $form, array $data): void
+	{
+		$this->facade->add($data); // add record to the database
+		$this->flashMessage('Successfully added');
+		$this->redirect('...');
+	}
+
+	public function renderAdd(): void
+	{
+		// ...
+	}
+}
+```
+
+## Editing a Record
+
+Now let's look at what a presenter for editing a record would look like:
+
+```php
+use Nette\Application\UI\Form;
+
+class RecordPresenter extends Nette\Application\UI\Presenter
+{
+	private $record;
+
+	public function __construct(
+		private Facade $facade,
+	) {
+	}
+
+	public function actionEdit(int $id): void
+	{
+		$record = $this->facade->get($id);
+		if (
+			!$record // verify the existence of the record
+			|| !$this->facade->isEditAllowed(/*...*/) // check permissions
+		) {
+			$this->error(); // 404 error
+		}
+
+		$this->record = $record;
+	}
+
+	protected function createComponentRecordForm(): Form
+	{
+		// verify that the action is 'edit'
+		if ($this->getAction() !== 'edit') {
+			$this->error();
+		}
+
+		$form = new Form;
+
+		// ... add form fields ...
+
+		$form->setDefaults($this->record); // set default values
+		$form->onSuccess[] = $this->recordFormSucceeded(...);
+		return $form;
+	}
+
+	private function recordFormSucceeded(Form $form, array $data): void
+	{
+		$this->facade->update($this->record->id, $data); // update record
+		$this->flashMessage('Successfully updated');
+		$this->redirect('...');
+	}
+}
+```
+
+In the *action* method, invoked at the beginning of the [presenter lifecycle](../application/presenters.md#presenter-life-cycle), we verify the record's existence and the user's permission to edit it.
+
+We store the record in the `$record` property, making it available in the `createComponentRecordForm()` method for setting default values and in `recordFormSucceeded()` for accessing the ID. An alternative solution is to set the default values directly in `actionEdit()` and retrieve the ID value (part of the URL) using `getParameter('id')`:
+
+```php
+	public function actionEdit(int $id): void
+	{
+		$record = $this->facade->get($id);
+		if (
+			// verify existence and check permissions
+		) {
+			$this->error();
+		}
+
+		// set default form values
+		$this->getComponent('recordForm')
+			->setDefaults($record);
+	}
+
+	public function recordFormSucceeded(Form $form, array $data): void
+	{
+		$id = (int) $this->getParameter('id');
+		$this->facade->update($id, $data);
+		// ...
+	}
+```
+
+However, and this should be **the most important takeaway from the entire code**, we must ensure the action is indeed `edit` when creating the form. Otherwise, the verification in the `actionEdit()` method would not occur at all!
+
+## Same Form for Adding and Editing
+
+Now, let's combine both presenters into one. We could either differentiate the action within the `createComponentRecordForm()` method and configure the form accordingly, or we can delegate this to the action methods directly and eliminate the conditional check:
+
+```php
+class RecordPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private Facade $facade,
+	) {
+	}
+
+	public function actionAdd(): void
+	{
+		$form = $this->getComponent('recordForm');
+		$form->onSuccess[] = $this->addingFormSucceeded(...);
+	}
+
+	public function actionEdit(int $id): void
+	{
+		$record = $this->facade->get($id);
+		if (
+			!$record // verify the existence of the record
+			|| !$this->facade->isEditAllowed(/*...*/) // check permissions
+		) {
+			$this->error(); // 404 error
+		}
+
+		$form = $this->getComponent('recordForm');
+		$form->setDefaults($record); // set default values
+		$form->onSuccess[] = $this->editingFormSucceeded(...);
+	}
+
+	protected function createComponentRecordForm(): Form
+	{
+		// verify that the action is 'add' or 'edit'
+		if (!in_array($this->getAction(), ['add', 'edit'])) {
+			$this->error();
+		}
+
+		$form = new Form;
+
+		// ... add form fields ...
+
+		return $form;
+	}
+
+	private function addingFormSucceeded(Form $form, array $data): void
+	{
+		$this->facade->add($data); // add record to the database
+		$this->flashMessage('Successfully added');
+		$this->redirect('...');
+	}
+
+	private function editingFormSucceeded(Form $form, array $data): void
+	{
+		$id = (int) $this->getParameter('id');
+		$this->facade->update($id, $data); // update record
+		$this->flashMessage('Successfully updated');
+		$this->redirect('...');
+	}
+}
+```

@@ -1,0 +1,488 @@
+# Interactive Components
+
+Contents:
+
+- [Factory Methods](#factory-methods)
+- [Hollywood Style](#hollywood-style)
+- [Writing a Component](#writing-a-component)
+- [Rendering](#rendering)
+- [Signal](#signal)
+- [Snippets and AJAX](#snippets-and-ajax)
+- [Flash Messages](#flash-messages)
+- [Redirection After Processing a Signal](#redirection-after-processing-a-signal)
+- [Persistent Parameters](#persistent-parameters)
+- [Persistent Components](#persistent-components)
+- [Components with Dependencies](#components-with-dependencies)
+- [Components in Depth](#components-in-depth)
+  - [Component Lifecycle](#component-lifecycle)
+  - [Validation of Persistent Parameters](#validation-of-persistent-parameters)
+  - [Connecting to the Presenter](#connecting-to-the-presenter)
+  - [Signals in Depth](#signals-in-depth)
+
+
+Components are separate reusable objects that we embed into pages. They can be forms, datagrids, polls, essentially anything that makes sense to use repeatedly. We will show:
+
+- how to use components?
+- how to write them?
+- what are signals?
+
+Nette has a built-in component system. Something similar might be familiar to veterans from Delphi or ASP.NET Web Forms; React or Vue.js is built on something remotely similar. However, in the world of PHP frameworks, this is a unique feature.
+
+At the same time, components fundamentally influence the approach to application development. You can compose pages from pre-prepared units. Need a datagrid in your administration? Find it on [Componette](https://componette.org/search/component), a repository of open-source add-ons (not just components) for Nette, and simply insert it into the presenter.
+
+You can incorporate any number of components into the presenter. And you can embed other components within some components. This creates a component tree, with the presenter as its root.
+
+## Factory Methods
+
+How are components inserted into the presenter and subsequently used? Usually via factory methods.
+
+A component factory is an elegant way to create components only when they are actually needed (lazy / on demand). The whole magic lies in implementing a method named `createComponent<Name>()`, where `<Name>` is the name of the component being created, which creates and returns the component.
+
+```php
+class DefaultPresenter extends Nette\Application\UI\Presenter
+{
+	protected function createComponentPoll(): PollControl
+	{
+		$poll = new PollControl;
+		$poll->items = $this->items;
+		return $poll;
+	}
+}
+```
+
+Because all components are created in separate methods, the code becomes clearer.
+
+Component names always start with a lowercase letter, even though they are capitalized in the method name.
+
+We never call factories directly; they are called automatically the first time we use the component. Thanks to this, the component is created at the right moment and only if it is actually needed. If we don't use the component (e.g., during an AJAX request where only part of the page is transferred, or when caching the template), it won't be created at all, saving server performance.
+
+```php
+// we access the component and if it was the first time,
+// createComponentPoll() is called which creates it
+$poll = $this->getComponent('poll');
+// alternative syntax: $poll = $this['poll'];
+```
+
+In the template, it is possible to render a component using the [{control}](#rendering) tag. Therefore, there is no need to manually pass components to the template.
+
+```latte
+<h2>Please Vote</h2>
+
+{control poll}
+```
+
+> [!TIP]
+> To dynamically create a variable number of components, use [Multiplier](multiplier.md).
+
+Factory methods `createComponent<Name>()` don't work only in presenters. You can nest a component inside another component the same way, composing them into a tree – handy for example for a separately rendered form inside a component.
+
+## Hollywood Style
+
+Components commonly use a fresh technique we like to call the Hollywood style. You surely know the cliché often heard by participants in film auditions: “Don't call us, we'll call you.” And that's precisely what it's about.
+
+In Nette, instead of constantly having to ask questions (“was the form submitted?”, “was it valid?”, or “did the user press this button?”), you tell the framework “when this happens, call this method” and leave further work to it. If you program in JavaScript, you are intimately familiar with this style of programming. You write functions that are called when a certain event occurs. And the language passes the appropriate parameters to them.
+
+This completely changes the perspective on writing applications. The more tasks you can leave to the framework, the less work you have. And the less you might overlook.
+
+## Writing a Component
+
+By the term component, we usually mean a descendant of the [Nette\Application\UI\Control](https://api.nette.org/application/master/Nette/Application/UI/Control.html) class. (It would be more accurate to use the term “controls”, but that has a different meaning in some languages, and “components” has become more established.) The presenter [Nette\Application\UI\Presenter](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html) itself is also a descendant of the `Control` class.
+
+```php
+use Nette\Application\UI\Control;
+
+class PollControl extends Control
+{
+}
+```
+
+## Rendering
+
+We already know that the `{control componentName}` tag is used to render a component. It actually calls the `render()` method of the component, in which we take care of the rendering. We have available, just like in the presenter, a [Latte template](templates.md) in the `$this->template` variable, to which we pass parameters. Unlike in the presenter, we must specify the template file and have it rendered:
+
+```php
+public function render(): void
+{
+	// insert some parameters into the template
+	$this->template->param = $value;
+	// and render it
+	$this->template->render(__DIR__ . '/poll.latte');
+}
+```
+
+The `{control}` tag allows passing parameters to the `render()` method:
+
+```latte
+{control poll $id, $message}
+```
+
+```php
+public function render(int $id, string $message): void
+{
+	// ...
+}
+```
+
+Sometimes a component may consist of several parts that we want to render separately. For each of them, we create our own rendering method, here in the example, `renderPaginator()`:
+
+```php
+public function renderPaginator(): void
+{
+	// ...
+}
+```
+
+And in the template, we then invoke it using:
+
+```latte
+{control poll:paginator}
+```
+
+For a better understanding, it's good to know how this tag translates into PHP code.
+
+```latte
+{control poll}
+{control poll:paginator 123, 'hello'}
+```
+
+translates to:
+
+```php
+$control->getComponent('poll')->render();
+$control->getComponent('poll')->renderPaginator(123, 'hello');
+```
+
+The `getComponent()` method returns the `poll` component, and the `render()` method, or `renderPaginator()` if a different rendering method is specified in the tag after the colon, is called on this component.
+
+> [!CAUTION]
+> Beware, if **`=>`** appears in the parameters outside square brackets, all parameters will be wrapped in an array and passed as the first argument:
+
+```latte
+{control poll, id: 123, message: 'hello'}
+```
+
+translates to:
+
+```php
+$control->getComponent('poll')->render(['id' => 123, 'message' => 'hello']);
+```
+
+Rendering a sub-component:
+
+```latte
+{control cartControl-someForm}
+```
+
+translates to:
+
+```php
+$control->getComponent("cartControl-someForm")->render();
+```
+
+Components, like presenters, automatically pass several useful variables to templates:
+
+- `$basePath` is the absolute URL path to the root directory (e.g., `/eshop`)
+- `$baseUrl` is the absolute URL to the root directory (e.g., `http://localhost/eshop`)
+- `$user` is an object [representing the user](../security/authentication.md)
+- `$presenter` is the current presenter
+- `$control` is the current component
+- `$flashes` is an array of [messages](#flash-messages) sent by the `flashMessage()` function
+
+## Signal
+
+We already know that navigation in a Nette application consists of linking or redirecting to `Presenter:action` pairs. But what if we just want to perform an action on the **current page**? For example, change the sorting of columns in a table; delete an item; switch light/dark mode; submit a form; vote in a poll; etc.
+
+This type of request is called a signal. And just as actions invoke `action<Action>()` or `render<Action>()` methods, signals call `handle<Signal>()` methods. While the concept of action (or view) relates purely to presenters, signals concern all components. And thus also presenters, because `UI\Presenter` is a descendant of `UI\Control`.
+
+```php
+public function handleClick(int $x, int $y): void
+{
+	// ... processing of signal ...
+}
+```
+
+A link that calls a signal is created in the usual way, i.e., in the template with the `n:href` attribute or the `{link}` tag, in the code with the `link()` method. More in the chapter [Creating URL Links](creating-links.md#links-to-signal).
+
+```latte
+<a n:href="click! $x, $y">click here</a>
+```
+
+A signal is always called on the current presenter and action; it is not possible to invoke it on another presenter or action.
+
+Thus, a signal causes the page to reload just like the original request, but additionally calls the signal handling method with the appropriate parameters. If the method does not exist, an [Nette\Application\UI\BadSignalException](https://api.nette.org/application/master/Nette/Application/UI/BadSignalException.html) exception is thrown, which is displayed to the user as a 403 Forbidden error page.
+
+## Snippets and AJAX
+
+Signals might remind you a bit of AJAX: handlers that are invoked on the current page. And you are right, signals are indeed often called using AJAX, and subsequently, only the changed parts of the page are transferred to the browser. These are called snippets. More information can be found on the [page dedicated to AJAX](ajax.md).
+
+## Flash Messages
+
+A component has its own storage for flash messages, independent of the presenter. These are messages that, for example, inform about the result of an operation. An important feature of flash messages is that they are available in the template even after redirection. Even after being displayed, they remain active for another 30 seconds – for example, in case the user refreshes the page due to a transmission error – the message won't disappear immediately.
+
+Sending is handled by the [flashMessage](https://api.nette.org/application/master/Nette/Application/UI/Control.html#method_flashMessage) method. The first parameter is the message text (`string`, `Stringable`) or an `stdClass` object representing the message. The optional second parameter is its type (error, warning, info, etc.). The `flashMessage()` method returns an instance of the flash message as an `stdClass` object, to which further information can be added.
+
+```php
+$this->flashMessage('Item was deleted.');
+$this->redirect(/* ... */); // and redirect
+```
+
+These messages are available to the template in the `$flashes` variable as `stdClass` objects, which contain the properties `message` (message text), `type` (message type), and can contain the aforementioned user information. We render them like this, for example:
+
+```latte
+{foreach $flashes as $flash}
+	<div class="flash {$flash->type}">{$flash->message}</div>
+{/foreach}
+```
+
+## Redirection After Processing a Signal
+
+Processing a component's signal is often followed by a redirect. This is similar to forms – after submitting them, we also redirect to prevent data resubmission if the page is refreshed in the browser.
+
+```php
+$this->redirect('this'); // redirects to the current presenter and action
+```
+
+Because a component is a reusable element and typically should not have a direct link to specific presenters, the `redirect()` and `link()` methods automatically interpret the parameter as a component signal:
+
+```php
+$this->redirect('click'); // redirects to the 'click' signal of the same component
+```
+
+If you need to redirect to another presenter or action, you can do it through the presenter:
+
+```php
+$this->getPresenter()->redirect('Product:show'); // redirects to another presenter/action
+```
+
+## Persistent Parameters
+
+Persistent parameters are used to maintain state in components across different requests. Their value remains the same even after clicking a link. Unlike session data, they are transferred in the URL. And this happens completely automatically, including links created in other components on the same page.
+
+For example, you have a component for content pagination. There might be several such components on a page. And we want all components to remain on their current page after clicking a link. Therefore, we make the page number (`page`) a persistent parameter.
+
+Creating a persistent parameter in Nette is extremely simple. Just create a public property and mark it with the attribute (previously `/** @persistent */` was used):
+
+```php
+use Nette\Application\Attributes\Persistent;  // this line is important
+
+class PaginatingControl extends Control
+{
+	#[Persistent]
+	public int $page = 1; // must be public
+}
+```
+
+We recommend specifying the data type for the property (e.g., `int`), and you can also provide a default value. Parameter values can be [validated](#validation-of-persistent-parameters).
+
+When creating a link, the value of a persistent parameter can be changed:
+
+```latte
+<a n:href="this page: $page + 1">next</a>
+```
+
+Or it can be *reset*, i.e., removed from the URL. It will then assume its default value:
+
+```latte
+<a n:href="this page: null">reset</a>
+```
+
+## Persistent Components
+
+Not only parameters but also components can be persistent. Their persistent parameters are then transferred even between different actions of the presenter or between multiple presenters. We mark persistent components with an attribute on the presenter class. For example, we mark the `calendar` and `poll` components like this:
+
+```php
+use Nette\Application\Attributes\Persistent;
+
+#[Persistent('calendar', 'poll')]
+class DefaultPresenter extends Nette\Application\UI\Presenter
+{
+}
+```
+
+Subcomponents within these components do not need to be marked; they become persistent too.
+
+The older annotation `@persistent` still works, but it is deprecated and triggers a warning:
+
+```php
+/**
+ * @persistent(calendar, poll)
+ */
+class DefaultPresenter extends Nette\Application\UI\Presenter
+{
+}
+```
+
+## Components with Dependencies
+
+How to create components with dependencies without “cluttering” the presenters that will use them? Thanks to the smart features of the DI container in Nette, similar to using classic services, most of the work can be left to the framework.
+
+Let's take an example of a component that has a dependency on the `PollFacade` service:
+
+```php
+class PollControl extends Control
+{
+	public function __construct(
+		private int $id, // ID of the poll for which we are creating the component
+		private PollFacade $facade,
+	) {
+	}
+
+	public function handleVote(int $voteId): void
+	{
+		$this->facade->vote($this->id, $voteId);
+		// ...
+	}
+}
+```
+
+If we were writing a classic service, there would be nothing to discuss. The DI container would invisibly handle passing all dependencies. However, with components, we usually handle them by creating a new instance directly in the presenter within the [factory methods](#factory-methods) `createComponent…()`. But passing all dependencies of all components into the presenter just to pass them on to the components is cumbersome. And the amount of code written…
+
+The logical question is, why don't we simply register the component as a classic service, pass it to the presenter, and then return it in the `createComponent…()` method? However, this approach is inappropriate because we want the ability to create the component multiple times if needed.
+
+The correct solution is to write a factory for the component, i.e., a class that creates the component for us:
+
+```php
+class PollControlFactory
+{
+	public function __construct(
+		private PollFacade $facade,
+	) {
+	}
+
+	public function create(int $id): PollControl
+	{
+		return new PollControl($id, $this->facade);
+	}
+}
+```
+
+We register this factory in our container in the configuration:
+
+```neon
+services:
+	- PollControlFactory
+```
+
+and finally, we use it in our presenter:
+
+```php
+class PollPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private PollControlFactory $pollControlFactory,
+	) {
+	}
+
+	protected function createComponentPollControl(): PollControl
+	{
+		$pollId = 1; // we can pass our parameter
+		return $this->pollControlFactory->create($pollId);
+	}
+}
+```
+
+What's great is that Nette DI can [generate](../dependency-injection/factory.md) such simple factories, so instead of writing its entire code, you just need to write its interface:
+
+```php
+interface PollControlFactory
+{
+	public function create(int $id): PollControl;
+}
+```
+
+And that's all. Nette internally implements this interface and injects it into the presenter, where we can use it. It magically adds the `$id` parameter and an instance of the `PollFacade` class to our component.
+
+## Components in Depth
+
+Components in Nette Application represent reusable parts of a web application that we embed into pages, and which this entire chapter is dedicated to. What exactly are the capabilities of such a component?
+
+1. It is renderable in a template
+2. It knows [which part of itself](ajax.md#snippets) to render during an AJAX request (snippets)
+3. It has the ability to store its state in the URL (persistent parameters)
+4. It has the ability to react to user actions (signals)
+5. It creates a hierarchical structure (where the root is the presenter)
+
+Each of these functions is handled by one of the classes in the inheritance line. Rendering (1 + 2) is handled by [Nette\Application\UI\Control](https://api.nette.org/application/master/Nette/Application/UI/Control.html), integration into the [lifecycle](presenters.md#presenter-life-cycle) (3, 4) by the [Nette\Application\UI\Component](https://api.nette.org/application/master/Nette/Application/UI/Component.html) class, and the creation of the hierarchical structure (5) by the [Container and Component](../component-model/index.md) classes.
+
+```
+Nette\ComponentModel\Component  { IComponent }
+|
++- Nette\ComponentModel\Container  { IContainer }
+	|
+	+- Nette\Application\UI\Component  { SignalReceiver, StatePersistent }
+		|
+		+- Nette\Application\UI\Control  { Renderable }
+			|
+			+- Nette\Application\UI\Presenter  { IPresenter }
+```
+
+### Component Lifecycle
+
+![](https://files.nette.org/git/application/4.x/lifecycle-component.svg)
+
+**Component lifecycle**
+
+### Validation of Persistent Parameters
+
+The values of [persistent parameters](#persistent-parameters) received from URLs are written to properties by the `loadState()` method. It also checks whether the data type specified for the property matches; otherwise, it responds with a 404 error and the page is not displayed.
+
+Never blindly trust persistent parameters, as they can be easily overwritten by the user in the URL. This is how we check, for example, if the page number `$this->page` is greater than 0. A suitable way is to override the mentioned `loadState()` method:
+
+```php
+class PaginatingControl extends Control
+{
+	#[Persistent]
+	public int $page = 1;
+
+	public function loadState(array $params): void
+	{
+		parent::loadState($params); // $this->page is set here
+		// follows the custom value check:
+		if ($this->page < 1) {
+			$this->error();
+		}
+	}
+}
+```
+
+The opposite process, i.e., collecting values from persistent properties, is handled by the `saveState()` method.
+
+### Connecting to the Presenter
+
+At the moment a component becomes part of the presenter hierarchy, its callbacks stored in the array `$onAnchor` are invoked. From that point on, the component has the presenter available, can safely create links, read persistent parameters, and so on.
+
+```php
+$control->onAnchor[] = function ($control): void {
+	// the component now has the presenter available
+};
+```
+
+### Signals in Depth
+
+A signal causes the page to reload exactly like the original request (except when called via AJAX) and invokes the `signalReceived($signal)` method, whose default implementation in the `Nette\Application\UI\Component` class attempts to call a method composed of the words `handle<Signal>`. Further processing is up to the given object. Objects inheriting from `Component` (i.e., `Control` and `Presenter`) react by trying to call the `handle<Signal>` method with the appropriate parameters.
+
+In other words: the definition of the `handle<Signal>` function is taken, along with all parameters that came with the request, and parameters from the URL are assigned to the arguments by name, and an attempt is made to call the method. For example, the value from the `id` parameter in the URL is passed as the `$id` argument, `something` from the URL is passed as `$something`, etc. And if the method does not exist, the `signalReceived` method throws an [exception](https://api.nette.org/application/master/Nette/Application/UI/BadSignalException.html).
+
+Besides the parameters from the URL, a signal also reads the parameters sent in the **POST body of the request**. This comes in handy because signals are often invoked via JavaScript, where it is natural to send data using the POST method. However, if a parameter of the same name arrives both from the URL and from the POST body, the value **from the URL takes precedence**. Therefore, avoid giving a POST field the same name as a URL or route parameter, otherwise the URL value would silently override it. The signal parameters share a common space with the action and persistent parameters, see [Shared Parameter Space](presenters.md#shared-parameter-space).
+
+A signal can be received by any component, presenter, or object that implements the `SignalReceiver` interface and is connected to the component tree.
+
+The main recipients of signals will be `Presenters` and visual components inheriting from `Control`. A signal is intended to serve as a sign for an object that it should do something – a poll should count a vote from the user, a news block should expand and display twice as many news items, a form has been submitted and should process data, and so on.
+
+The URL for a signal is created using the [Component::link()](https://api.nette.org/application/master/Nette/Application/UI/Component.html#method_link) method. As the `$destination` parameter, we pass the string `{signal}!` and as `$args`, an array of arguments we want to pass to the signal. The signal is always called on the current presenter and action with the current parameters; the signal parameters are just added. Additionally, the **parameter `?do` which specifies the signal** is added.
+
+Its format is either `{signal}` or `{signalReceiver}-{signal}`. `{signalReceiver}` is the name of the component in the presenter. Therefore, a hyphen cannot be used in the component name – it is used to separate the component name and the signal, although it is possible to nest multiple components this way.
+
+The [isSignalReceiver()](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html#method_isSignalReceiver) method checks whether the component (first argument) is the recipient of the signal (second argument). The second argument can be omitted – then it checks if the component is the recipient of any signal. If the second parameter is set to `true`, it verifies whether the specified component or any of its descendants is the recipient.
+
+At any stage preceding `handle<Signal>`, we can execute the signal manually by calling the [processSignal()](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html#method_processSignal) method, which takes care of handling the signal – it takes the component identified as the signal recipient (if no recipient is specified, it is the presenter itself) and sends the signal to it.
+
+Example:
+
+```php
+if ($this->isSignalReceiver($this, 'paging') || $this->isSignalReceiver($this, 'sorting')) {
+	$this->processSignal();
+}
+```
+
+This executes the signal prematurely, and it will not be called again.

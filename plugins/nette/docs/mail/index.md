@@ -1,0 +1,491 @@
+# Nette Mail
+
+Contents:
+
+- [Installation](#installation)
+- [Creating Emails](#creating-emails)
+  - [Other Options](#other-options)
+  - [One-Click Unsubscribe (since 4.2.0)](#one-click-unsubscribe-since-420)
+  - [Attachments](#attachments)
+  - [Templates](#templates)
+  - [Usage in Nette Application](#usage-in-nette-application)
+- [CSS Inlining](#css-inlining)
+  - [HTML Attributes for Outlook](#html-attributes-for-outlook)
+- [Sending Emails](#sending-emails)
+  - [SendmailMailer](#sendmailmailer)
+  - [SmtpMailer](#smtpmailer)
+  - [OAuth 2.0 Authentication (since 4.2.0)](#oauth-20authentication-since-420)
+  - [FallbackMailer](#fallbackmailer)
+  - [FileMailer (since 4.2.0)](#filemailer-since-420)
+- [Debugging Emails (since 4.1.2)](#debugging-emails-since-412)
+- [DKIM](#dkim)
+- [Configuration](#configuration)
+- [DI Services](#di-services)
+
+
+Are you planning to send emails, such as newsletters or order confirmations? Nette Framework provides the necessary tools with a very user-friendly API. We will show you:
+
+- how to create an email, including attachments
+- how to send it
+- how to combine emails and templates
+
+## Installation
+
+Download and install the library using [Composer](https://doc.nette.org/en/best-practices/composer):
+
+```shell
+composer require nette/mail
+```
+
+## Creating Emails
+
+An email is a [Nette\Mail\Message](https://api.nette.org/mail/master/Nette/Mail/Message.html) object. Let's create one like this:
+
+```php
+$mail = new Nette\Mail\Message;
+$mail->setFrom('John <john@example.com>')
+	->addTo('peter@example.com')
+	->addTo('jack@example.com')
+	->setSubject('Order Confirmation')
+	->setBody("Hello,\nYour order has been accepted.");
+```
+
+All specified parameters must be in UTF-8 encoding.
+
+(since 4.2.0) Addresses with an internationalized domain, such as `jan@příklad.cz`, are automatically converted to the ASCII form known as punycode, which mail servers require; the `intl` extension is needed for that.
+
+In addition to specifying recipients with `addTo()`, you can also specify recipients for a copy with `addCc()`, or recipients for a blind copy with `addBcc()`. All these methods, including `setFrom()`, accept the addressee in three ways:
+
+```php
+$mail->setFrom('john.doe@example.com');
+$mail->setFrom('john.doe@example.com', 'John Doe');
+$mail->setFrom('John Doe <john.doe@example.com>');
+```
+
+The body of an email written in HTML is passed using the `setHtmlBody()` method:
+
+```php
+$mail->setHtmlBody('<p>Hello,</p><p>Your order has been accepted.</p>');
+```
+
+You don't need to create a text alternative; Nette will generate it automatically for you. And if the email doesn't have a subject set, it will try to take it from the `<title>` element.
+
+Images can also be embedded into the HTML body exceptionally easily. Just pass the path where the images are physically located as the second parameter, and Nette will automatically include them in the email:
+
+```php
+// automatically adds /path/to/images/background.gif to the email
+$mail->setHtmlBody(
+	'<b>Hello</b> <img src="background.gif">',
+	'/path/to/images',
+);
+```
+
+The image embedding algorithm searches for these patterns: `<img src=...>`, `<body background=...>`, `url(...)` inside the HTML `style` attribute, and the special syntax `[[...]]`.
+
+Could sending emails be even easier?
+
+> [!TIP]
+> Emails are like postcards. Never send passwords or other credentials via email.
+
+### Other Options
+
+The `Message` object also lets you set a reply-to address, a return path for bounced messages, and the message priority:
+
+```php
+$mail->addReplyTo('reply@example.com', 'Support')
+	->setReturnPath('bounces@example.com')
+	->setPriority(Nette\Mail\Message::High);
+```
+
+The priority is one of the constants `Message::High`, `Message::Normal`, or `Message::Low`.
+
+### One-Click Unsubscribe (since 4.2.0)
+
+Gmail and Yahoo require bulk mail such as newsletters to offer unsubscribing with a single click right in the mail client. This is handled by a pair of headers defined by RFC 8058, which the `setUnsubscribe()` method sets up correctly for you:
+
+```php
+$mail->setUnsubscribe('https://example.com/unsubscribe?token=xyz');
+```
+
+The URL must unsubscribe the recipient in response to a bare HTTP POST request, without any further confirmation. The second parameter can provide an email address as a fallback for clients that cannot send a POST; it also works on its own: `$mail->setUnsubscribe(email: 'unsubscribe@example.com')`.
+
+### Attachments
+
+You can, of course, attach files to emails. Use the `addAttachment(string $file, ?string $content = null, ?string $contentType = null)` method for this.
+
+```php
+// attaches the file /path/to/example.zip to the email with the name example.zip
+$mail->addAttachment('/path/to/example.zip');
+
+// attaches the file /path/to/example.zip named info.zip
+$mail->addAttachment('info.zip', file_get_contents('/path/to/example.zip'));
+
+// attaches the file example.txt with the content "Hello John!"
+$mail->addAttachment('example.txt', 'Hello John!');
+```
+
+You can also embed a file directly into the HTML body with `addEmbeddedFile()`. It returns the created MIME part whose `Content-ID` you reference in the HTML (this is exactly the mechanism automatic image embedding uses internally):
+
+```php
+$file = $mail->addEmbeddedFile('/path/to/logo.png');
+$mail->setHtmlBody('<img src="cid:' . trim($file->getHeader('Content-ID'), '<>') . '">');
+```
+
+### Templates
+
+If you send HTML emails, writing them in the [Latte](https://latte.nette.org/en) templating system is a great option. How to do it?
+
+```php
+$latte = new Latte\Engine;
+$params = [
+	'orderId' => 123,
+];
+
+$mail = new Nette\Mail\Message;
+$mail->setFrom('John <john@example.com>')
+	->addTo('jack@example.com')
+	->setHtmlBody(
+		$latte->renderToString('/path/to/email.latte', $params),
+		'/path/to/images',
+	);
+```
+
+File `email.latte`:
+
+```latte
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Order Confirmation</title>
+	<style>
+	body {
+		background: url("background.png")
+	}
+	</style>
+</head>
+<body>
+	<p>Hello,</p>
+
+	<p>Your order number {$orderId} has been accepted.</p>
+</body>
+</html>
+```
+
+Nette automatically embeds all images, sets the subject based on the `<title>` element, and generates a text alternative for the HTML.
+
+### Usage in Nette Application
+
+If you use emails together with Nette Application, i.e., with presenters, you might want to create links in templates using the `n:href` attribute or the `{link}` tag. Latte doesn't know these by default, but it's very easy to add them. The `Nette\Application\LinkGenerator` object can create links, and you can get it by passing it using [dependency injection](../dependency-injection/passing-dependencies.md):
+
+```php
+use Nette;
+
+class MailSender
+{
+	public function __construct(
+		private Nette\Application\LinkGenerator $linkGenerator,
+		private Nette\Bridges\ApplicationLatte\TemplateFactory $templateFactory,
+	) {
+	}
+
+	private function createTemplate(): Nette\Application\UI\Template
+	{
+		$template = $this->templateFactory->createTemplate();
+		$template->getLatte()->addProvider('uiControl', $this->linkGenerator);
+		return $template;
+	}
+
+	public function createEmail(): Nette\Mail\Message
+	{
+		$template = $this->createTemplate();
+		$html = $template->renderToString('/path/to/email.latte', $params);
+
+		$mail = new Nette\Mail\Message;
+		$mail->setHtmlBody($html);
+		// ...
+		return $mail;
+	}
+}
+```
+
+In the template, you then create links as you are used to. All links created via LinkGenerator will be absolute.
+
+```latte
+<a n:href="Presenter:action">Link</a>
+```
+
+## CSS Inlining
+
+[Nette\Mail\CssInliner](https://api.nette.org/mail/master/Nette/Mail/CssInliner.html) converts CSS rules into inline `style` attributes so that emails render consistently across all clients. It also generates HTML attributes for Outlook compatibility.
+
+Requires PHP 8.4 or later and the `dom` extension.
+
+Most email clients have limited support for `<style>` tags or ignore them entirely. To ensure correct rendering, CSS rules need to be converted to inline `style` attributes on individual elements. Simply pass your HTML through `inline()`:
+
+```php
+$inliner = new Nette\Mail\CssInliner;
+$html = $inliner->inline($html);
+```
+
+For example, if the HTML contains:
+
+```latte
+<style>
+p { margin: 0; color: #333; }
+a { color: #a0704e; }
+</style>
+<p>Hello <a href="#">world</a></p>
+```
+
+The result after inlining will be (the `<style>` tag is preserved but omitted here for brevity):
+
+```latte
+<p style="margin: 0; color: #333">Hello <a href="#" style="color: #a0704e">world</a></p>
+```
+
+The `<style>` tag is always preserved in the output, so `@media` queries and other rules that cannot be inlined keep working.
+
+In addition to extracting styles from `<style>` tags, you can also provide CSS via the `addCss()` method. You need to inline CSS before passing the HTML to `setHtmlBody()`:
+
+```php
+$latte = new Latte\Engine;
+$params = [
+	'orderId' => 123,
+];
+
+$html = $latte->renderToString('/path/to/email.latte', $params);
+$html = (new Nette\Mail\CssInliner)
+	->addCss(file_get_contents('/path/to/email.css'))
+	->inline($html);
+
+$mail = new Nette\Mail\Message;
+$mail->setHtmlBody($html);
+```
+
+(since 4.2.0) When multiple rules target the same property of an element, the winner is decided by the CSS cascade, just like in a browser: `!important` declarations beat normal ones, an existing inline `style` attribute beats any selector, a more specific selector beats a less specific one, and ties go to the later rule. Rules from `<style>` tags are processed before those added via `addCss()`, and only the winning value is written out.
+
+At-rules like `@media` or `@font-face` are skipped during inlining. Note that pseudo-classes like `:hover` cannot be meaningfully inlined, since inline styles do not support dynamic states.
+
+### HTML Attributes for Outlook
+
+Desktop versions of Microsoft Outlook use the Word rendering engine, which doesn't understand many CSS properties. To ensure compatibility, `CssInliner` automatically generates corresponding HTML attributes from CSS rules alongside inline styles:
+
+| CSS Property | HTML Attribute | Applied To |
+| --- | --- | --- |
+| `background-color` | `bgcolor` | `<table>`, `<td>`, `<th>`, `<body>`, `<tr>` |
+| `width` | `width` | `<table>`, `<td>`, `<th>`, `<img>` |
+| `height` | `height` | `<table>`, `<td>`, `<th>`, `<img>` |
+| `border-spacing` | `cellspacing` | `<table>` |
+
+For `width`, `height`, and `cellspacing`, the `px` unit is automatically stripped (e.g., `width: 600px` becomes `width="600"`), a percentage keeps its `%`, and values an attribute cannot express, such as `auto` or `calc()`, produce no attribute at all. Both the inline style and the HTML attribute are set together, so the email renders correctly in modern clients and Outlook alike.
+
+HTML attributes are generated only from CSS rules processed by `CssInliner`, not from `style` attributes already present in the original HTML.
+
+## Sending Emails
+
+A mailer is a class responsible for sending emails. It implements the [Nette\Mail\Mailer](https://api.nette.org/mail/master/Nette/Mail/Mailer.html) interface, and several pre-made mailers are available, which we will introduce.
+
+The framework automatically adds a `Nette\Mail\Mailer` service to the DI container based on the [configuration](#configuration), and you obtain it using [dependency injection](../dependency-injection/passing-dependencies.md).
+
+### SendmailMailer
+
+The default mailer is SendmailMailer, which uses the PHP function [mail](https://php.net/mail). Example usage:
+
+```php
+$mailer = new Nette\Mail\SendmailMailer;
+$mailer->send($mail);
+```
+
+If you want to set the `returnPath` and your server still overwrites it, use `$mailer->commandArgs = '-fmy@email.com'`.
+
+By default, `SendmailMailer` passes the sender's address to the `mail()` function as the envelope sender (the `-f` argument). You can turn this off with `$mailer->setEnvelopeSender(false)`.
+
+### SmtpMailer
+
+To send mail via an SMTP server, use `SmtpMailer`.
+
+```php
+$mailer = new Nette\Mail\SmtpMailer(
+	host: 'smtp.gmail.com',
+	username: 'john@gmail.com',
+	password: '*****', // your password
+	encryption: 'ssl', // or 'tls'
+);
+$mailer->send($mail);
+```
+
+The following additional parameters can be passed to the constructor:
+
+- `port` – if not set, the default is used: 465 for `ssl`, 587 for `tls`, otherwise 25
+- `timeout` – timeout for the SMTP connection
+- `persistent` – use a persistent connection
+- `clientHost` – specify the client's host header
+- `streamOptions` – allows setting [SSL context options](https://www.php.net/manual/en/context.ssl.php) for the connection
+
+### OAuth 2.0 Authentication (since 4.2.0)
+
+Gmail and Microsoft 365 are retiring password authentication for SMTP and require an OAuth 2.0 access token instead (the XOAUTH2 mechanism). Pass the token with the `setAccessToken()` method; the username stays, the password is left empty:
+
+```php
+$mailer = new Nette\Mail\SmtpMailer(
+	host: 'smtp.gmail.com',
+	username: 'john@gmail.com',
+	password: '',
+	encryption: 'tls',
+);
+$mailer->setAccessToken($accessToken);
+```
+
+Since access tokens expire, you can pass a callback instead; it is called on every connection, so it can always supply a fresh token. Obtaining and refreshing the token remains up to you or your OAuth library:
+
+```php
+$mailer->setAccessToken(fn() => $oauthProvider->getFreshToken());
+```
+
+### FallbackMailer
+
+This mailer does not send emails directly but mediates sending through a set of mailers. If one mailer fails, it retries with the next one. If the last one fails, it starts again from the first one.
+
+```php
+$mailer = new Nette\Mail\FallbackMailer([
+	$smtpMailer,
+	$backupSmtpMailer,
+	$sendmailMailer,
+]);
+$mailer->send($mail);
+```
+
+Other parameters in the constructor are the number of retries (default `3`) and the waiting time between them in milliseconds (default `1000`). If all mailers fail in every attempt, a `Nette\Mail\FallbackMailerException` is thrown, whose `$failures` property holds the collected exceptions.
+
+(since 4.2.0) A mailer whose failure is permanent, such as the SMTP server rejecting the credentials, is dropped from further attempts – retrying cannot change the outcome.
+
+You can add another mailer later with `addMailer()` and register the `$onFailure` event, which is called after each failed attempt:
+
+```php
+$mailer->onFailure[] = function ($mailer, $exception, $failedMailer, $mail) {
+	// e.g. log the failed attempt
+};
+```
+
+### FileMailer (since 4.2.0)
+
+This mailer does not send anything: it writes each message as an `.eml` file into the given directory. The files open in any email client, so you can check exactly what would have been sent – handy in tests and during development.
+
+```php
+$mailer = new Nette\Mail\FileMailer('/path/to/mails');
+$mailer->send($mail);
+```
+
+## Debugging Emails (since 4.1.2)
+
+When developing or running a staging server, you don't want a test email to slip out to a real customer. There are two ways to make sure that never happens.
+
+The recommended local setup is to run a lightweight SMTP catcher like [Mailpit](https://mailpit.axllent.org) or [MailHog](https://github.com/mailhog/MailHog) on your machine. They accept every message, show it in a web UI, and never forward anything – you just point Nette Mail at `127.0.0.1:1025`:
+
+```neon
+mail:
+	smtp: true
+	host: 127.0.0.1
+	port: 1025
+```
+
+For staging or environments where you can't run a local catcher, Nette Mail has a built-in redirect. Set the destination in the configuration and every `To`, `Cc`, and `Bcc` recipient is replaced with it. Nette Mail preserves the originals in `X-Original-*` headers so you can see who the email was meant for, and you can prepend a marker to the subject:
+
+```neon
+mail:
+	redirect:
+		to: dev@example.com
+		subjectPrefix: '[debug]'   # optional
+```
+
+The shortcut form `redirect: dev@example.com` works when you don't need a subject prefix. In debug mode, a [Tracy Bar](https://tracy.nette.org/en) panel listing all sent emails attaches automatically.
+
+Internally this is handled by [Nette\Mail\Interceptor](https://api.nette.org/mail/master/Nette/Mail/Interceptor.html), which also exposes an `$onSent` event for custom listeners (audit logs, metrics, …).
+
+## DKIM
+
+DKIM (DomainKeys Identified Mail) is a technology for increasing email trustworthiness, which also helps detect spoofed messages. The sent message is signed with the private key of the sender's domain, and this signature is stored in the email header. The recipient's server compares this signature with the public key stored in the domain's DNS records. If the signature matches, it proves that the email actually originated from the sender's domain and that the message was not modified during transmission.
+
+You can set up the mailer to sign emails directly in the [configuration](#configuration). If you do not use dependency injection, it is used as follows:
+
+```php
+$signer = new Nette\Mail\DkimSigner(
+	domain: 'yourdomain.com',
+	selector: 'dkim', // selector from DNS record
+	privateKey: file_get_contents('/path/to/dkim.key'), // path to your private key
+	passPhrase: 'your_passphrase', // passphrase for the private key, if any
+);
+
+$mailer = new Nette\Mail\SendmailMailer; // or SmtpMailer
+$mailer->setSigner($signer);
+$mailer->send($mail);
+```
+
+(since 4.2.0) The private key can be either an RSA key in PEM format, or an Ed25519 key ([RFC 8463](https://datatracker.ietf.org/doc/html/rfc8463)) as base64-encoded raw bytes; the type is detected from the key itself. Ed25519 signing requires the `sodium` extension.
+
+(since 4.2.0) In the `oversignHeaders` parameter you can list headers to protect against a second copy being appended to the already signed message, which is a trick spoofed emails use; the usual candidate is `From`.
+
+## Configuration
+
+Overview of configuration options for Nette Mail. If you are not using the entire framework but only this library, read [how to load the configuration](../bootstrap/index.md).
+
+By default, the `Nette\Mail\SendmailMailer` is used for sending emails, which requires no further configuration. However, we can switch it to `Nette\Mail\SmtpMailer`:
+
+```neon
+mail:
+	# use SmtpMailer
+	smtp: true       # (bool) defaults to false
+
+	host: ...        # (string) SMTP server hostname
+	port: ...        # (int) SMTP server port
+	username: ...    # (string) username for SMTP authentication
+	password: ...    # (string) password for SMTP authentication
+	timeout: ...     # (int) timeout for SMTP connection
+	encryption: ...  # (ssl|tls|null) defaults to null (alias 'secure')
+	clientHost: ...  # (string) client hostname, defaults to $_SERVER['HTTP_HOST'] or 'localhost'
+	persistent: ...  # (bool) use persistent connection, defaults to false
+
+	# stream context options for the SMTP connection, defaults to stream_context_get_default()
+	context:
+		ssl:         # all options at https://www.php.net/manual/en/context.ssl.php
+			allow_self_signed: ...
+			...
+		http:        # options list at https://www.php.net/manual/en/context.http.php
+			header: ...
+			...
+```
+
+You can disable SSL certificate verification using the `context › ssl › verify_peer: false` option. **We strongly recommend against doing this** as it makes the application vulnerable. Instead, [add certificates to the trust store](https://www.php.net/manual/en/openssl.configuration.php).
+
+To increase trustworthiness, we can sign emails using [DKIM technology](https://blog.nette.org/en/sign-emails-with-dkim):
+
+```neon
+mail:
+	dkim:
+		domain: myweb.com                  # your domain
+		selector: lovenette                # DKIM selector
+		privateKey: %appDir%/cert/dkim.key # path to your private key file
+		passPhrase: ...                    # passphrase for the private key, if needed
+```
+
+The options for redirecting all emails and enabling the debug panel are described in the [Debugging Emails](#debugging-emails-since-412) section:
+
+```neon
+mail:
+	# redirects all emails to a single address
+	redirect: dev@example.com
+
+	# enables (true) or disables (false) the Tracy panel and email interception
+	debugger: ...    # (bool) defaults to null, meaning auto in debug mode
+```
+
+## DI Services
+
+These services are added to the DI container:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `mail.mailer` | [Nette\Mail\Mailer](https://api.nette.org/mail/master/Nette/Mail/Mailer.html) | [email sending class](#sending-emails) |
+| `mail.signer` | [Nette\Mail\Signer](https://api.nette.org/mail/master/Nette/Mail/Signer.html) | [DKIM signing](#dkim) |
+
+If you are upgrading to a newer version, see the [upgrading](upgrading.md) page.

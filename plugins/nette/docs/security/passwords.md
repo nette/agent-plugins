@@ -1,0 +1,88 @@
+# Password Hashing
+
+To ensure the security of our users, we never store their passwords in readable form, but only store their fingerprint (called a hash). The hash cannot be reverse-engineered back to the original password. It is important to use a secure algorithm to create the hash. The class [Nette\Security\Passwords](https://api.nette.org/security/master/Nette/Security/Passwords.html) helps us with this.
+
+→ [Installation and requirements](https://doc.nette.org/en/security#toc-installation)
+
+The framework automatically adds a service of type `Nette\Security\Passwords` to the DI container under the name `security.passwords`. You can get it by having it passed to you using [dependency injection](../dependency-injection/passing-dependencies.md).
+
+```php
+use Nette\Security\Passwords;
+
+class Foo
+{
+	public function __construct(
+		private Passwords $passwords,
+	) {
+	}
+}
+```
+
+## `__construct(string $algo=PASSWORD_DEFAULT, array $options=[])`
+
+We choose which [secure algorithm](https://www.php.net/manual/en/password.constants.php) to use for generating the hash and configure its parameters.
+
+The default is `PASSWORD_DEFAULT`, meaning the choice of algorithm is left up to PHP. The algorithm may change in newer PHP versions if newer, stronger hashing algorithms appear. Therefore, you should be aware that the length of the resulting hash may change, and you should store it in a way that can accommodate enough characters; 255 is the recommended width.
+
+Example of setting the hashing speed for the bcrypt algorithm by changing the cost parameter: (in 2020, the default is 10, hashing a password takes roughly 80ms; for cost 11, it's approx. 160ms; for cost 12, approx. 320ms; the slower, the better the protection, and at costs 10–12 the protection is already considered sufficient)
+
+```php
+// we will hash passwords with 2^12 (2^cost) iterations of the bcrypt algorithm
+$passwords = new Passwords(PASSWORD_BCRYPT, ['cost' => 12]);
+```
+
+Using dependency injection:
+
+```neon
+services:
+	security.passwords: Nette\Security\Passwords(::PASSWORD_BCRYPT, [cost: 12])
+```
+
+## `static bcrypt(?int $cost=null): Passwords` (since 3.2.6)
+
+Creates an instance configured for the bcrypt algorithm. The `$cost` parameter sets the hashing speed described above; if you omit it, the PHP default is used.
+
+```php
+$passwords = Passwords::bcrypt(12);
+```
+
+## `static argon2id(?int $memoryCost=null, ?int $timeCost=null, ?int $threads=null): Passwords` (since 3.2.6)
+
+Creates an instance configured for the Argon2id algorithm. Omitted parameters are left to the PHP defaults. If PHP was built without Argon2 support, the method throws `Nette\NotSupportedException`.
+
+```php
+$passwords = Passwords::argon2id(memoryCost: 1 << 17, timeCost: 4);
+```
+
+## `hash(string $password): string`
+
+Generates the password hash.
+
+```php
+$res = $passwords->hash($password); // Hashes the password
+```
+
+The result `$res` is a string that, in addition to the hash itself, contains the identifier of the algorithm used, its settings, and a cryptographic salt (random data ensuring that a different hash is generated for the same password). It is therefore backward compatible; for example, if you change the parameters, hashes stored using previous settings can still be verified. This entire result is stored in the database, so there is no need to store the salt or settings separately.
+
+## `verify(string $password, string $hash): bool`
+
+Finds out if the given password matches the given hash. Obtain `$hash` from the database based on the entered username or e-mail address.
+
+```php
+if ($passwords->verify($password, $hash)) {
+	// correct password
+}
+```
+
+## `needsRehash(string $hash): bool`
+
+Finds out whether the hash matches the options specified in the constructor.
+
+It is useful to use it when, for example, you change the hashing cost. Verification takes place according to the stored settings, and if `needsRehash()` returns `true`, it is necessary to create the hash again, this time with the new parameters, and save it again in the database. This automatically “upgrades” stored hashes when users log in.
+
+```php
+if ($passwords->needsRehash($hash)) {
+	$hash = $passwords->hash($password);
+	// store $hash into database
+}
+```

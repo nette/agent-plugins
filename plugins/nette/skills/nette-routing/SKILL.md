@@ -142,12 +142,12 @@ the full lifecycle) – an action can still change parameters before it fires, a
   `Nette\Application\Request` the router produced – comparing them says at once whether the fault is in
   matching or in link generation.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Routing](https://doc.nette.org/en/application/routing) – masks, filters, modules, custom routers
-- [Creating Links](https://doc.nette.org/en/application/creating-links) – link syntax, LinkGenerator
-- [Pretty URLs with Slugs](https://doc.nette.org/en/best-practices/pretty-urls) – the FilterOut slug pattern
-- [Presenters](https://doc.nette.org/en/application/presenters) – canonization, lifecycle
-- [Application Configuration](https://doc.nette.org/en/application/configuration) – the `routing:` section
+- [Routing](../../docs/application/routing.md) – masks, filters, modules, custom routers
+- [Creating Links](../../docs/application/creating-links.md) – link syntax, LinkGenerator
+- [Pretty URLs with Slugs](../../docs/best-practices/pretty-urls.md) – the FilterOut slug pattern
+- [Presenters](../../docs/application/presenters.md) – canonicalization, life cycle
+- [Application Configuration](../../docs/application/configuration.md) – the `routing:` section

@@ -1,0 +1,289 @@
+# Finder: Searching for Files
+
+Contents:
+
+- [Usage](#usage)
+- [What to Search For?](#what-to-search-for)
+- [Where to Search?](#where-to-search)
+- [Wildcards](#wildcards)
+- [Excluding](#excluding)
+- [Filtering](#filtering)
+- [Depth Filtering](#depth-filtering)
+- [Unreadable Directories](#unreadable-directories)
+- [Sorting](#sorting)
+- [Multiple Different Searches](#multiple-different-searches)
+- [FileInfo](#fileinfo)
+- [Returning Results as an Array](#returning-results-as-an-array)
+
+
+Need to find files matching a certain mask? Finder can help you with that. It's a versatile and fast tool for browsing directory structures.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+The examples assume the following class alias has been created:
+
+```php
+use Nette\Utils\Finder;
+```
+
+## Usage
+
+First, let's see how you can use [Nette\Utils\Finder](https://api.nette.org/utils/master/Nette/Utils/Finder.html) to list the names of files with the extensions `.txt` and `.md` in the current directory:
+
+```php
+foreach (Finder::findFiles(['*.txt', '*.md']) as $name => $file) {
+	echo $file;
+}
+```
+
+The default search directory is the current directory, but you can change it using the [in() or from()](#where-to-search) methods. The `$file` variable is an instance of the [FileInfo](#fileinfo) class, while `$name` is a string holding the path to the file.
+
+The path is returned as you wrote it, keeping the platform separators; on Windows the result may therefore mix `/` and `\`. Call `FileSystem::unixSlashes()` if you need a uniform form.
+
+## What to Search For?
+
+Besides the `findFiles()` method, there is `findDirectories()`, which searches only for directories, and `find()`, which searches for both. These methods are static, so they can be called without creating an instance. The mask argument is optional; if omitted, everything is matched.
+
+```php
+foreach (Finder::find() as $file) {
+	echo $file; // now all files and directories are listed
+}
+```
+
+Using the `files()` and `directories()` methods, you can specify additional items to search for. The methods can be called repeatedly, and an array of masks can also be provided as an argument:
+
+```php
+Finder::findDirectories('vendor') // all directories
+	->files(['*.php', '*.phpt']); // plus all PHP files
+```
+
+An alternative to static methods is creating an instance using `new Finder` (a newly created object like this doesn't search for anything initially) and specifying what to search for using `files()` and `directories()`:
+
+```php
+(new Finder)
+	->directories()      // all directories
+	->files('*.php');    // plus all PHP files
+```
+
+In the mask you can use [wildcards](#wildcards) such as `*`, `**`, `?` and `[...]`. You can even specify directories, for example `src/*.php` finds all PHP files in the `src` directory. Symlinks are treated as directories or files as well.
+
+## Where to Search?
+
+The default search directory is the current directory. You change it with the `in()` and `from()` methods:
+
+```php
+Finder::findFiles('*.php')
+	->in(['src', 'tests']) // searches directly in src/ and tests/
+	->from('vendor');      // also searches in vendor/ subdirectories
+```
+
+The two methods differ in depth: `in()` searches only within the given directory, while `from()` also descends into its subdirectories (recursively). To search the current directory recursively, use `from('.')`.
+
+Recursion is not decided by `from()` alone, though – the `**` wildcard in the mask drives it too, so `findFiles('**/*.php')->in('src')` searches recursively as well. Put differently, `from('src')` is merely a shortcut for `in('src')` with a recursive mask. See [Wildcards](#wildcards).
+
+These methods can be called multiple times, or you can pass multiple paths as an array; files will then be searched in all specified directories. If any of the directories does not exist, a `Nette\InvalidStateException` is thrown.
+
+Relative paths are relative to the current directory, but absolute paths can be used as well:
+
+```php
+Finder::findFiles('*.php')
+	->in('/var/www/html');
+```
+
+In the path you can use the `*`, `**` and `?` wildcards, but **not** `[...]`, which is taken literally there. This prevents unintended behavior when, for instance, you search `in(__DIR__)` and the path happens to contain `[]` characters. For example, `src/*/*.php` searches for all PHP files in the second-level directories under `src`.
+
+When searching files and directories recursively (depth-first), the parent directory is returned first, followed by the files it contains. This order can be reversed using `childFirst()`.
+
+## Wildcards
+
+A mask may contain several special characters:
+
+- `*` – any number of characters, except the `/` separator (it stays within a single directory level)
+- `**` – any number of characters, **including** `/` (it spans directory levels, see below)
+- `?` – exactly one character, except `/`
+- `[a-z]` – one character from the range or set inside the brackets
+- `[!a-z]` – one character *not* in the brackets
+
+The crucial and easily overlooked point: `**` matches **zero or more** directory levels. It does *not* mean “at least one subdirectory”. Therefore `src/**/*.php` matches a file placed directly in `src` just as well as one buried several levels deep. Consider this tree:
+
+```
+src/
+├── app.php
+├── Model/
+│   ├── User.php
+│   └── Repository/
+│       └── UserRepository.php
+└── Control/
+    └── SignForm.php
+```
+
+The following table shows what individual masks match, for both files and directories:
+
+| Mask | Matches |
+| --- | --- |
+| `src/*.php` | only `src/app.php` (directly in `src`) |
+| `src/**/*.php` | `src/app.php`, `src/Model/User.php`, `src/Model/Repository/UserRepository.php` (**all levels, including directly in `src`**) |
+| `src/*` | direct children of `src`: `app.php`, `Model`, `Control` |
+| `src/**` | everything under `src`, files and directories (shorthand for `src/**/*`) |
+| `src/*/` | direct *subdirectories* of `src`: `Model`, `Control` |
+| `src/**/` | *all* subdirectories at any depth: `Model`, `Model/Repository`, `Control` |
+
+Two shortcuts are worth remembering:
+
+- A `**` not immediately followed by `/` behaves as `**/` plus `*`. So `src/**` is a shorthand for `src/**/*`, and `**.php` for `**/*.php`.
+- A trailing slash restricts the mask to directories only. So `find('log/')` returns directories named `log`, but never a file of that name. (`findFiles()` rejects a trailing slash, as searching for a file “directory” makes no sense.)
+
+Further usage examples:
+
+- `img/?.png` – files with a single-letter name like `0.png`, `1.png`, `x.png`
+- `logs/[0-9][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9].log` – log files in the `YYYY-MM-DD` format
+- `docs/**/*.md` – all files with the `.md` extension in `docs` and all its subdirectories
+
+## Excluding
+
+Use the `exclude()` method to drop files and directories from the results. The argument is a mask the item must **not** match. Here we search for `*.txt` files except those containing the letter `X` in their name:
+
+```php
+Finder::findFiles('*.txt')
+	->exclude('*X*');
+```
+
+The exclusion mask uses the very same grammar as the search masks – the same [wildcards](#wildcards), the `./` anchoring, and the `**` shortcut. Its trailing part decides the scope of exclusion:
+
+| Mask | Excludes |
+| --- | --- |
+| `temp` | any file or directory named `temp`, at any depth |
+| `temp/` | only a directory `temp` (and its contents); a file named `temp` is kept |
+| `temp/*` | the contents of `temp`, but keeps the `temp` directory itself |
+| `temp/**` | the same as `temp/*` |
+
+An excluded directory is not even entered during traversal, so excluding whole subtrees also speeds the search up. This is how you skip specific subdirectories:
+
+```php
+Finder::findFiles('*.php')
+	->from($dir)
+	->exclude('temp', '.git');
+```
+
+## Filtering
+
+Finder offers several methods for filtering the results (i.e., reducing them). You can combine them and call them repeatedly.
+
+Using `size()`, we filter by file size. This way, we find files with sizes in the range of 100 to 200 bytes:
+
+```php
+Finder::findFiles('*.php')
+	->size('>=', 100)
+	->size('<=', 200);
+```
+
+The `date()` method filters by the file's last modification date. Values can be absolute dates or relative to the current date and time. For example, this finds files modified within the last two weeks:
+
+```php
+Finder::findFiles('*.php')
+	->date('>', '-2 weeks')
+	->from($dir)
+```
+
+Both methods understand the operators `>`, `>=`, `<`, `<=`, `=`, `!=`, `<>`.
+
+Finder also allows filtering results using custom callbacks. The callback receives a `Nette\Utils\FileInfo` object as a parameter and must return `true` for the file to be included in the results.
+
+Example: searching for PHP files containing the string `'Nette'` (case-insensitive):
+
+```php
+Finder::findFiles('*.php')
+	->filter(fn($file) => str_contains(strtolower($file->read()), 'nette'));
+```
+
+## Depth Filtering
+
+When searching recursively, you can set the maximum traversal depth using the `limitDepth()` method. Setting `limitDepth(1)` traverses only the first level of subdirectories, `limitDepth(0)` disables depth traversal entirely, and a value of –1 removes the depth limit.
+
+Finder allows using custom callbacks to decide which directories to enter during traversal. The callback receives a `Nette\Utils\FileInfo` object representing the directory and must return `true` to enter it:
+
+```php
+Finder::findFiles('*.php')
+	->descentFilter(fn($file) => $file->getBasename() !== 'temp');
+```
+
+## Unreadable Directories
+
+By default, Finder skips directories it cannot read (for example, due to insufficient permissions). If you prefer it to throw an exception in such cases instead, call `ignoreUnreadableDirs(false)`.
+
+```php
+Finder::findFiles('*.php')
+	->from($dir)
+	->ignoreUnreadableDirs(false);
+```
+
+## Sorting
+
+Finder also offers several methods for sorting the results.
+
+The `sortByName()` method sorts results by file name. The sorting is natural, meaning it correctly handles numbers in names and returns, e.g., `foo1.txt` before `foo10.txt`.
+
+Finder also allows sorting using a custom callback. It receives two `Nette\Utils\FileInfo` objects as parameters and must return the result of the comparison using the `<=>` operator (i.e., `-1`, `0`, or `1`). For example, this is how we sort files by size:
+
+```php
+$finder->sortBy(fn($a, $b) => $a->getSize() <=> $b->getSize());
+```
+
+## Multiple Different Searches
+
+If you need to find multiple sets of files in different locations or meeting different criteria, use the `append()` method. It returns a new `Finder` object, allowing you to chain method calls for the appended search:
+
+```php
+($finder = new Finder) // store the first Finder in the $finder variable!
+	->files('*.php')   // search for *.php files in src/
+	->from('src')
+	->append()
+	->files('*.md')    // in docs/ look for *.md files
+	->from('docs')
+	->append()
+	->files('*.json'); // in the current folder look for *.json files
+```
+
+Alternatively, the `append()` method can be used to add a specific file (or an array of files). In this case, it returns the same `Finder` object:
+
+```php
+$finder = Finder::findFiles('*.txt')
+	->append(__FILE__);
+```
+
+## FileInfo
+
+[Nette\Utils\FileInfo](https://api.nette.org/utils/master/Nette/Utils/FileInfo.html) is a class representing a file or directory found in the search results. It extends the [SplFileInfo](https://php.net/SplFileInfo) class and provides information such as file size, last modification date, name, path, etc.
+
+Additionally, it provides methods for returning the relative path, which is useful during recursive traversal:
+
+```php
+foreach (Finder::findFiles('*.jpg')->from('.') as $file) {
+	$absoluteFilePath = $file->getRealPath();
+	$relativeFilePath = $file->getRelativePathname();
+}
+```
+
+Furthermore, methods are available for reading and writing the file's content:
+
+```php
+foreach ($finder as $file) {
+    $contents = $file->read();
+    // ...
+    $file->write($contents);
+}
+```
+
+## Returning Results as an Array
+
+As seen in the examples, Finder implements the `IteratorAggregate` interface, so you can use `foreach` to iterate through the results. It's designed so that results are loaded only during iteration, meaning if you have a large number of files, it doesn't wait for all of them to be read beforehand.
+
+You can also retrieve the results as an array of `Nette\Utils\FileInfo` objects using the `collect()` method. The array is numerically indexed, not associative.
+
+```php
+$array = Finder::findFiles('*.php')->collect();
+```

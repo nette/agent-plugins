@@ -207,13 +207,14 @@ protected function createComponentLikeControl(): Multiplier
 {control "likeControl-$article->id"}
 ```
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Components](https://doc.nette.org/en/application/components) – factories, signals, persistent parameters
-- [AJAX & Snippets](https://doc.nette.org/en/application/ajax) – redrawing, payload, snippet areas
-- [Dynamic Snippets](https://doc.nette.org/en/best-practices/dynamic-snippets) – both approaches compared
-- [Multiplier](https://doc.nette.org/en/application/multiplier) – dynamic component creation
-- [Creating Links](https://doc.nette.org/en/application/creating-links) – signal syntax, links in components
-- [Component Model](https://doc.nette.org/en/component-model) – tree API, monitoring, upgrading notes
+- [Components](../../docs/application/components.md) – factories, signals, persistent parameters
+- [AJAX & Snippets](../../docs/application/ajax.md) – redrawing, payload, snippet areas
+- [Dynamic Snippets](../../docs/best-practices/dynamic-snippets.md) – both approaches compared
+- [Multiplier](../../docs/application/multiplier.md) – dynamic component creation
+- [Creating Links](../../docs/application/creating-links.md) – signal syntax, links in components
+- [POST Links](../../docs/best-practices/post-links.md) – signals that change state
+- [Component Model](../../docs/component-model/index.md) – the component tree API, monitoring

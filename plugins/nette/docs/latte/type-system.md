@@ -1,0 +1,63 @@
+# Type System
+
+The type system is crucial for developing robust applications. Latte brings type support to templates as well. By knowing the data or object type of each variable, it allows:
+
+- IDE to correctly autocomplete (see [integration and plugins](recipes.md#editors-and-ide))
+- static analysis to detect errors
+
+Both significantly increase the quality and convenience of development.
+
+Declared types are informative, and Latte does not check them at this time.
+
+How to start using types? Create a template class, e.g., `CatalogTemplateParameters`, representing the passed parameters, their types, and optionally their default values:
+
+```php
+class CatalogTemplateParameters
+{
+	public function __construct(
+		public string $lang,
+		/** @var ProductEntity[] */
+		public array $products,
+		public Address $address,
+	) {}
+}
+
+$latte->render('template.latte', new CatalogTemplateParameters(
+	address: $userAddress,
+	lang: $settings->getLanguage(),
+	products: $entityManager->getRepository('Product')->findAll(),
+));
+```
+
+Then insert the `{templateType}` tag with the full class name (including the namespace) at the beginning of the template. This defines that the variables `$lang`, `$products`, and `$address` exist in the template, including their respective types. You can also specify the types of local variables using the [`{var}`](tags.md#var-default), `{varType}`, and [`{define}`](template-inheritance.md#definitions-define) tags.
+
+From this point on, your IDE can correctly provide autocompletion.
+
+How to save work? What's the easiest way to write a template parameter class or `{varType}` tags? Have them generated! That's what the pair of tags `{templatePrint}` and `{varPrint}` are for. If you place them in a template, instead of the normal rendering, a suggestion for the class code or a list of `{varType}` tags will be displayed. Then, simply select the code with one click and copy it into your project.
+
+## `{templateType}`
+
+Types of parameters passed to the template are declared using a class:
+
+```latte
+{templateType MyApp\CatalogTemplateParameters}
+```
+
+## `{varType}`
+
+How to declare variable types? Use the `{varType}` tag for existing variables, or [`{var}`](tags.md#var-default):
+
+```latte
+{varType Nette\Security\User $user}
+{varType string $lang}
+```
+
+## `{templatePrint}`
+
+You can also have the class generated using the `{templatePrint}` tag. If you place it at the beginning of the template, instead of the normal rendering, a suggestion for the class code will be displayed. Then simply select the code with one click and copy it into your project. You can optionally specify a parent class name, e.g. `{templatePrint ParentClass}`, and the generated class will extend it.
+
+## `{varPrint}`
+
+The `{varPrint}` tag saves you writing time. If you place it in a template, instead of the normal rendering, a suggestion for `{varType}` tags for local variables will be displayed. Then simply select the code with one click and copy it into your template.
+
+`{varPrint}` itself only lists local variables that are not template parameters. If you want to list all variables, use `{varPrint all}`.

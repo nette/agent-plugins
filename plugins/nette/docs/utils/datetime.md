@@ -1,0 +1,132 @@
+# Date and Time
+
+Contents:
+
+- [Immutable or Mutable?](#immutable-or-mutable)
+- [Creating Objects](#creating-objects)
+  - [`static from(string|int|\DateTimeInterface|null $time): static`](#static-fromstringintdatetimeinterfacenull-time-static)
+  - [`static fromParts(int $year, int $month, int $day, int $hour=0, int $minute=0, float $second=0.0): static`](#static-frompartsint-year-int-month-int-day-int-hour0-int-minute0-float-second00-static)
+  - [`static createFromFormat(string $format, string $datetime, string|\DateTimeZone|null $timezone=null): static|false`](#static-createfromformatstring-format-string-datetime-stringdatetimezonenull-timezonenull-staticfalse)
+- [Strict Validation](#strict-validation)
+- [String Output and JSON](#string-output-and-json)
+- [Additional Features of DateTime](#additional-features-of-datetime)
+
+
+Nette offers two classes for working with date and time: [Nette\Utils\DateTimeImmutable](https://api.nette.org/utils/master/Nette/Utils/DateTimeImmutable.html) (immutable, recommended) and [Nette\Utils\DateTime](https://api.nette.org/utils/master/Nette/Utils/DateTime.html) (mutable). Both extend the native PHP classes, so every native method remains available, and add the same two improvements.
+
+First, they are **strict**. While PHP silently accepts invalid dates like `0000-00-00` (converts to `-0001-11-30`) or `2024-02-31` (converts to `2024-03-02`), these classes throw an exception instead.
+
+Second, they **fix the behavior** during Daylight Saving Time (DST) transitions, where in native PHP adding a relative time (e.g., `+100 minutes`) can [result in an earlier time](https://phpfashion.com/en/100-minutes-is-less-than-50-php-paradoxes-during-time-changes) than adding a shorter period (e.g., `+50 minutes`). These classes ensure that arithmetic works intuitively and `+100 minutes` is always more than `+50 minutes`.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+## Immutable or Mutable?
+
+The `DateTimeImmutable` class is available since version 4.1.5 and is the recommended choice. Every modifying method returns a **new instance** instead of changing the original, so an object you have stored or passed to a function can never change unexpectedly:
+
+```php
+use Nette\Utils\DateTimeImmutable;
+
+$date = new DateTimeImmutable('2024-02-26');
+$next = $date->modify('+1 day');
+echo $date; // 2024-02-26 00:00:00  (unchanged)
+echo $next; // 2024-02-27 00:00:00  (a new object)
+```
+
+`DateTime` is mutable: the same call changes the object in place. It is not deprecated, but for new code the immutable variant is preferred.
+
+```php
+use Nette\Utils\DateTime;
+
+$date = new DateTime('2024-02-26');
+$date->modify('+1 day');
+echo $date; // 2024-02-27 00:00:00  (the original has changed)
+```
+
+Because both classes extend the native ones, you keep using the methods you already know – `format()`, `getTimestamp()`, `add()`, `sub()`, `diff()`, `setTimezone()`, comparison operators, and so on. On `DateTimeImmutable` all the modifying ones return a new instance. The rest of this page describes only what Nette adds on top; unless noted otherwise, everything works the same on both classes.
+
+## Creating Objects
+
+### `static from(string|int|\DateTimeInterface|null $time): static`
+
+Creates an object from a string, a UNIX timestamp, or another [DateTimeInterface](https://php.net/DateTimeInterface) object. `null` means the current time. Throws an exception if the date and time are not valid.
+
+```php
+DateTimeImmutable::from(1_138_013_640); // from a UNIX timestamp, using the default timezone
+DateTimeImmutable::from('1994-02-26 04:15:32'); // from a string
+DateTimeImmutable::from('1994-02-26'); // from a date, time will be 00:00:00
+DateTimeImmutable::from(null); // the current date and time
+```
+
+### `static fromParts(int $year, int $month, int $day, int $hour=0, int $minute=0, float $second=0.0): static`
+
+Creates an object from individual parts, or throws an exception if the date and time are not valid.
+
+```php
+DateTimeImmutable::fromParts(1994, 2, 26, 4, 15, 32);
+```
+
+### `static createFromFormat(string $format, string $datetime, string|\DateTimeZone|null $timezone=null): static|false`
+
+Extends the native [DateTime::createFromFormat](https://php.net/DateTime%3A%3AcreateFromFormat) with the ability to specify the timezone as a string.
+
+```php
+DateTimeImmutable::createFromFormat('d.m.Y', '26.02.1994', 'Europe/London');
+```
+
+## Strict Validation
+
+An invalid date or time is never silently adjusted; it always throws an exception. This holds for every way an object is created or changed – the constructor, `from()`, `fromParts()`, and the `setDate()` and `setTime()` methods.
+
+```php
+new DateTimeImmutable('2024-02-31');         // throws (February has no 31st)
+DateTimeImmutable::fromParts(2024, 2, 31);   // throws
+$date->setDate(2024, 2, 31);                 // throws
+$date->setTime(25, 0);                       // throws (there is no 25th hour)
+```
+
+## String Output and JSON
+
+`__toString()` returns the date and time in the `Y-m-d H:i:s` format, so an object can be printed or concatenated directly:
+
+```php
+echo $date; // '2017-02-03 04:15:32'
+```
+
+Both classes implement `JsonSerializable` and serialize to the ISO 8601 format, which is commonly used in JavaScript:
+
+```php
+echo json_encode($date); // '"2017-02-03T04:15:32+01:00"'
+```
+
+## Additional Features of DateTime
+
+The mutable `DateTime` carries a few extra members that only make sense for a mutable object and are therefore **not** part of `DateTimeImmutable`.
+
+Its `from()` method also treats a small number as an offset in seconds from the current time. The immutable variant intentionally omits this shortcut – there a number is always a literal timestamp.
+
+```php
+DateTime::from(42); // the current time plus 42 seconds
+```
+
+`modifyClone(string $modify=''): static` returns a modified copy and leaves the original intact. On a mutable object it provides what `modify()` gives you for free on the immutable one:
+
+```php
+$original = DateTime::from('2017-02-03');
+$clone = $original->modifyClone('+1 day');
+$original->format('Y-m-d'); // '2017-02-03'  (unchanged)
+$clone->format('Y-m-d');    // '2017-02-04'
+```
+
+(since 4.0.7) `DateTime::relativeToSeconds(string $relativeTime): int` converts a relative time string to seconds:
+
+```php
+DateTime::relativeToSeconds('1 minute'); // 60
+DateTime::relativeToSeconds('-1 hour'); // -3600
+```
+
+Finally, `DateTime` defines the constants `MINUTE`, `HOUR`, `DAY`, `WEEK`, `MONTH` and `YEAR` expressing a length in seconds; `MONTH` and `YEAR` are averages, so use them only for rough estimates.

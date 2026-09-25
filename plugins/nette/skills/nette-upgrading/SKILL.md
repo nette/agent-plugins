@@ -159,17 +159,28 @@ normally. Every package has its own upgrade page, and you must upgrade one minor
 (3.0 -> 3.1 -> 3.2, never 3.0 -> 3.2). Temporarily silencing `E_USER_DEPRECATED` hides exactly the
 warnings this skill is about.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Upgrade Guide](https://doc.nette.org/en/migrations) – index of all package upgrade pages
-- [Application](https://doc.nette.org/en/application/upgrading) – routers, signals, type hints
-- [Forms](https://doc.nette.org/en/forms/upgrading) – getValues, CSRF, renamed controls
-- [HTTP](https://doc.nette.org/en/http/upgrading) – FileUpload, cookies, sessions, Sec-Fetch
-- [Utils](https://doc.nette.org/en/utils/upgrading) – named arguments, Finder, Reflection
-- [Security](https://doc.nette.org/en/security/upgrading) – Authenticator, SimpleIdentity, UserStorage
-- [Database](https://doc.nette.org/en/database/upgrading) – Context to Explorer
-- [Dependency Injection](https://doc.nette.org/en/dependency-injection/upgrading) – config keys
-- [Component Model](https://doc.nette.org/en/component-model/upgrading) – getComponents, monitor
-- Also [Caching](https://doc.nette.org/en/caching/upgrading), [Bootstrap](https://doc.nette.org/en/bootstrap/upgrading), [NEON](https://doc.nette.org/en/neon/upgrading), [Tracy](https://doc.nette.org/en/tracy/upgrading), [Mail](https://doc.nette.org/en/mail/upgrading), [PhpGenerator](https://doc.nette.org/en/php-generator/upgrading), [RobotLoader](https://doc.nette.org/en/robot-loader/upgrading), [SafeStream](https://doc.nette.org/en/safe-stream/upgrading)
+- [Upgrade Guide](../../docs/migrations/index.md) – index of all upgrade pages
+- [Application](../../docs/application/upgrading.md) – routers, signals, type hints
+- [Forms](../../docs/forms/upgrading.md) – getValues, CSRF, renamed controls
+- [HTTP](../../docs/http/upgrading.md) – FileUpload, cookies, sessions, Sec-Fetch
+- [Utils](../../docs/utils/upgrading.md) – named arguments, Finder, Reflection
+- [Security](../../docs/security/upgrading.md) – Authenticator, SimpleIdentity, UserStorage
+- [Database](../../docs/database/upgrading.md) – Context to Explorer
+- [Dependency Injection](../../docs/dependency-injection/upgrading.md) – config keys
+- [Component Model](../../docs/component-model/upgrading.md) – getComponents, monitor
+- [Caching](../../docs/caching/upgrading.md) – renamed constants and interfaces
+- [Bootstrap](../../docs/bootstrap/upgrading.md) – Configurator
+- [NEON](../../docs/neon/upgrading.md) – API changes
+- [Tracy](../../docs/tracy/upgrading.md) – API changes
+- [Mail](../../docs/mail/upgrading.md) – API changes
+- [PhpGenerator](../../docs/php-generator/upgrading.md) – API changes
+- [RobotLoader](../../docs/robot-loader/upgrading.md) – API changes
+- [SafeStream](../../docs/safe-stream/upgrading.md) – API changes
+- [Latte 2 to 3](../../docs/latte/cookbook/migration-from-latte2.md) – the Latte 3 migration
+- [Latte 3.0 to 3.1](../../docs/latte/cookbook/migration-from-latte-30.md) – behavior changes in 3.1
+
+nette/command-line 2.0 is a new API with no compatibility layer; follow [its upgrade guide](../nette-command-line/references/upgrading.md) from 1.x.

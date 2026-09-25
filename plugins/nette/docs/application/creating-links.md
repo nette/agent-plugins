@@ -1,0 +1,304 @@
+# Creating URL Links
+
+Contents:
+
+- [In the Presenter Template](#in-the-presenter-template)
+- [In the Code](#in-the-code)
+- [Links to Presenter](#links-to-presenter)
+- [Absolute Paths](#absolute-paths)
+- [Link to Current Page](#link-to-current-page)
+- [Changing Link Base (since 3.2.7)](#changing-link-base-since-327)
+- [Links to Signal](#links-to-signal)
+- [Links in Component](#links-in-component)
+- [Aliases (since 3.2.3)](#aliases-since-323)
+- [Invalid Links](#invalid-links)
+- [LinkGenerator](#linkgenerator)
+
+
+Creating links in Nette is as simple as pointing a finger. Just aim, and the framework will do all the work for you. We will show:
+
+- how to create links in templates and elsewhere
+- how to distinguish a link to the current page
+- what to do with invalid links
+
+Thanks to [bidirectional routing](routing.md), you will never have to hardcode URLs of your application into templates or code, which might change later or be complicated to assemble. In the link, just specify the presenter and action, pass any parameters, and the framework will generate the URL itself. Actually, it's very similar to calling a function. You'll like this.
+
+## In the Presenter Template
+
+Most often, we create links in templates, and the `n:href` attribute is a great helper:
+
+```latte
+<a n:href="Product:show">detail</a>
+```
+
+Notice that instead of the HTML attribute `href`, we used the [n:attribute](../latte/syntax.md#nattributes) `n:href`. Its value is not a URL, as would be the case with the `href` attribute, but the name of the presenter and action.
+
+Clicking on a link is, simply put, something like calling the `ProductPresenter::renderShow()` method. And if it has parameters in its signature, we can call it with arguments:
+
+```latte
+<a n:href="Product:show $product->id, $product->slug">product detail</a>
+```
+
+It is also possible to pass named parameters. The following link passes the parameter `lang` with the value `en`:
+
+```latte
+<a n:href="Product:show $product->id, lang: en">product detail</a>
+```
+
+If the `ProductPresenter::renderShow()` method does not have `$lang` in its signature, it can retrieve the parameter's value using `$lang = $this->getParameter('lang')` or from a [property](presenters.md#request-parameters-since-3114).
+
+If the parameters are stored in an array, they can be expanded using the `...` operator:
+
+```latte
+{var $args = [$product->id, lang => en]}
+<a n:href="Product:show, ...$args">product detail</a>
+```
+
+So-called [persistent parameters](presenters.md#persistent-parameters) are also automatically passed in links.
+
+The `n:href` attribute is very handy for HTML `<a>` tags. If we want to print the link elsewhere, for example in text, we use `{link}`:
+
+```latte
+URL is: {link Home:default}
+```
+
+## In the Code
+
+The `link()` method is used to create a link in the presenter:
+
+```php
+$url = $this->link('Product:show', $product->id);
+```
+
+Parameters can also be passed as an array, where named parameters can also be specified:
+
+```php
+$url = $this->link('Product:show', [$product->id, 'lang' => 'en']);
+```
+
+Links can also be created without a presenter, using the [LinkGenerator](#linkgenerator) and its `link()` method.
+
+Sometimes you need to create a link now but generate the actual URL only later. For that, there is the `lazyLink()` method, which returns a `Nette\Application\UI\Link` object. The advantage is that you can pass this object on, for example into a template, and before it is rendered you can still adjust its parameters using the `setParameter()` method. The URL itself is assembled only when the object is converted to a string:
+
+```php
+$link = $this->lazyLink('Product:show', $id);
+// ...
+echo $link; // the URL is generated only here
+```
+
+## Links to Presenter
+
+If the target of the link is a presenter and action, it has this syntax:
+
+```
+[//] [[[[:]module:]presenter:]action | this] [#fragment]
+```
+
+This format is supported by all Latte tags and all presenter methods that work with links, i.e., `n:href`, `{link}`, `{plink}`, `link()`, `lazyLink()`, `isLinkCurrent()`, `redirect()`, `redirectPermanent()`, `forward()`, `canonicalize()`, and also [LinkGenerator](#linkgenerator). So even if `n:href` is used in the examples, any of these functions could be there.
+
+The basic form is therefore `Presenter:action`:
+
+```latte
+<a n:href="Home:default">home page</a>
+```
+
+If we are linking to an action of the current presenter, we can omit its name:
+
+```latte
+<a n:href="default">home page</a>
+```
+
+If the target action is `default`, we can omit it, but the colon must remain:
+
+```latte
+<a n:href="Home:">home page</a>
+```
+
+Links can also point to other [modules](directory-structure.md#presenters-and-templates). Here, links are distinguished as relative to a nested submodule, or absolute. The principle is analogous to disk paths, only colons are used instead of slashes. Assuming the current presenter is part of the `Front` module, we would write:
+
+```latte
+<a n:href="Shop:Product:show">link to Front:Shop:Product:show</a>
+<a n:href=":Admin:Product:show">link to Admin:Product:show</a>
+```
+
+A special case is a link [to itself](#link-to-current-page), where we specify `this` as the target.
+
+```latte
+<a n:href="this">refresh</a>
+```
+
+We can link to a specific part of the page via a so-called fragment after the hash sign `#`:
+
+```latte
+<a n:href="Home:#main">link to Home:default and fragment #main</a>
+```
+
+(since 3.3.0) The fragment can also be set dynamically as an argument with the `#` key. Its value is automatically encoded and takes precedence over the fragment specified in the destination:
+
+```php
+$this->link('Home:default', ['#' => $fragment]);
+```
+
+## Absolute Paths
+
+Links generated using `link()` or `n:href` are always absolute paths (i.e., they start with `/`), but not absolute URLs with protocol and domain like `https://domain`.
+
+To generate an absolute URL, add two slashes at the beginning (e.g., `n:href="//Home:"`). Alternatively, you can switch the presenter to generate only absolute links by setting `$this->absoluteUrls = true`.
+
+The `|absoluteUrl` filter can also be used in the template to convert a relative path to an absolute path.
+
+## Link to Current Page
+
+The target `this` creates a link to the current page:
+
+```latte
+<a n:href="this">refresh</a>
+```
+
+At the same time, all parameters specified in the signature of the `action<Action>()` or `render<View>()` method are transferred (if `action<Action>()` is not defined). So if we are on the `Product:show` page with `id: 123`, the link to `this` will also pass this parameter.
+
+Of course, it is possible to specify parameters directly:
+
+```latte
+<a n:href="this refresh: 1">refresh</a>
+```
+
+The `isLinkCurrent()` function checks if the link target is identical to the current page. This can be used, for example, in a template to distinguish links, etc.
+
+The parameters are the same as for the `link()` method, but it is also possible to use the wildcard `*` instead of a specific action, which means any action of the given presenter.
+
+```latte
+{if !isLinkCurrent('Admin:login')}
+	<a n:href="Admin:login">Login</a>
+{/if}
+
+<li n:class="isLinkCurrent('Product:*') ? active">
+	<a n:href="Product:">...</a>
+</li>
+```
+
+In combination with `n:href` in a single element, a shorthand form can be used:
+
+```latte
+<a n:class="isLinkCurrent() ? active" n:href="Home:">...</a>
+```
+
+The wildcard `*` can only be used instead of the action, not the presenter.
+
+To determine if we are in a specific module or its submodule, use the `isModuleCurrent(moduleName)` method.
+
+```latte
+<li n:class="isModuleCurrent('Forum:Users') ? active">
+	<a n:href="Product:">...</a>
+</li>
+```
+
+## Changing Link Base (since 3.2.7)
+
+By default, relative links are derived from the current presenter. This can be changed using `{linkBase}`:
+
+```latte
+{linkBase Admin:Dashboard}
+<a n:href="Product:show">product detail</a>
+```
+
+The link will lead to `Admin:Dashboard:Product:show`. Only relative links are affected – absolute links starting with a colon and links to the current presenter (`this`, `show`) remain unchanged.
+
+`{linkBase}` applies to the entire template and is especially useful in layout templates, where it ensures consistent links regardless of the calling presenter. The tag must be placed at the beginning of the template, otherwise it throws a `CompileException`.
+
+## Links to Signal
+
+The target of a link doesn't have to be just a presenter and action, but also a [signal](components.md#signal) (it calls the `handle<Signal>()` method). Then the syntax is as follows:
+
+```
+[//] [sub-component:]signal! [#fragment]
+```
+
+The signal is thus distinguished by an exclamation mark:
+
+```latte
+<a n:href="click!">signal</a>
+```
+
+You can also create a link to a signal of a subcomponent (or sub-subcomponent):
+
+```latte
+<a n:href="componentName:click!">signal</a>
+```
+
+## Links in Component
+
+Because [components](components.md) are separate reusable units that should not have any ties to surrounding presenters, links work a bit differently here. The Latte attribute `n:href` and the tag `{link}`, as well as component methods like `link()` and others, **always consider the link target as the signal name**. Therefore, it is not even necessary to include an exclamation mark:
+
+```latte
+<a n:href="click">signal, not an action</a>
+```
+
+If we wanted to link to presenters in the component template, we would use the `{plink}` tag:
+
+```latte
+<a href={plink Home:default}>home</a>
+```
+
+or in the code
+
+```php
+$this->getPresenter()->link('Home:default')
+```
+
+## Aliases (since 3.2.3)
+
+Sometimes it can be useful to assign an easily memorable alias to a Presenter:action pair. For example, naming the homepage `Front:Home:default` simply as `home` or `Admin:Dashboard:default` as `admin`.
+
+Aliases are defined in the [configuration](configuration.md) under the key `application › aliases`:
+
+```neon
+application:
+    aliases:
+        home: Front:Home:default
+        admin: Admin:Dashboard:default
+        sign: Front:Sign:in
+```
+
+In links, they are then written using an at sign, for example:
+
+```latte
+<a n:href="@admin">administration</a>
+```
+
+They are also supported in all methods that work with links, such as `redirect()` and similar.
+
+## Invalid Links
+
+It may happen that we create an invalid link – either because it leads to a non-existent presenter, or because it passes more parameters than the target method accepts in its signature, or when a URL cannot be generated for the target action. How to handle invalid links is set in the presenter using `$this->invalidLinkMode`. It can take a combination of these values (constants):
+
+- `Presenter::InvalidLinkSilent` – silent mode, returns the character # as the URL
+- `Presenter::InvalidLinkWarning` – an E_USER_WARNING warning is thrown, which will be logged in production mode, but will not interrupt script execution
+- `Presenter::InvalidLinkTextual` – visual warning, prints the error directly into the link
+- `Presenter::InvalidLinkException` – throws InvalidLinkException
+
+The default setting is `InvalidLinkWarning` in production mode and `InvalidLinkWarning | InvalidLinkTextual` in development mode. `InvalidLinkWarning` in the production environment does not cause script interruption, but the warning will be logged. In the development environment, [Tracy](https://tracy.nette.org/en) catches it and displays a bluescreen. `InvalidLinkTextual` works by returning an error message as the URL, starting with the characters `#error:`. To make such links noticeable at first glance, add the following to your CSS:
+
+```css
+a[href^="#error:"] {
+	background: red;
+	color: white;
+}
+```
+
+If we do not want warnings to be produced in the development environment, we can suppress them directly in the [configuration](configuration.md).
+
+```neon
+application:
+	silentLinks: true
+```
+
+## LinkGenerator
+
+How to create links with similar convenience to the `link()` method, but without the presence of a presenter? That's what [Nette\Application\LinkGenerator](https://api.nette.org/application/master/Nette/Application/LinkGenerator.html) is for.
+
+LinkGenerator is a service that you can have passed via the constructor and then create links using its `link()` method.
+
+There is a difference compared to presenters. LinkGenerator creates all links directly as absolute URLs. Furthermore, there is no “current presenter”, so it is not possible to specify only the action name `link('default')` as the target or use relative paths to modules.
+
+Invalid links always throw `Nette\Application\UI\InvalidLinkException`.

@@ -1,0 +1,593 @@
+# Vite Integration
+
+Contents:
+
+- [Setting Up Vite](#setting-up-vite)
+  - [Step 1: Install Vite](#step-1-install-vite)
+  - [Step 2: Project Structure](#step-2-project-structure)
+  - [Step 3: Configure Vite](#step-3-configure-vite)
+  - [Step 4: Configure Nette](#step-4-configure-nette)
+  - [Step 5: Add scripts](#step-5-add-scripts)
+- [Entry Points](#entry-points)
+  - [Multiple Entry Points](#multiple-entry-points)
+  - [Important: Source vs Compiled Files](#important-source-vs-compiled-files)
+- [Development Mode](#development-mode)
+  - [Starting Development Server](#starting-development-server)
+  - [Auto-Reloading on Template Changes](#auto-reloading-on-template-changes)
+  - [Working on Different Domains](#working-on-different-domains)
+  - [HTTPS Development](#https-development)
+  - [Docker Development](#docker-development)
+  - [Testing on Other Devices](#testing-on-other-devices)
+- [Production Builds](#production-builds)
+- [Public Folder](#public-folder)
+- [Dynamic Imports](#dynamic-imports)
+- [TypeScript Support](#typescript-support)
+- [Additional Vite Configuration](#additional-vite-configuration)
+
+
+Modern JavaScript applications require sophisticated build tools. Nette Assets provides first-class integration with [Vite](https://vite.dev/), the next-generation frontend build tool. Get lightning-fast development with Hot Module Replacement (HMR) and optimized production builds with zero configuration hassle.
+
+- **Zero configuration** – automatic bridge between Vite and PHP templates
+- **Complete dependency management** – one tag handles all assets
+- **Hot Module Replacement** – instant JavaScript and CSS updates
+- **Optimized production builds** – code splitting and tree shaking
+
+Nette Assets integrates seamlessly with Vite, so you get all these benefits while writing your templates as usual.
+
+## Setting Up Vite
+
+Let's set up Vite step by step. Don't worry if you're new to build tools – we'll explain everything!
+
+### Step 1: Install Vite
+
+First, install Vite and the Nette plugin in your project:
+
+```shell
+npm install -D vite @nette/vite-plugin
+```
+
+This installs Vite and a special plugin that helps Vite work perfectly with Nette.
+
+### Step 2: Project Structure
+
+The standard approach is to place source asset files in an `assets/` folder in your project root, and the compiled versions in `www/assets/`:
+
+```
+web-project/
+├── assets/                   ← source files (SCSS, TypeScript, source images)
+│   ├── public/               ← static files (copied as-is)
+│   │   └── favicon.ico
+│   ├── images/
+│   │   └── logo.png
+│   ├── app.js                ← main entry point
+│   └── style.css             ← your styles
+└── www/                      ← public directory (document root)
+	├── assets/               ← compiled files will go here
+	└── index.php
+```
+
+The `assets/` folder contains your source files – the code you write. Vite will process these files and put the compiled versions in `www/assets/`.
+
+### Step 3: Configure Vite
+
+Create a `vite.config.ts` file in your project root. This file tells Vite where to find your source files and where to put the compiled ones.
+
+The Nette Vite plugin comes with smart defaults that make configuration simple. It assumes your front-end source files are in the `assets/` directory (option `root`) and compiled files go to `www/assets/` (option `outDir`). You only need to specify the [entry point](#entry-points):
+
+```js
+import { defineConfig } from 'vite';
+import nette from '@nette/vite-plugin';
+
+export default defineConfig({
+	plugins: [
+		nette({
+			entry: 'app.js',
+		}),
+	],
+});
+```
+
+Under the hood, besides `root` and `outDir` the plugin sets a few more Vite options so everything fits together: `base` to `''` (assets are served straight from the document root), `build.manifest` to `true` (so Nette Assets can map the hashed filenames), and `build.assetsDir` to `''` (compiled files land directly in `outDir`, without a `static/` subfolder). You can override any of them.
+
+The default `outDir` (`www/assets`) requires the `www/` directory to already exist. If it doesn't, the plugin stops with the error *“The output directory … does not exist”*.
+
+If you want to specify another directory name to build your assets, you will need to change a few options:
+
+```js
+export default defineConfig({
+	root: 'assets', // root directory of source assets
+
+	build: {
+		outDir: '../www/assets',  // where compiled files go
+	},
+
+	// ... other config ...
+});
+```
+
+The `outDir` path is considered relative to `root`, which is why there's `../` at the beginning.
+
+### Step 4: Configure Nette
+
+Tell Nette Assets about Vite in your `common.neon`:
+
+```neon
+assets:
+	mapping:
+		default:
+			type: vite      # tells Nette to use the ViteMapper
+			path: assets
+```
+
+### Step 5: Add scripts
+
+Add these scripts to your `package.json`:
+
+```json
+{
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build"
+	}
+}
+```
+
+Now you can:
+
+- `npm run dev` – start development server with hot reloading
+- `npm run build` – create optimized production files
+
+## Entry Points
+
+An **entry point** is the main file where your application starts. From this file, you import other files (CSS, JavaScript modules, images), creating a dependency tree. Vite follows these imports and bundles everything together.
+
+Example entry point `assets/app.js`:
+
+```js
+// Import styles
+import './style.css'
+
+// Import JavaScript modules
+import netteForms from 'nette-forms';
+import naja from 'naja';
+
+// Initialize your application
+netteForms.initOnLoad();
+naja.initialize();
+```
+
+In the template you can insert an entry point as follows:
+
+```latte
+{asset 'app.js'}
+```
+
+Nette Assets automatically generates all necessary HTML tags – JavaScript, CSS, and any other dependencies.
+
+### Multiple Entry Points
+
+Larger applications often need separate entry points:
+
+```js
+export default defineConfig({
+	plugins: [
+		nette({
+			entry: [
+				'app.js',      // public pages
+				'admin.js',    // admin panel
+			],
+		}),
+	],
+});
+```
+
+Use them in different templates:
+
+```latte
+{* In public pages *}
+{asset 'app.js'}
+
+{* In admin panel *}
+{asset 'admin.js'}
+```
+
+You can also use a **glob pattern** instead of listing each file, which is handy when every entry point lives in its own directory. It is expanded relative to `root` (glob support needs Node.js 22+):
+
+```js
+nette({
+	entry: 'entries/*.ts',  // all .ts files in assets/entries/
+}),
+```
+
+### Important: Source vs Compiled Files
+
+It's crucial to understand that in production you can only load files that Vite makes available – either through its manifest, or by copying them unchanged from the public folder:
+
+1. **Entry points** defined in `entry` (including modules they dynamically import) and **assets referenced from JavaScript or CSS** (images, fonts, …) – all of these are recorded in the manifest
+2. **Files from the `assets/public/` directory** – these are *not* in the manifest; they're copied as-is and `{asset}` locates them through a filesystem fallback
+
+You **cannot** use `{asset}` to load arbitrary files from `assets/` – if a file is not referenced anywhere, it will not be compiled. If you want to make Vite aware of other assets, you can move them to the [public folder](#public-folder).
+
+Please note that by default, Vite will inline all assets smaller than 4KB, so you will not be able to reference these files directly. (See [Vite documentation](https://vite.dev/guide/assets.html)).
+
+```latte
+{* ✓ This works - it's an entry point *}
+{asset 'app.js'}
+
+{* ✓ This works - it's in assets/public/ *}
+{asset 'favicon.ico'}
+
+{* ✗ This won't work - random file in assets/ *}
+{asset 'components/button.js'}
+```
+
+## Development Mode
+
+Development mode is completely optional but provides significant benefits when enabled. The main advantage is **Hot Module Replacement (HMR)** – see changes instantly without losing application state, making the development experience much smoother and faster.
+
+Vite is a modern build tool that makes development incredibly fast. Unlike traditional bundlers, Vite serves your code directly to the browser during development, which means instant server start no matter how large your project is, and lightning-fast updates.
+
+### Starting Development Server
+
+Run the development server:
+
+```shell
+npm run dev
+```
+
+You'll see:
+
+```
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+```
+
+Keep this terminal open while developing.
+
+While the dev server is running, the plugin writes a small signal file `www/assets/.vite/nette.json` containing its URL. Nette Assets on the PHP side reads this file and switches to loading from the dev server when both:
+
+1. the Vite dev server is running (the signal file exists), and
+2. your Nette application is in debug mode.
+
+The result:
+
+```latte
+{asset 'app.js'}
+{* In development: <script src="http://localhost:5173/@vite/client" type="module"></script>
+                   <script src="http://localhost:5173/app.js" type="module"></script> *}
+{* In production: <script src="/assets/app-4f3a2b1c.js" type="module" crossorigin></script> *}
+```
+
+No configuration needed – it just works! To disable the detection or set the dev server URL manually, see the [devServer option](configuration.md#vite-mapper).
+
+The signal file lives at `www/assets/.vite/nette.json` (right next to the production `manifest.json`). You can rename it with the plugin's `infoFile` option, which defaults to `.vite/nette.json`. If Nette doesn't pick up the running dev server, check that this file exists and points to the right URL.
+
+### Auto-Reloading on Template Changes
+
+Vite's HMR only watches files in its own module graph – your JavaScript, CSS, and what they import. Latte templates and PHP files are outside it, so editing them normally does nothing in the browser until you reload by hand.
+
+The `refresh` option fixes that. Give it glob patterns; whenever a matching file changes, the plugin triggers a full page reload:
+
+```js
+nette({
+	entry: 'app.js',
+	refresh: 'app/**/*.latte',  // reload on any Latte template change
+}),
+```
+
+You can also pass an array of patterns. They are matched against the whole project, not just `root`.
+
+### Working on Different Domains
+
+If your development server runs on something other than `localhost` (like `myapp.local`), you might encounter CORS (Cross-Origin Resource Sharing) issues. CORS is a security feature in web browsers that blocks requests between different domains by default. When your PHP application runs on `myapp.local` but Vite runs on `localhost:5173`, the browser sees these as different domains and blocks the requests.
+
+The cleanest fix is to tell the plugin where your PHP application lives via the `appUrl` option. The plugin then allows that origin (over http or https, on any port) in the dev server's CORS, so the browser never blocks the requests:
+
+```js
+nette({
+	entry: 'app.js',
+	appUrl: 'https://myapp.local',  // where your PHP app is served
+}),
+```
+
+If you'd rather configure Vite by hand, you have two options:
+
+**Option 1: Configure CORS**
+
+The simplest solution is to allow cross-origin requests from your PHP application:
+
+```js
+export default defineConfig({
+	// ... other config ...
+
+	server: {
+		cors: {
+			origin: 'http://myapp.local',  // your PHP app URL
+		},
+	},
+});
+```
+
+**Option 2: Run Vite on your domain**
+
+The other solution is to make Vite run on the same domain as your PHP application.
+
+```js
+export default defineConfig({
+	// ... other config ...
+
+	server: {
+		host: 'myapp.local',  // same as your PHP app
+	},
+});
+```
+
+Actually, even in this case, you need to configure CORS because the dev server runs on the same hostname but on a different port. However, in this case, CORS is automatically configured by the Nette Vite plugin.
+
+### HTTPS Development
+
+If you develop on HTTPS, you need certificates for your Vite development server. The easiest way is using a plugin that generates certificates automatically:
+
+```shell
+npm install -D vite-plugin-mkcert
+```
+
+Here's how to configure it in `vite.config.ts`:
+
+```js
+import mkcert from 'vite-plugin-mkcert';
+
+export default defineConfig({
+	// ... other config ...
+
+	plugins: [
+		mkcert(),  // generates certificates automatically and enables https
+		nette(),
+	],
+});
+```
+
+Note that if you're using the CORS configuration (Option 1 from above), you need to update the origin URL to use `https://` instead of `http://`.
+
+### Docker Development
+
+When you run Vite inside a Docker container, two things need attention: the browser on your machine must be able to reach the dev server, and Vite must detect file changes across the container boundary.
+
+First, [publish](https://docs.docker.com/get-started/docker-concepts/running-containers/publishing-ports/) the Vite port from the container and bind the dev server to all interfaces, so it is reachable from outside the container:
+
+```js
+export default defineConfig({
+	// ... other config ...
+
+	plugins: [
+		nette(),
+	],
+	server: {
+		host: '0.0.0.0',      // listen on all interfaces (required in a container)
+		port: 5173,           // must match the published port
+		strictPort: true,     // fail rather than pick another port
+		watch: {
+			usePolling: true, // enable if file changes aren't detected on mounted volumes
+		},
+	},
+});
+```
+
+The plugin writes the dev server URL into `nette.json` for the PHP side. Because `host: '0.0.0.0'` is not usable by a browser (it redirects to `localhost` for every asset), the plugin automatically rewrites it to `localhost` in that URL, so assets load correctly.
+
+If you open the application on a custom domain instead of `localhost`, set the plugin's `host` option to that domain:
+
+```js
+	plugins: [
+		nette({ host: 'myapp.local' }),  // the same domain as your PHP app
+	],
+```
+
+The plugin then uses this host for the dev server URL, adds it to the CORS origins, and whitelists it in Vite's `allowedHosts` – so it works without any manual CORS setup.
+
+For more complex setups – for example when Vite runs behind a reverse proxy where the public host, port, and protocol all differ from the internal address – set Vite's `server.origin` to the full public URL. The plugin respects it and writes it into `nette.json` as-is, instead of deriving the URL from the local socket:
+
+```js
+	server: {
+		origin: 'https://myapp.local:8443',  // the public URL where the browser reaches Vite
+	},
+```
+
+### Testing on Other Devices
+
+To open the running app on your phone or another device on the same network, set the plugin's `host` option to `'network'`. The plugin binds Vite to all interfaces and writes your machine's LAN IP (instead of `localhost`) into `nette.json`, so assets and HMR load from the other device:
+
+```js
+nette({
+	entry: 'app.js',
+	host: 'network',  // advertise the machine's LAN IP
+}),
+```
+
+Then browse to your PHP app from the device using that same LAN IP. If no external address is found, the plugin falls back to `localhost`.
+
+## Production Builds
+
+Create optimized production files:
+
+```shell
+npm run build
+```
+
+Vite will:
+
+- Minify all JavaScript and CSS
+- Split code into optimal chunks
+- Generate hashed filenames for cache-busting
+- Create a manifest file for Nette Assets
+
+Example output:
+
+```
+www/assets/
+├── app-4f3a2b1c.js       # Your main JavaScript (minified)
+├── app-7d8e9f2a.css      # Extracted CSS (minified)
+├── vendor-8c4b5e6d.js    # Shared dependencies
+└── .vite/
+	└── manifest.json     # Mapping for Nette Assets
+```
+
+The hashed filenames ensure browsers always load the latest version.
+
+## Public Folder
+
+Files in the `assets/public/` directory are copied to the output without processing:
+
+```
+assets/
+├── public/
+│   ├── favicon.ico
+│   ├── robots.txt
+│   └── images/
+│       └── og-image.jpg
+├── app.js
+└── style.css
+```
+
+Reference them normally:
+
+```latte
+{* These files are copied as-is *}
+<link rel="icon" href={asset 'favicon.ico'}>
+<meta property="og:image" content={asset 'images/og-image.jpg'}>
+```
+
+For public files, you can use FilesystemMapper features. The `extension` option applies to references without an extension (e.g. `{asset 'images/og-image'}` finds `og-image.webp` first):
+
+```neon
+assets:
+	mapping:
+		default:
+			type: vite
+			path: assets
+			extension: [webp, jpg, png]  # for extension-less references
+			versioning: true             # Add cache-busting
+```
+
+In the `vite.config.ts` configuration you can change the public folder using the `publicDir` option.
+
+## Dynamic Imports
+
+Vite automatically splits code for optimal loading. Dynamic imports allow you to load code only when it's actually needed, reducing the initial bundle size:
+
+```js
+// Load heavy components on demand
+button.addEventListener('click', async () => {
+	let { Chart } = await import('./components/chart.js')
+	new Chart(data)
+})
+```
+
+Dynamic imports create separate chunks that are loaded only when needed. This is called “code splitting” and it's one of Vite's most powerful features. When you use dynamic imports, Vite automatically creates separate JavaScript files for each dynamically imported module.
+
+The `{asset 'app.js'}` tag does **not** automatically preload these dynamic chunks. This is intentional behavior – we don't want to download code that might never be used. The chunks are downloaded only when the dynamic import is executed.
+
+However, if you know that certain dynamic imports are critical and will be needed soon, you can preload them:
+
+```latte
+{* Main entry point *}
+{asset 'app.js'}
+
+{* Preload critical dynamic imports *}
+{preload 'components/chart.js'}
+```
+
+This tells the browser to download the chart component in the background, so it's ready immediately when needed.
+
+## TypeScript Support
+
+TypeScript works out of the box:
+
+```ts
+// assets/main.ts
+interface User {
+	name: string
+	email: string
+}
+
+export function greetUser(user: User): void {
+	console.log(`Hello, ${user.name}!`)
+}
+```
+
+Reference TypeScript files normally (as with any file, `main.ts` must be an entry point):
+
+```latte
+{asset 'main.ts'}
+```
+
+For full TypeScript support, install it:
+
+```shell
+npm install -D typescript
+```
+
+## Additional Vite Configuration
+
+Here are some useful Vite configuration options with detailed explanations:
+
+```js
+export default defineConfig({
+	// Root directory containing source assets
+	root: 'assets',
+
+	// Folder whose contents are copied to output directory as-is
+	// Default: 'public' (relative to 'root')
+	publicDir: 'public',
+
+	build: {
+		// Where to put compiled files (relative to 'root')
+		outDir: '../www/assets',
+
+		// Empty output directory before building?
+		// Useful to remove old files from previous builds
+		emptyOutDir: true,
+
+		// Subdirectory within outDir for generated chunks and assets
+		// This helps organize the output structure
+		assetsDir: 'static',
+
+		rollupOptions: {
+			// Entry point(s) - can be a single file or array of files
+			// Each entry point becomes a separate bundle
+			input: [
+				'app.js',      // main application
+				'admin.js',    // admin panel
+			],
+		},
+	},
+
+	server: {
+		// Host to bind the dev server to
+		// Use '0.0.0.0' to expose to network
+		host: 'localhost',
+
+		// Port for the dev server
+		port: 5173,
+
+		// CORS configuration for cross-origin requests
+		cors: {
+			origin: 'http://myapp.local',
+		},
+	},
+
+	css: {
+		// Enable CSS source maps in development
+		devSourcemap: true,
+	},
+
+	plugins: [
+		nette(),
+	],
+});
+```
+
+> [!WARNING]
+> Watch out for the entry paths in `rollupOptions.input` above: Rollup resolves relative paths against the current working directory (your project root), **not** against `root: 'assets'`. So a bare `'app.js'` won't exist at build time. Either use the plugin's `entry` option (which resolves entry paths relative to `root`), or write the paths relative to the project root, e.g. `'assets/app.js'`.
+
+That's it! You now have a modern build system integrated with Nette Assets.

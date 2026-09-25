@@ -1,0 +1,117 @@
+# Sandbox
+
+Contents:
+
+- [Secure Default Policy](#secure-default-policy)
+- [Custom Policy](#custom-policy)
+- [Activating the Sandbox](#activating-the-sandbox)
+- [Checking the Generated Code](#checking-the-generated-code)
+- [What the Sandbox Doesn't Guard](#what-the-sandbox-doesnt-guard)
+
+
+Sandbox provides a security layer that gives you control over which tags, PHP functions, methods, etc., can be used in templates. Thanks to the sandbox mode, you can safely collaborate with a client or external coder on template creation without worrying about compromising the application or performing unwanted operations.
+
+How does it work? We simply define what we want to allow in the template. Initially, everything is forbidden and we gradually grant permissions. The following code allows the template author to use the `{block}`, `{if}`, `{else}` and `{=}` tags (the latter is a tag for [printing a variable or expression](tags.md#printing)) and all filters:
+
+```php
+$policy = new Latte\Sandbox\SecurityPolicy;
+$policy->allowTags(['block', 'if', 'else', '=']);
+$policy->allowFilters($policy::All);
+
+$latte->setPolicy($policy);
+```
+
+We can also allow access to individual global functions, methods, or properties of objects:
+
+```php
+$policy->allowFunctions(['trim', 'strlen']);
+$policy->allowMethods(Nette\Security\User::class, ['isLoggedIn', 'isAllowed']);
+$policy->allowProperties(Nette\Database\Row::class, $policy::All);
+```
+
+Permissions granted with `allowMethods()` and `allowProperties()` also apply to instances of subclasses of the given class (the check uses `is_a()`). Method names are case-insensitive, just as in PHP, while property names are case-sensitive.
+
+Isn't that amazing? You can control everything at a very low level. If the template attempts to call a disallowed function or access a disallowed method or property, it throws a `Latte\SecurityViolationException`.
+
+## Secure Default Policy
+
+Creating a policy from scratch, where everything is forbidden, might not be convenient, so you can start from a secure baseline:
+
+```php
+$policy = Latte\Sandbox\SecurityPolicy::createSafePolicy();
+```
+
+This secure baseline means that all standard tags are allowed except for `contentType`, `debugbreak`, `dump`, `extends`, `import`, `include`, `layout`, `php`, `sandbox`, `snippet`, `snippetArea`, `templatePrint`, `varPrint`, `embed`. All standard filters are allowed except for `datastream`, `noescape`, and `nocheck`. Finally, access to the methods and properties of the `$iterator` object is allowed.
+
+## Custom Policy
+
+Instead of `SecurityPolicy`, you can pass your own implementation of the `Latte\Policy` interface to `setPolicy()`. Keep in mind, though, that tags, filters and functions are checked as early as template compilation, and the compiled template is then cached. So that two differently configured instances of your class don't end up sharing one compiled template, add a `getCacheSignature()` method that returns a value describing the rules, for example an array of them:
+
+```php
+class MyPolicy implements Latte\Policy
+{
+	public function __construct(
+		private array $functions,
+	) {
+	}
+
+	public function getCacheSignature(): mixed
+	{
+		return $this->functions;
+	}
+
+	// isTagAllowed(), isFunctionAllowed() etc.
+}
+```
+
+If the method is missing, Latte warns you with a deprecation notice.
+
+## Activating the Sandbox
+
+The rules apply to the template that we insert with the [`{sandbox}`](tags.md#including-templates) tag. This is somewhat analogous to `{include}`: it enables sandbox mode and, like `{include}`, does not automatically pass the surrounding variables. You can, however, pass them explicitly, for example `{sandbox 'untrusted.latte', a: 1, b: 2}`:
+
+```latte
+{sandbox 'untrusted.latte'}
+```
+
+Thus, the layout and individual pages can freely use all tags and variables; restrictions will only be applied to the `untrusted.latte` template.
+
+Some violations, like using a forbidden tag or filter, are detected at compile time. Others, like calling disallowed methods of an object, are detected at runtime. The template can also contain any other errors. To prevent an exception from the sandboxed template from disrupting the entire rendering process, you can define your [own exception handler](develop.md#exception-handler), which might, for example, just log it.
+
+If we wanted to enable sandbox mode directly for all templates, it's easy:
+
+```php
+$latte->setSandboxMode();
+```
+
+## Checking the Generated Code
+
+To ensure that a user doesn't insert PHP code into the page that is syntactically correct but forbidden and causes a PHP Compile Error, we recommend having [templates checked by the PHP linter](develop.md#checking-generated-code-since-307). You can activate this functionality using the `Engine::enablePhpLinter()` method. Since it needs to call the PHP binary for the check, pass its path as a parameter:
+
+```php
+$latte = new Latte\Engine;
+$latte->enablePhpLinter('/path/to/php');
+```
+
+## What the Sandbox Doesn't Guard
+
+Beyond the tags, functions, methods, and properties you allow, the sandbox unconditionally forbids several constructs regardless of the policy: the `new` operator, the `$this` variable, variable variables (`$$var`), and the `|noescape` filter.
+
+Reading all of an object's properties at once is guarded as well. Casting an object to an array with `(array)` is always forbidden, because it would reveal even its private properties. And `{foreach}` over an ordinary object (one that doesn't implement `Traversable`) works only if the policy allows all of its public properties.
+
+The sandbox reliably guards *explicit* operations: calls to functions, methods, and filters, as well as access to object properties. There is one thing its checks cannot reach, however, and it is worth knowing about.
+
+When you print an object or use it in any string context, PHP automatically calls its magic method `__toString()`. The policy does not check this *implicit* conversion, so it runs even if the `__toString()` method is not among the allowed ones. The template author can thus trigger `__toString()` on any object they can reach in the template. This differs from the explicit form `{$obj->__toString()}`, which the sandbox blocks:
+
+```latte
+{$obj}              {* calls __toString() *}
+{$obj . '!'}        {* same (concatenation) *}
+{="price: $obj"}    {* same (string interpolation) *}
+{$obj|upper}        {* same (through a filter) *}
+```
+
+The purpose of `__toString()` is to produce a text representation of the object, so its reachability usually does no harm. A problem arises only when `__toString()` has side effects (such as writing to or querying a database) or when it returns sensitive data.
+
+Latte could catch these most direct cases, but not reliably in all of them. Converting an object to a string is not a method call but a built-in language operation that occurs in many places within an expression. In some of them (for example, comparing an object with a string, or inside a called function or filter) it could not be intercepted reliably without also blocking legitimate use. That is why you need to count on `__toString()` being reachable.
+
+**Do not expose objects whose `__toString()` has side effects or reveals sensitive data to the sandbox.** This applies not only to objects you pass to the template directly, but also to those the author obtains as the return value of an allowed function, method, or property.

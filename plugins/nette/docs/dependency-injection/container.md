@@ -1,0 +1,138 @@
+# What Is a DI Container?
+
+
+A Dependency Injection Container (DIC or DI container) is an object responsible for instantiating and configuring other objects (called services).
+
+It might surprise you, but in many cases, you don't need a dependency injection container to leverage the benefits of dependency injection (DI for short). After all, even in the [introductory chapter](introduction.md), we showed specific examples of DI, and no container was necessary.
+
+However, when managing a large number of objects with complex dependencies, a DI container becomes very useful. This is often the case for web applications built on a framework.
+
+In the previous chapter, we introduced the classes `Article` and `EditController`. Both have dependencies, namely the database and the factory `ArticleFactory`. And for these classes, we will now create a container. Of course, creating a container for such a simple example is overkill. But we'll create one to show how it looks and works.
+
+Here is a simple hardcoded container for the above example:
+
+```php
+class Container
+{
+	public function createDatabase(): Nette\Database\Connection
+	{
+		return new Nette\Database\Connection('mysql:', 'root', '***');
+	}
+
+	public function createArticleFactory(): ArticleFactory
+	{
+		return new ArticleFactory($this->createDatabase());
+	}
+
+	public function createEditController(): EditController
+	{
+		return new EditController($this->createArticleFactory());
+	}
+}
+```
+
+The usage would look like this:
+
+```php
+$container = new Container;
+$controller = $container->createEditController();
+```
+
+We simply request the object from the container, without needing to know how to create it or what its dependencies are; the container handles all of that. Dependencies are automatically injected by the container. That's its strength.
+
+Currently, the container has all the information hardcoded. So, let's take the next step and add parameters to make the container truly useful:
+
+```php
+class Container
+{
+	public function __construct(
+		private array $parameters,
+	) {
+	}
+
+	public function createDatabase(): Nette\Database\Connection
+	{
+		return new Nette\Database\Connection(
+			$this->parameters['db.dsn'],
+			$this->parameters['db.user'],
+			$this->parameters['db.password'],
+		);
+	}
+
+	// ...
+}
+
+$container = new Container([
+	'db.dsn' => 'mysql:',
+	'db.user' => 'root',
+	'db.password' => '***',
+]);
+```
+
+Sharp-eyed readers might notice a problem. Every time we retrieve an `EditController` object, new instances of `ArticleFactory` and the database connection are also created. We definitely don't want that.
+
+Therefore, we'll add a `getService()` method that will always return the same instances:
+
+```php
+class Container
+{
+	private array $services = [];
+
+	public function __construct(
+		private array $parameters,
+	) {
+	}
+
+	public function getService(string $name): object
+	{
+		if (!isset($this->services[$name])) {
+			// getService('Database') will call createDatabase()
+			$method = 'create' . $name;
+			$this->services[$name] = $this->$method();
+		}
+		return $this->services[$name];
+	}
+
+	// ...
+}
+```
+
+On the first call, for example `$container->getService('Database')`, it calls `createDatabase()` to create the database object, stores it in the `$services` array, and returns it. On subsequent calls, it returns the already stored instance directly.
+
+We also modify the rest of the container to use `getService()`:
+
+```php
+class Container
+{
+	// ...
+
+	public function createArticleFactory(): ArticleFactory
+	{
+		return new ArticleFactory($this->getService('Database'));
+	}
+
+	public function createEditController(): EditController
+	{
+		return new EditController($this->getService('ArticleFactory'));
+	}
+}
+```
+
+By the way, the term service refers to any object managed by the container. Hence the method name `getService()`.
+
+Done. We have a fully functional DI container! And we can use it:
+
+```php
+$container = new Container([
+	'db.dsn' => 'mysql:',
+	'db.user' => 'root',
+	'db.password' => '***',
+]);
+
+$controller = $container->getService('EditController');
+$database = $container->getService('Database');
+```
+
+As you can see, writing a DIC isn't difficult. It's worth noting that the objects themselves are unaware that a container is creating them. Consequently, it's possible to create any PHP object this way without modifying its source code.
+
+Manually creating and maintaining the container class can quickly become a nightmare. Therefore, in the next chapter, we will discuss the [Nette DI Container](nette-container.md), which can generate and update itself almost automatically.

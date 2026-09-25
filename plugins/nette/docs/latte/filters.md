@@ -1,0 +1,1025 @@
+# Latte Filters
+
+Contents:
+
+- [Usage](#usage)
+  - [Nullsafe Filters (since 3.1.0)](#nullsafe-filters-since-310)
+- [Filters](#filters)
+  - [`accept` (since 3.1.0)](#accept-since-310)
+  - [`batch(int $length, mixed $rest=null): Generator`](#batchint-length-mixed-restnull-generator)
+  - [`breakLines`](#breaklines)
+  - [`bytes(int $precision=2)`](#bytesint-precision2)
+  - [`ceil(int $precision=0)`](#ceilint-precision0)
+  - [`capitalize`](#capitalize)
+  - [`checkUrl`](#checkurl)
+  - [`clamp(int|float $min, int|float $max)`](#clampintfloat-min-intfloat-max)
+  - [`column(string|int|null $columnKey, string|int|null $indexKey=null)` (since 3.1.3)](#columnstringintnull-columnkey-stringintnull-indexkeynull-since-313)
+  - [`commas(?string $lastGlue=null)` (since 3.1.3)](#commasstring-lastgluenull-since-313)
+  - [`dataStream(?string $type=null)`](#datastreamstring-typenull)
+  - [`date(string $format='j. n. Y')`](#datestring-formatj-n-y)
+  - [`escapeUrl`](#escapeurl)
+  - [`explode(string $separator=)`](#explodestring-separator)
+  - [`filter(callable $predicate): iterable` (since 3.0.20)](#filtercallable-predicate-iterable-since-3020)
+  - [`first`](#first)
+  - [`floor(int $precision=0)`](#floorint-precision0)
+  - [`firstLower` (since 3.0.22)](#firstlower-since-3022)
+  - [`firstUpper`](#firstupper)
+  - [`group(string|int|\Closure $by): iterable` (since 3.0.16)](#groupstringintclosure-by-iterable-since-3016)
+  - [`implode(string $glue=)`](#implodestring-glue)
+  - [`indent(int $level=1, string $chars="\t")`](#indentint-level1-string-charst)
+  - [`last`](#last)
+  - [`length`](#length)
+  - [`localDate(?string $format=null, ?string $date=null, ?string $time=null)`](#localdatestring-formatnull-string-datenull-string-timenull)
+  - [`lower`](#lower)
+  - [`map(callable $transformer): iterable` (since 3.1.6)](#mapcallable-transformer-iterable-since-316)
+  - [`nocheck`](#nocheck)
+  - [`noescape`](#noescape)
+  - [`number(int $decimals=0, string $decPoint='.', string $thousandsSep=',')`](#numberint-decimals0-string-decpoint-string-thousandssep)
+  - [`number(string $format)`](#numberstring-format)
+  - [`padLeft(int $length, string $append=' ')`](#padleftint-length-string-append-)
+  - [`padRight(int $length, string $append=' ')`](#padrightint-length-string-append-)
+  - [`query`](#query)
+  - [`random`](#random)
+  - [`repeat(int $count)`](#repeatint-count)
+  - [`replace(string|array $search, string|array $replace=)`](#replacestringarray-search-stringarray-replace)
+  - [`replaceRE(string $pattern, string $replacement=)`](#replacerestring-pattern-string-replacement)
+  - [`reverse(bool $preserveKeys=false)`](#reversebool-preservekeysfalse)
+  - [`round(int $precision=0)`](#roundint-precision0)
+  - [`slice(int $start, ?int $length=null, bool $preserveKeys=false)`](#sliceint-start-int-lengthnull-bool-preservekeysfalse)
+  - [`limit(int $length)` (since 3.1.3)](#limitint-length-since-313)
+  - [`sort(?Closure $comparison=null, string|int|\Closure|null $by=null, string|int|\Closure|bool $byKey=false)`](#sortclosure-comparisonnull-stringintclosurenull-bynull-stringintclosurebool-bykeyfalse)
+  - [`spaceless`](#spaceless)
+  - [`stripHtml`](#striphtml)
+  - [`substr(int $start, ?int $length=null)`](#substrint-start-int-lengthnull)
+  - [`toggle` (since 3.1.0)](#toggle-since-310)
+  - [`translate(...$args)`](#translateargs)
+  - [`trim(string $charlist=" \t\n\r\0\x0B\u{A0}")`](#trimstring-charlist-tnr0x0bua0)
+  - [`truncate(int $length, string $append='…')`](#truncateint-length-string-append)
+  - [`upper`](#upper)
+  - [`webalize`](#webalize)
+
+
+In templates, we can use functions that help modify or reformat data into its final form. We call them *filters*.
+
+**Transformation**
+
+|  |  |
+| --- | --- |
+| `batch` | [listing linear data in a table](#batchint-length-mixed-restnull-generator) |
+| `breakLines` | [Inserts HTML line breaks before all newlines](#breaklines) |
+| `bytes` | [formats size in bytes](#bytesint-precision2) |
+| `clamp` | [clamps a value to the given range](#clampintfloat-min-intfloat-max) |
+| `column` | [extracts a single column from an array](#columnstringintnull-columnkey-stringintnull-indexkeynull-since-313) |
+| `commas` | [joins an array with commas](#commasstring-lastgluenull-since-313) |
+| `limit` | [limits the length of an array, string, or iterator](#limitint-length-since-313) |
+| `dataStream` | [Data URI protocol conversion](#datastreamstring-typenull) |
+| `date` | [formats the date and time](#datestring-formatj-n-y) |
+| `explode` | [splits a string into an array by a delimiter](#explodestring-separator) |
+| `filter` | [filters elements of an iterable by a predicate](#filtercallable-predicate-iterable-since-3020) |
+| `first` | [returns the first element of an array or character of a string](#first) |
+| `group` | [groups data according to various criteria](#groupstringintclosure-by-iterable-since-3016) |
+| `implode` | [joins an array into a string](#implodestring-glue) |
+| `indent` | [indents the text from the left by a given number of tabs](#indentint-level1-string-charst) |
+| `join` | [joins an array into a string](#implodestring-glue) |
+| `last` | [returns the last element of an array or character of a string](#last) |
+| `length` | [returns the length of a string or array](#length) |
+| `localDate` | [formats the date and time according to the locale](#localdatestring-formatnull-string-datenull-string-timenull) |
+| `map` | [applies a callback to each element](#mapcallable-transformer-iterable-since-316) |
+| `number` | [formats a number](#numberint-decimals0-string-decpoint-string-thousandssep) |
+| `padLeft` | [pads a string to a certain length from the left](#padleftint-length-string-append-) |
+| `padRight` | [pads a string to a certain length from the right](#padrightint-length-string-append-) |
+| `random` | [returns a random element of an array or character of a string](#random) |
+| `repeat` | [repeats a string](#repeatint-count) |
+| `replace` | [replaces occurrences of the search string](#replacestringarray-search-stringarray-replace) |
+| `replaceRE` | [replaces occurrences based on a regular expression](#replacerestring-pattern-string-replacement) |
+| `reverse` | [reverses a UTF‑8 string or array](#reversebool-preservekeysfalse) |
+| `slice` | [extracts a slice of an array or a string](#sliceint-start-int-lengthnull-bool-preservekeysfalse) |
+| `sort` | [sorts an array](#sortclosure-comparisonnull-stringintclosurenull-bynull-stringintclosurebool-bykeyfalse) |
+| `spaceless` | [removes whitespace](#spaceless), similar to the [spaceless](tags.md) tag |
+| `split` | [splits a string into an array by a delimiter](#explodestring-separator) |
+| `strip` | [removes whitespace](#spaceless), deprecated alias for `spaceless` |
+| `stripHtml` | [removes HTML tags and converts HTML entities to characters](#striphtml) |
+| `substr` | [returns part of a string](#substrint-start-int-lengthnull) |
+| `trim` | [strips leading and trailing whitespace or other characters](#trimstring-charlist-tnr0x0bua0) |
+| `translate` | [translation into other languages](#translateargs) |
+| `truncate` | [shortens the length preserving whole words](#truncateint-length-string-append) |
+| `webalize` | [adjusts a UTF‑8 string to the format used in URLs](#webalize) |
+
+**Letter Casing**
+
+|  |  |
+| --- | --- |
+| `capitalize` | [lowercase, first letter of each word uppercase](#capitalize) |
+| `firstLower` | [converts the first letter to lower case](#firstlower-since-3022) |
+| `firstUpper` | [converts the first letter to uppercase](#firstupper) |
+| `lower` | [converts to lowercase](#lower) |
+| `upper` | [converts to uppercase](#upper) |
+
+**Rounding**
+
+|  |  |
+| --- | --- |
+| `ceil` | [rounds a number up to a given precision](#ceilint-precision0) |
+| `floor` | [rounds a number down to a given precision](#floorint-precision0) |
+| `round` | [rounds a number to a given precision](#roundint-precision0) |
+
+**HTML Attributes**
+
+|  |  |
+| --- | --- |
+| `accept` | [accepts the new behavior of smart attributes](#accept-since-310) |
+| `toggle` | [toggles the presence of an HTML attribute](#toggle-since-310) |
+
+**Escaping**
+
+|  |  |
+| --- | --- |
+| `escapeUrl` | [escapes a parameter in a URL](#escapeurl) |
+| `noescape` | [outputs a variable without escaping](#noescape) |
+| `query` | [generates a query string in a URL](#query) |
+
+There are also escaping filters for HTML (`escapeHtml` and `escapeHtmlComment`), XML (`escapeXml`), JavaScript (`escapeJs`), CSS (`escapeCss`) and iCalendar (`escapeICal`), which Latte uses itself thanks to [context-aware escaping](safety-first.md#context-aware-escaping) and you do not need to write them.
+
+**Security**
+
+|  |  |
+| --- | --- |
+| `checkUrl` | [sanitizes a URL address from dangerous inputs](#checkurl) |
+| `nocheck` | [prevents automatic URL sanitization](#nocheck) |
+
+Latte [automatically checks](safety-first.md#link-checking) the `src` and `href` attributes, so you almost don't need to use the `checkUrl` filter.
+
+All built-in filters are designed for strings in UTF‑8 encoding.
+
+## Usage
+
+Filters are written after the pipe symbol (a space before it is allowed):
+
+```latte
+<h1>{$heading|upper}</h1>
+```
+
+Filters can be chained, and they are applied in order from left to right:
+
+```latte
+<h1>{$heading|lower|capitalize}</h1>
+```
+
+Parameters are entered after the filter name, separated by colons or commas:
+
+```latte
+<h1>{$heading|truncate:20,''}</h1>
+```
+
+Filters can also be applied to an expression:
+
+```latte
+{var $name = ($title|upper) . ($subtitle|lower)}
+```
+
+[Custom filters](custom-filters.md) can be registered this way:
+
+```php
+$latte = new Latte\Engine;
+$latte->addFilter('shortify', fn(string $s, int $len = 10) => mb_substr($s, 0, $len));
+```
+
+It is then called in the template like this:
+
+```latte
+<p>{$text|shortify}</p>
+<p>{$text|shortify:100}</p>
+```
+
+### Nullsafe Filters (since 3.1.0)
+
+Any filter can be made nullsafe by using `?|` instead of `|`. If the value is `null`, the filter is not executed and `null` is returned. Subsequent filters in the chain are also skipped.
+
+This is useful in combination with HTML attributes, which are omitted if the value is `null`.
+
+```latte
+<div title={$title?|upper}>
+{* If $title is null: <div> *}
+{* If $title is 'hello': <div title="HELLO"> *}
+```
+
+## Filters
+
+### `accept` (since 3.1.0)
+
+The filter is used during [migration from Latte 3.0](cookbook/migration-from-latte-30.md) to acknowledge that you've reviewed the attribute behavior change and accept it. It does not modify the value.
+
+This is a temporary tool. Once the migration is complete and migration warnings are disabled, you should remove this filter from your templates.
+
+### `batch(int $length, mixed $rest=null): Generator`
+
+A filter that simplifies listing linear data in a table format. It returns a generator of arrays with the specified number of items. If you provide a second parameter, it will be used to fill in missing items in the last row.
+
+```latte
+{var $items = ['a', 'b', 'c', 'd', 'e']}
+<table>
+{foreach ($items|batch: 3, 'No item') as $row}
+	<tr>
+		{foreach $row as $column}
+			<td>{$column}</td>
+		{/foreach}
+	</tr>
+{/foreach}
+</table>
+```
+
+Outputs:
+
+```latte
+<table>
+	<tr>
+		<td>a</td>
+		<td>b</td>
+		<td>c</td>
+	</tr>
+	<tr>
+		<td>d</td>
+		<td>e</td>
+		<td>No item</td>
+	</tr>
+</table>
+```
+
+See also [group](#groupstringintclosure-by-iterable-since-3016) and the [iterateWhile](tags.md#iteratewhile) tag.
+
+### `breakLines`
+
+Inserts an HTML `<br>` tag before each newline character.
+
+```latte
+{var $s = "Text & with \n newline"}
+{$s|breakLines}    {* outputs "Text &amp; with <br>\n newline" *}
+```
+
+### `bytes(int $precision=2)`
+
+Formats the size in bytes into a human-readable form. If the [locale](develop.md#locale-since-3018) is set, the corresponding decimal and thousand separators are used.
+
+```latte
+{$size|bytes}     {* 0 B, 1.25 GB, … *}
+{$size|bytes:0}   {* 10 B, 1 GB, … *}
+```
+
+### `ceil(int $precision=0)`
+
+Rounds a number up to the given precision.
+
+```latte
+{=3.4|ceil}         {* outputs 4      *}
+{=135.22|ceil:1}    {* outputs 135.3  *}
+{=135.22|ceil:3}    {* outputs 135.22 *}
+```
+
+See also [floor](#floorint-precision0), [round](#roundint-precision0).
+
+### `capitalize`
+
+Words will start with uppercase letters, all remaining characters will be lowercase. Requires the `mbstring` PHP extension.
+
+```latte
+{='i like LATTE'|capitalize}  {* outputs 'I Like Latte' *}
+```
+
+See also [firstLower](#firstlower-since-3022), [firstUpper](#firstupper), [lower](#lower), [upper](#upper).
+
+### `checkUrl`
+
+Enforces URL sanitization. It checks whether the URL uses a safe scheme (`http`, `https`, `ftp`, `mailto`, `tel`, `sms`) or is a relative link, and blocks dangerous schemes such as `javascript:` that could pose a security risk.
+
+```latte
+{var $link = 'javascript:window.close()'}
+<a data-href={$link|checkUrl}>checked</a>
+<a data-href={$link}>unchecked</a>
+```
+
+Outputs:
+
+```latte
+<a data-href="">checked</a>
+<a data-href="javascript:window.close()">unchecked</a>
+```
+
+See also [nocheck](#nocheck).
+
+### `clamp(int|float $min, int|float $max)`
+
+Clamps a value to the given inclusive range of min and max.
+
+```latte
+{$level|clamp: 0, 255}
+```
+
+Also exists as a [function](functions.md#clampintfloat-value-intfloat-min-intfloat-max-intfloat).
+
+### `column(string|int|null $columnKey, string|int|null $indexKey=null)` (since 3.1.3)
+
+Returns the values of a single column `$columnKey` from a multidimensional array as a new array. Can also be used on arrays of objects to extract property values.
+
+```latte
+{var $users = [
+	[id: 30, name: 'John', age: 30],
+	[id: 32, name: 'Jane', age: 25],
+	[id: 33, age: 35],
+]}
+
+{$users|column: 'name'}
+{* returns ['John', 'Jane'] *}
+
+{$users|column: 'name', 'id'}
+{* returns [30 => 'John', 32 => 'Jane'] *}
+```
+
+If you pass `null` as the column key, it will reindex the array according to `$indexKey`.
+
+### `commas(?string $lastGlue=null)` (since 3.1.3)
+
+Joins array elements with a comma and space (`', '`). A convenient shortcut for listing items in a human-readable format.
+
+```latte
+{var $items = ['apples', 'oranges', 'bananas']}
+{$items|commas}
+{* outputs 'apples, oranges, bananas' *}
+```
+
+You can also provide a custom separator for the last pair of items:
+
+```latte
+{$items|commas: ' and '}
+{* outputs 'apples, oranges and bananas' *}
+
+{=['PHP', 'JavaScript', 'Python']|commas: ', or '}
+{* outputs 'PHP, JavaScript, or Python' *}
+```
+
+See also [implode](#implodestring-glue).
+
+### `dataStream(?string $type=null)`
+
+Converts content to the data URI scheme. This allows embedding images into HTML or CSS without needing to link external files. If `$type` is `null`, the MIME type is detected automatically.
+
+Let's have an image in the variable `$img = Image::fromFile('image.gif')`, then
+
+```latte
+<img src={$img|dataStream}>
+```
+
+Outputs, for example:
+
+```latte
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA
+AAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO
+9TXL0Y4OHwAAAABJRU5ErkJggg==">
+```
+
+> [!CAUTION]
+> Requires the `fileinfo` PHP extension.
+
+### `date(string $format='j. n. Y')`
+
+Formats a date and time according to the mask used by the PHP function [date](https://php.net/date). The filter accepts the date as a UNIX timestamp, a string, a `DateTimeInterface`, or a `DateInterval` object.
+
+```latte
+{$today|date:'j. n. Y'}
+```
+
+See also [localDate](#localdatestring-formatnull-string-datenull-string-timenull).
+
+### `escapeUrl`
+
+Escapes a variable for use as a parameter in a URL.
+
+```latte
+<a href="http://example.com/{$name|escapeUrl}">{$name}</a>
+```
+
+See also [query](#query).
+
+### `explode(string $separator=)`
+
+Splits a string into an array by a delimiter. Alias for `split`.
+
+```latte
+{='one,two,three'|explode:','}    {* returns ['one', 'two', 'three'] *}
+```
+
+If the delimiter is an empty string (the default value), the input will be split into individual characters:
+
+```latte
+{='123'|explode}                  {* returns ['1', '2', '3'] *}
+```
+
+You can also use the alias `split`:
+
+```latte
+{='1,2,3'|split:','}              {* returns ['1', '2', '3'] *}
+```
+
+See also [implode](#implodestring-glue).
+
+### `filter(callable $predicate): iterable` (since 3.0.20)
+
+Filters the elements of an array or iterator, keeping only those for which the predicate returns `true`. The keys are preserved.
+
+```latte
+{foreach ($people|filter: fn($person) => $person->age >= 18) as $adult}
+	<p>{$adult->name}</p>
+{/foreach}
+```
+
+### `first`
+
+Returns the first element of an array or the first character of a string:
+
+```latte
+{=[1, 2, 3, 4]|first}    {* outputs 1 *}
+{='abcd'|first}          {* outputs 'a' *}
+```
+
+See also [last](#last), [random](#random).
+
+### `floor(int $precision=0)`
+
+Rounds a number down to the given precision.
+
+```latte
+{=3.5|floor}        {* outputs 3      *}
+{=135.79|floor:1}   {* outputs 135.7  *}
+{=135.79|floor:3}   {* outputs 135.79 *}
+```
+
+See also [ceil](#ceilint-precision0), [round](#roundint-precision0).
+
+### `firstLower` (since 3.0.22)
+
+Converts the first letter to lower case. Requires PHP extension `mbstring`.
+
+```latte
+{='The Latte'|firstLower}  {* outputs 'the Latte' *}
+```
+
+See also [capitalize](#capitalize), [firstUpper](#firstupper), [lower](#lower), [upper](#upper).
+
+### `firstUpper`
+
+Converts the first letter to uppercase. Requires the `mbstring` PHP extension.
+
+```latte
+{='the latte'|firstUpper}  {* outputs 'The latte' *}
+```
+
+See also [capitalize](#capitalize), [firstLower](#firstlower-since-3022), [lower](#lower), [upper](#upper).
+
+### `group(string|int|\Closure $by): iterable` (since 3.0.16)
+
+The filter groups data according to various criteria.
+
+In this example, rows in the table are grouped by the `categoryId` column. The output is an iterable structure of groups, where the key is the value in the `categoryId` column. [Read the detailed guide](cookbook/grouping.md).
+
+```latte
+{foreach ($items|group: categoryId) as $categoryId => $categoryItems}
+    <ul>
+        {foreach $categoryItems as $item}
+            <li>{$item->name}</li>
+        {/foreach}
+    </ul>
+{/foreach}
+```
+
+See also [batch](#batchint-length-mixed-restnull-generator), the [group](functions.md#groupiterable-data-stringintclosure-by-iterable-since-3016) function, and the [iterateWhile](tags.md#iteratewhile) tag.
+
+### `implode(string $glue=)`
+
+Returns a string which is the concatenation of the items in the sequence. Alias for `join`.
+
+```latte
+{=[1, 2, 3]|implode}      {* outputs '123' *}
+{=[1, 2, 3]|implode:'|'}  {* outputs '1|2|3' *}
+```
+
+You can also use the alias `join`:
+
+```latte
+{=[1, 2, 3]|join}         {* outputs '123' *}
+```
+
+See also [commas](#commasstring-lastgluenull-since-313), [explode](#explodestring-separator).
+
+### `indent(int $level=1, string $chars="\t")`
+
+Indents text from the left by a given number of tabs or other characters specified in the second argument. Blank lines are not indented.
+
+```latte
+<div>
+{block |indent}
+<p>Hello</p>
+{/block}
+</div>
+```
+
+Outputs:
+
+```latte
+<div>
+	<p>Hello</p>
+</div>
+```
+
+### `last`
+
+Returns the last element of an array or the last character of a string:
+
+```latte
+{=[1, 2, 3, 4]|last}    {* outputs 4 *}
+{='abcd'|last}          {* outputs 'd' *}
+```
+
+See also [first](#first), [random](#random).
+
+### `length`
+
+Returns the length of a string or array.
+
+- for strings, it returns the length in UTF‑8 characters
+- for arrays, it returns the number of items
+- for objects implementing the Countable interface, it uses the return value of the `count()` method
+- for objects implementing the Traversable interface, it uses the return value of the `iterator_count()` function
+
+```latte
+{if ($users|length) > 10}
+	...
+{/if}
+```
+
+### `localDate(?string $format=null, ?string $date=null, ?string $time=null)`
+
+Formats date and time according to the [locale](develop.md#locale-since-3018), ensuring consistent and localized display of time data across different languages and regions. The filter accepts the date as a UNIX timestamp, string, or `DateTimeInterface` object.
+
+```latte
+{$date|localDate}                  {* 15. dubna 2024 *}
+{$date|localDate: format: yM}      {* 4/2024 *}
+{$date|localDate: date: medium}    {* 15. 4. 2024 *}
+```
+
+If you use the filter without parameters, it will output the date at the `long` level, see below.
+
+**a) Using format**
+
+The `format` parameter describes which time components should be displayed. It uses letter codes, where the number of repetitions affects the width of the output:
+
+|  |  |  |
+| --- | --- | --- |
+| Year | `y` / `yy` / `yyyy` | `2024` / `24` / `2024` |
+| Month | `M` / `MM` / `MMM` / `MMMM` | `8` / `08` / `Aug` / `August` |
+| Day | `d` / `dd` / `E` / `EEEE` | `1` / `01` / `Sun` / `Sunday` |
+| Hour | `j` / `H` / `h` | preferred / 24-hour / 12-hour |
+| Minute | `m` / `mm` | `5` / `05` <small>(2 digits when combined with seconds)</small> |
+| Second | `s` / `ss` | `8` / `08` <small>(2 digits when combined with minutes)</small> |
+
+The order of codes in the format does not matter, as the order of components will be displayed according to the locale's conventions. Thus, the format is locale-independent. For example, the format `yyyyMMMMd` in the `en_US` locale outputs `April 15, 2024`, while in the `cs_CZ` locale it outputs `15. dubna 2024`:
+
+| locale: | cs_CZ | en_US |
+| --- | --- | --- |
+| `format: 'dMy'` | 10. 8. 2024 | 8/10/2024 |
+| `format: 'yM'` | 8/2024 | 8/2024 |
+| `format: 'yyyyMMMM'` | srpen 2024 | August 2024 |
+| `format: 'MMMM'` | srpen | August |
+| `format: 'jm'` | 17:22 | 5:22 PM |
+| `format: 'Hm'` | 17:22 | 17:22 |
+| `format: 'hm'` | 5:22 odp. | 5:22 PM |
+
+**b) Using preset styles**
+
+The `date` and `time` parameters determine how detailed the date and time should be displayed. You can choose from several levels: `full`, `long`, `medium`, `short`. You can choose to display only the date, only the time, or both:
+
+| locale: | cs_CZ | en_US |
+| --- | --- | --- |
+| `date: short` | 23.01.78 | 1/23/78 |
+| `date: medium` | 23. 1. 1978 | Jan 23, 1978 |
+| `date: long` | 23. ledna 1978 | January 23, 1978 |
+| `date: full` | pondělí 23. ledna 1978 | Monday, January 23, 1978 |
+| `time: short` | 8:30 | 8:30 AM |
+| `time: medium` | 8:30:59 | 8:30:59 AM |
+| `time: long` | 8:30:59 SEČ | 8:30:59 AM GMT+1 |
+| `date: short, time: short` | 23.01.78 8:30 | 1/23/78, 8:30 AM |
+| `date: medium, time: short` | 23. 1. 1978 8:30 | Jan 23, 1978, 8:30 AM |
+| `date: long, time: short` | 23. ledna 1978 v 8:30 | January 23, 1978 at 8:30 AM |
+
+For the date, you can also use the prefix `relative-` (e.g., `relative-short`), which for dates close to the present will display `yesterday`, `today`, or `tomorrow`; otherwise, it will display in the standard way.
+
+```latte
+{$date|localDate: date: relative-short}    {* yesterday *}
+```
+
+See also [date](#datestring-formatj-n-y).
+
+### `lower`
+
+Converts a string to lowercase. Requires the `mbstring` PHP extension.
+
+```latte
+{='LATTE'|lower}   {* outputs 'latte' *}
+```
+
+See also [capitalize](#capitalize), [firstLower](#firstlower-since-3022), [firstUpper](#firstupper), [upper](#upper).
+
+### `map(callable $transformer): iterable` (since 3.1.6)
+
+Transforms each element of an array or iterator using a callback and returns a new iterator. It is the counterpart to the [filter](#filtercallable-predicate-iterable-since-3020) filter. The keys are preserved.
+
+```latte
+{=($users|map: fn($user) => $user->name)|implode: ', '}   {* John, Mary, Paul *}
+```
+
+See also [filter](#filtercallable-predicate-iterable-since-3020).
+
+### `nocheck`
+
+Prevents automatic URL sanitization. Latte [automatically checks](safety-first.md#link-checking) whether a URL uses a safe scheme (such as `http`, `https`, `ftp`, `mailto`, `tel`, `sms`) or is a relative link, and blocks potentially dangerous ones.
+
+If the link uses a different scheme, such as `javascript:` or `data:`, and you are sure of its content, you can disable the check using `|nocheck`.
+
+```latte
+{var $link = 'javascript:window.close()'}
+
+<a href={$link}>checked</a>
+<a href={$link|nocheck}>unchecked</a>
+```
+
+Outputs:
+
+```latte
+<a href="">checked</a>
+<a href="javascript:window.close()">unchecked</a>
+```
+
+See also [checkUrl](#checkurl).
+
+### `noescape`
+
+Disables automatic escaping.
+
+```latte
+{var $trustedHtmlString = '<b>hello</b>'}
+Escaped: {$trustedHtmlString}
+Unescaped: {$trustedHtmlString|noescape}
+```
+
+Outputs:
+
+```latte
+Escaped: &lt;b&gt;hello&lt;/b&gt;
+Unescaped: <b>hello</b>
+```
+
+> [!WARNING]
+> Misuse of the `noescape` filter can lead to an XSS vulnerability! Never use it unless you are **absolutely sure** what you are doing and that the string you are printing comes from a trusted source.
+
+### `number(int $decimals=0, string $decPoint='.', string $thousandsSep=',')`
+
+Formats a number to a specified number of decimal places. If the [locale](develop.md#locale-since-3018) is set, the corresponding decimal and thousand separators are used.
+
+```latte
+{1234.20|number}              {* 1,234 *}
+{1234.20|number:1}            {* 1,234.2 *}
+{1234.20|number:2}            {* 1,234.20 *}
+{1234.20|number:2, ',', ' '}  {* 1 234,20 *}
+```
+
+### `number(string $format)`
+
+The `format` parameter allows you to define the appearance of numbers exactly according to your needs. This requires the [locale](develop.md#locale-since-3018) to be set. The format consists of several special characters, a complete description of which can be found in the [DecimalFormat](https://unicode.org/reports/tr35/tr35-numbers.html#Number_Format_Patterns) documentation:
+
+- `0` mandatory digit, always displayed even if it's zero
+- `#` optional digit, displayed only if the number actually has a digit in this place
+- `@` significant digit, helps display the number with a certain number of significant digits
+- `.` indicates where the decimal separator should be (dot or comma, depending on the country)
+- `,` serves to separate groups of digits, most often thousands
+- `%` multiplies the number by 100 and adds the percent sign
+
+Let's look at some examples. In the first example, two decimal places are mandatory; in the second, they are optional. The third example shows padding with zeros from the left and right, the fourth displays only existing digits:
+
+```latte
+{1234.5|number: '#,##0.00'}     {* 1,234.50 *}
+{1234.5|number: '#,##0.##'}     {* 1,234.5 *}
+{1.23  |number: '000.000'}      {* 001.230 *}
+{1.2   |number: '##.##'}        {* 1.2 *}
+```
+
+Significant digits determine how many digits, regardless of the decimal point, should be displayed, rounding if necessary:
+
+```latte
+{1234|number: '@@'}             {* 1200 *}
+{1234|number: '@@@'}            {* 1230 *}
+{1234|number: '@@@#'}           {* 1234 *}
+{1.2345|number: '@@@'}          {* 1.23 *}
+{0.00123|number: '@@'}          {* 0.0012 *}
+```
+
+An easy way to display a number as a percentage. The number is multiplied by 100, and the `%` sign is added:
+
+```latte
+{0.1234|number: '#.##%'}        {* 12.34% *}
+```
+
+We can define a different format for positive and negative numbers, separated by a `;` character. This way, for example, positive numbers can be displayed with a `+` sign:
+
+```latte
+{42|number: '#.##;(#.##)'}      {* 42 *}
+{-42|number: '#.##;(#.##)'}     {* (42) *}
+{42|number: '+#.##;-#.##'}      {* +42 *}
+{-42|number: '+#.##;-#.##'}     {* -42 *}
+```
+
+Remember that the actual appearance of numbers may vary depending on the country settings. For example, in some countries, a comma is used instead of a dot as the decimal separator. This filter automatically takes this into account, so you don't need to worry about it.
+
+### `padLeft(int $length, string $append=' ')`
+
+Pads a string or number to a certain length with another string from the left.
+
+```latte
+{='hello'|padLeft: 10, '123'}  {* outputs '12312hello' *}
+{=123|padLeft: 5, '0'}         {* outputs '00123' *}
+```
+
+### `padRight(int $length, string $append=' ')`
+
+Pads a string or number to a certain length with another string from the right.
+
+```latte
+{='hello'|padRight: 10, '123'}  {* outputs 'hello12312' *}
+{=123|padRight: 5, '0'}         {* outputs '12300' *}
+```
+
+### `query`
+
+Dynamically generates a query string in a URL:
+
+```latte
+<a href="http://example.com/?{[name: 'John Doe', age: 43]|query}">click</a>
+<a href="http://example.com/?search={$search|query}">search</a>
+```
+
+Outputs:
+
+```latte
+<a href="http://example.com/?name=John+Doe&amp;age=43">click</a>
+<a href="http://example.com/?search=Foo+Bar">search</a>
+```
+
+Keys with a `null` value are omitted.
+
+See also [escapeUrl](#escapeurl).
+
+### `random`
+
+Returns a random element of an array or a random character of a string:
+
+```latte
+{=[1, 2, 3, 4]|random}    {* outputs e.g.: 3 *}
+{='abcd'|random}          {* outputs e.g.: 'b' *}
+```
+
+See also [first](#first), [last](#last).
+
+### `repeat(int $count)`
+
+Repeats the string the given number of times.
+
+```latte
+{='hello'|repeat: 3}  {* outputs 'hellohellohello' *}
+```
+
+### `replace(string|array $search, string|array $replace=)`
+
+Replaces all occurrences of the search string with the replacement string.
+
+```latte
+{='hello world'|replace: 'world', 'friend'}  {* outputs 'hello friend' *}
+```
+
+Multiple replacements can be made at once:
+
+```latte
+{='hello world'|replace: [h => l, l => h]}  {* outputs 'lehho worhd' *}
+```
+
+### `replaceRE(string $pattern, string $replacement=)`
+
+Performs a regular expression search and replace.
+
+```latte
+{='hello world'|replaceRE: '/l.*/', 'l'}  {* outputs 'hel' *}
+```
+
+### `reverse(bool $preserveKeys=false)`
+
+Reverses the given string or array.
+
+```latte
+{var $s = 'Nette'}
+{$s|reverse}    {* outputs 'etteN' *}
+{var $a = ['N', 'e', 't', 't', 'e']}
+{$a|reverse}    {* returns ['e', 't', 't', 'e', 'N'] *}
+```
+
+### `round(int $precision=0)`
+
+Rounds a number to the given precision.
+
+```latte
+{=3.4|round}        {* outputs 3      *}
+{=3.5|round}        {* outputs 4      *}
+{=135.79|round:1}   {* outputs 135.8  *}
+{=135.79|round:3}   {* outputs 135.79 *}
+```
+
+See also [ceil](#ceilint-precision0), [floor](#floorint-precision0).
+
+### `slice(int $start, ?int $length=null, bool $preserveKeys=false)`
+
+Extracts a slice of an array, string, or iterator.
+
+```latte
+{='hello'|slice: 1, 2}           {* outputs 'el' *}
+{=['a', 'b', 'c']|slice: 1, 2}   {* outputs ['b', 'c'] *}
+```
+
+The filter works like the PHP function `array_slice` for arrays or `mb_substr` for strings. For iterators, it returns a generator – elements are consumed from the source one by one and reading stops once the limit is reached. The entire iterator is loaded into memory only when `start` or `length` is negative, because such a position is counted from its end.
+
+If `start` is non-negative, the sequence will start at that offset from the beginning of the array/string. If `start` is negative, the sequence will start that far from the end.
+
+If `length` is given and is positive, then the sequence will have up to that many elements. If the input is shorter than the `length`, then only the available elements will be present. If `length` is given and is negative, the sequence will stop that many elements from the end of the input. If it is omitted, the sequence will have everything from `start` up until the end of the input.
+
+By default, the filter reorders and resets the integer array keys. This behavior can be changed by setting `preserveKeys` to true. String keys are always preserved, regardless of this parameter.
+
+See also [limit](#limitint-length-since-313).
+
+### `limit(int $length)` (since 3.1.3)
+
+Limits the length of an array, string, or iterator. For arrays and iterators, keys are preserved. For strings, it respects UTF-8.
+
+```latte
+{foreach ($items|limit: 5) as $item}
+	...
+{/foreach}
+
+{$text|limit: 100}
+```
+
+### `sort(?Closure $comparison=null, string|int|\Closure|null $by=null, string|int|\Closure|bool $byKey=false)`
+
+The filter sorts elements of an array or iterator and preserves their associative keys. When a [locale](develop.md#locale-since-3018) is set, the sorting follows its rules unless a custom comparison function is specified.
+
+```latte
+{foreach ($names|sort) as $name}
+	...
+{/foreach}
+```
+
+Sorted array in reverse order:
+
+```latte
+{foreach ($names|sort|reverse) as $name}
+	...
+{/foreach}
+```
+
+You can specify a custom comparison function for sorting (the example shows how to reverse the sort from largest to smallest):
+
+```latte
+{var $reverted = ($names|sort: fn($a, $b) => $b <=> $a)}
+```
+
+The `|sort` filter also allows sorting elements by keys:
+
+```latte
+{foreach ($names|sort: byKey: true) as $name}
+	...
+{/foreach}
+```
+
+If you need to sort a table by a specific column, you can use the `by` parameter. The value `'name'` in the example specifies that sorting will be done by `$item->name` or `$item['name']`, depending on whether `$item` is an array or an object:
+
+```latte
+{foreach ($items|sort: by: 'name') as $item}
+	{$item->name}
+{/foreach}
+```
+
+You can also define a callback function that determines the value to sort by:
+
+```latte
+{foreach ($items|sort: by: fn($item) => $item->category->name) as $item}
+	{$item->name}
+{/foreach}
+```
+
+The `byKey` parameter can be used in the same way.
+
+### `spaceless`
+
+Removes unnecessary whitespace from the output. You can also use the deprecated alias `strip`, but `spaceless` is preferred.
+
+```latte
+{block |spaceless}
+	<ul>
+		<li>Hello</li>
+	</ul>
+{/block}
+```
+
+Outputs:
+
+```latte
+<ul><li>Hello</li></ul>
+```
+
+### `stripHtml`
+
+Converts HTML to plain text. That is, it removes HTML tags and converts HTML entities to text characters.
+
+```latte
+{='<p>one &lt; two</p>'|stripHtml}  {* outputs 'one < two' *}
+```
+
+The resulting plain text can naturally contain characters that represent HTML tags, for example `'&lt;p&gt;'|stripHtml` is converted to `<p>`. Never output the resulting text with `|noescape`, as this can lead to a security vulnerability.
+
+### `substr(int $start, ?int $length=null)`
+
+Extracts a portion of a string. This filter has been replaced by the [slice](#sliceint-start-int-lengthnull-bool-preservekeysfalse) filter.
+
+```latte
+{$string|substr: 1, 2}
+```
+
+### `toggle` (since 3.1.0)
+
+The `toggle` filter controls the presence of an attribute based on a boolean value. If the value is truthy, the attribute is present; if falsy, the attribute is omitted entirely:
+
+```latte
+<div uk-grid={$isGrid|toggle}>
+{* If $isGrid is truthy: <div uk-grid> *}
+{* If $isGrid is falsy: <div> *}
+```
+
+This filter is useful for custom attributes or JavaScript library attributes that require presence/absence control similar to HTML boolean attributes.
+
+The filter can only be used within HTML attributes.
+
+### `translate(...$args)`
+
+Translates expressions into other languages. To make the filter available, you need to [set up the translator](develop.md#translation-in-templates). You can also use the [tags for translation](tags.md#translation).
+
+```latte
+<a href="basket">{='Basket'|translate}</a>
+<span>{$item|translate}</span>
+```
+
+### `trim(string $charlist=" \t\n\r\0\x0B\u{A0}")`
+
+Strips whitespace (or other characters) from the beginning and end of a string.
+
+```latte
+{='  I like Latte.  '|trim}    {* outputs 'I like Latte.' *}
+{='  I like Latte.'|trim: '.'} {* outputs '  I like Latte' *}
+```
+
+### `truncate(int $length, string $append='…')`
+
+Truncates a string to the specified maximum length, while trying to preserve whole words. If the string is shortened, it adds an ellipsis at the end (can be changed with the second parameter).
+
+```latte
+{var $title = 'Hello, how are you?'}
+{$title|truncate:5}  {* Hell…                *}
+{$title|truncate:17} {* Hello, how are…      *}
+{$title|truncate:30} {* Hello, how are you?  *}
+```
+
+### `upper`
+
+Converts a string to uppercase. Requires the `mbstring` PHP extension.
+
+```latte
+{='latte'|upper}  {* outputs 'LATTE' *}
+```
+
+See also [capitalize](#capitalize), [firstLower](#firstlower-since-3022), [firstUpper](#firstupper), [lower](#lower).
+
+### `webalize`
+
+Adjusts a UTF‑8 string to the format used in URLs.
+
+Converts to ASCII. Converts spaces to hyphens. Removes characters that are not alphanumeric, underscores, or hyphens. Converts to lowercase. Also strips leading and trailing whitespace.
+
+```latte
+{var $s = 'Our 10th product'}
+{$s|webalize}   {* outputs 'our-10th-product' *}
+```
+
+> [!CAUTION]
+> Requires the [nette/utils](https://doc.nette.org/en/utils) library.

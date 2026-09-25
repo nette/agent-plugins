@@ -1,0 +1,165 @@
+# Glossary of Terms
+
+Contents:
+
+- [AJAX](#ajax)
+- [Presenter Action](#presenter-action)
+- [BOM](#bom)
+- [Controller](#controller)
+- [Cross-Site Scripting (XSS)](#cross-site-scripting-xss)
+- [Cross-Site Request Forgery (CSRF)](#cross-site-request-forgery-csrf)
+- [Cross-Origin Resource Sharing (CORS)](#cross-origin-resource-sharing-cors)
+- [Dependency Injection](#dependency-injection)
+- [Dependency Injection Container](#dependency-injection-container)
+- [Escaping](#escaping)
+- [Filter](#filter)
+- [Invalidation](#invalidation)
+- [JSON](#json)
+- [Component](#component)
+- [Control Characters](#control-characters)
+- [Events](#events)
+- [Latte](#latte)
+- [Model](#model)
+- [Model-View-Controller](#model-view-controller)
+- [Model-View-Presenter](#model-view-presenter)
+- [Module](#module)
+- [Namespace](#namespace)
+- [Presenter](#presenter)
+- [Router](#router)
+- [SameSite cookie](#samesite-cookie)
+- [Service](#service)
+- [Snippet](#snippet)
+- [View](#view)
+
+
+## AJAX
+
+Asynchronous JavaScript and XML – a technology for exchanging information between the client and server over the HTTP protocol without needing to reload the entire page with each request. Although the name might suggest data is sent only in XML format, the [JSON](#json) format is also commonly used.
+
+## Presenter Action
+
+A logical part of a presenter that performs a single action. For example, displaying a product page, logging out a user, etc. A single presenter can have multiple actions.
+
+## BOM
+
+The *byte order mark* is a special first character in a file used as an indicator of byte order in encoding. Some editors insert it into files. It is practically invisible but causes problems with sending output and headers from PHP. You can use [Code Checker](https://doc.nette.org/en/tools/code-checker) for bulk removal.
+
+## Controller
+
+A controller processes user requests and, based on them, calls the appropriate application logic (i.e., [model](#model)) and then asks the [view](#view) to render the data. The equivalent of controllers in the Nette Framework are [presenters](#presenter).
+
+## Cross-Site Scripting (XSS)
+
+Cross-Site Scripting is a method of disrupting websites by exploiting unescaped outputs. An attacker can then inject their own code into the page, thereby modifying the page or even obtaining sensitive data about visitors. Protection against XSS involves consistent and correct escaping of all output strings.
+
+Nette Framework introduces the revolutionary [Context-Aware Escaping](../latte/safety-first.md#context-aware-escaping) technology, which permanently eliminates the risk of Cross-Site Scripting. It automatically escapes all outputs, so a developer cannot forget anything.
+
+## Cross-Site Request Forgery (CSRF)
+
+A Cross-Site Request Forgery attack involves the attacker luring a victim to a page that subtly executes a request in the victim's browser to a server where the victim is logged in. The server believes the request was made willingly by the victim. Thus, under the victim's identity, it performs an action without their knowledge. This could involve changing or deleting data, sending a message, etc.
+
+Nette Framework **automatically protects forms and signals in presenters** against this type of attack by preventing them from being submitted or triggered from another domain.
+
+## Cross-Origin Resource Sharing (CORS)
+
+CORS is a security mechanism that allows a web page to make JavaScript requests to a different domain than the one from which the page was loaded. Without CORS, browsers block such requests for security reasons.
+
+For example, if your website runs at `https://myapp.com` and tries to fetch data from `https://api.example.com` using JavaScript (AJAX, Fetch API), the browser will check if the API server allows this cross-origin request. The API server must respond with special HTTP headers, such as `Access-Control-Allow-Origin: https://myapp.com`, to grant permission.
+
+## Dependency Injection
+
+Dependency Injection (DI) is a design pattern that dictates how to separate the creation of objects from their dependencies. This means a class is not responsible for creating or initializing its dependencies; instead, these dependencies are provided by external code (which could be a [DI container](#dependency-injection-container)). The advantage lies in increased code flexibility, better understandability, and easier application testing, as dependencies are easily replaceable and isolated from other code parts. More in the chapter [What is Dependency Injection?](../dependency-injection/introduction.md)
+
+## Dependency Injection Container
+
+A Dependency Injection container (also DI container or IoC container) is a tool that manages the creation and administration of dependencies (or [services](#service)) within an application. The container typically has a configuration defining which classes depend on others, which specific dependency implementations should be used, and how these dependencies should be created. The container then creates these objects and provides them to the classes that need them. More in the chapter [What is a DI container?](../dependency-injection/container.md)
+
+## Escaping
+
+Escaping is the conversion of characters that have a special meaning in a given context into other corresponding sequences. Example: We want to write quotes within a string enclosed by quotes. Since quotes have a special meaning in the context of the string, and simply writing them would be interpreted as the end of the string, they need to be written using a different corresponding sequence. The exact sequence is determined by the rules of the context.
+
+## Filter
+
+In templates, a [filter](../latte/syntax.md#filters) usually refers to a function that helps modify or reformat data into its final form. Templates provide several [standard filters](../latte/filters.md).
+
+## Invalidation
+
+Notifying a [snippet](#snippet) to redraw itself. In another context, it also means deleting the cache content.
+
+## JSON
+
+A data exchange format based on JavaScript syntax (it is a subset of it). The exact specification can be found at [www.json.org](http://www.json.org).
+
+## Component
+
+A reusable part of an application. It can be a visual part of a page, as described in the chapter [Writing Components](../application/components.md), or the term component also refers to the class [Component](../component-model/index.md) (such a component does not have to be visual).
+
+## Control Characters
+
+Control characters are invisible characters that can appear in text and potentially cause problems. To remove them in bulk from files, you can use [Code Checker](https://doc.nette.org/en/tools/code-checker), and to remove them from a variable, use the [Strings::normalize()](../utils/strings.md#normalizestring-s-string) function.
+
+## Events
+
+An event is an expected situation within an object. When it occurs, so-called handlers are called, i.e., callbacks reacting to the event ([example](https://gist.github.com/dg/332cdd51bdf7d66a6d8003b134508a38)). An event could be, for example, form submission, user login, etc. Events are thus a form of *Inversion of Control*.
+
+For example, user login occurs in the `Nette\Security\User::login()` method. The `User` object has a public variable `$onLoggedIn`, which is an array to which anyone can add a callback. When the user logs in, the `login()` method calls all callbacks in the array. The variable name format `onXyz` is a convention used throughout Nette.
+
+## Latte
+
+One of the most advanced [templating systems](https://latte.nette.org/en).
+
+## Model
+
+The model is the data and, especially, the functional core of the entire application. It contains all the application logic (the term business logic is also used). It's the **M** in **M**VC or MVP. Any user action (logging in, adding goods to the cart, changing a value in the database) represents an action of the model.
+
+The model manages its internal state and offers a fixed interface to the outside. By calling functions of this interface, we can query or change its state. The model is unaware of the existence of the [view](#view) or [controller](#controller).
+
+## Model-View-Controller
+
+A software architecture that arose from the need to separate the handling code ([controller](#controller)) from the application logic code ([model](#model)) and the data display code ([view](#view)) in applications with a graphical interface. This makes the application clearer, facilitates future development, and allows for testing individual parts separately.
+
+## Model-View-Presenter
+
+An architecture based on [Model-View-Controller](#model-view-controller).
+
+## Module
+
+A module represents a logical part of an application. In a typical arrangement, it is a group of presenters and templates that address a specific area of functionality. Modules are placed in [separate directories](../application/directory-structure.md#presenters-and-templates), such as `Front/`, `Admin/`, or `Shop/`.
+
+For example, an e-shop can be divided into:
+
+- Frontend (`Shop/`) for browsing products and purchasing
+- Customer section (`Customer/`) for order management
+- Administration (`Admin/`) for operators
+
+Technically, these are regular directories, but thanks to clear structuring, they help scale the application. The presenter `Admin:Product:List` would thus be physically located, for example, in the directory `app/Presentation/Admin/Product/List/` (see [presenter mapping](../application/directory-structure.md#presenter-mapping)).
+
+## Namespace
+
+A namespace, part of the PHP language since version 5.3 and of some other programming languages, allows the use of identically named classes in different libraries without name collisions. See the [PHP documentation](https://www.php.net/manual/en/language.namespaces.rationale.php).
+
+## Presenter
+
+A presenter is an object that takes a [request](https://api.nette.org/application/master/Nette/Application/Request.html) translated by the router from an HTTP request and generates a [response](https://api.nette.org/application/master/Nette/Application/Response.html). The response can be an HTML page, an image, an XML document, a file on disk, JSON, a redirect, or anything you devise.
+
+Usually, the term presenter refers to a descendant of the [Nette\Application\UI\Presenter](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html) class. Based on incoming requests, it executes corresponding [actions](../application/presenters.md#presenter-life-cycle) and renders templates.
+
+## Router
+
+A bidirectional translator between an HTTP request / URL and a presenter action. Bidirectional means that it's possible to derive a [presenter action](#presenter-action) from an HTTP request, and conversely, to generate the corresponding URL for an action. More in the chapter on [URL routing](../application/routing.md).
+
+## SameSite cookie
+
+SameSite cookies provide a mechanism to recognize what led to the page load. It can have three values: `Lax`, `Strict`, and `None` (the latter requires HTTPS). If the request for the page comes directly from the website or the user opens the page by typing directly into the address bar or clicking on a bookmark, the browser sends all cookies to the server (i.e., with flags `Lax`, `Strict`, and `None`). If the user clicks through to the website from a link on another site, cookies with the `Lax` and `None` flags are passed to the server. If the request originates in another way, such as submitting a POST form from another site, loading within an iframe, using JavaScript, etc., only cookies with the `None` flag are sent.
+
+## Service
+
+In the context of Dependency Injection, a service refers to an object that is created and managed by the DI container. A service can be easily replaced by another implementation, for example, for testing purposes or to change the application's behavior, without needing to modify the code that uses the service.
+
+## Snippet
+
+A snippet is a part of a page that can be independently redrawn during an AJAX request.
+
+## View
+
+The view is the application layer responsible for displaying the result of a request. It usually uses a templating system and knows how to display specific components or results obtained from the model.

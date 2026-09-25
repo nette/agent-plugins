@@ -1,0 +1,531 @@
+# Array Functions
+
+Contents:
+
+- [Arrays](#arrays)
+  - [`associate(array $array, string|array $path): array|\stdClass`](#associatearray-array-stringarray-path-arraystdclass)
+  - [`contains(array $array, $value): bool`](#containsarray-array-value-bool)
+  - [`every(array $array, callable $predicate): bool`](#everyarray-array-callable-predicate-bool)
+  - [`filter(array $array, callable $predicate): array` (since 4.0.4)](#filterarray-array-callable-predicate-array-since-404)
+  - [`first(array $array, ?callable $predicate=null, ?callable $else=null): mixed`](#firstarray-array-callable-predicatenull-callable-elsenull-mixed)
+  - [`firstKey(array $array, ?callable $predicate=null): int|string|null` (since 4.0.4)](#firstkeyarray-array-callable-predicatenull-intstringnull-since-404)
+  - [`flatten(array $array, bool $preserveKeys=false): array`](#flattenarray-array-bool-preservekeysfalse-array)
+  - [`get(array $array, string|int|array $key, mixed $default=null): mixed`](#getarray-array-stringintarray-key-mixed-defaultnull-mixed)
+  - [`getRef(array &$array, string|int|array $key): mixed`](#getrefarray-array-stringintarray-key-mixed)
+  - [`grep(array $array, string $pattern, bool $invert=false): array`](#greparray-array-string-pattern-bool-invertfalse-array)
+  - [`insertAfter(array &$array, string|int|null $key, array $inserted): void`](#insertafterarray-array-stringintnull-key-array-inserted-void)
+  - [`insertBefore(array &$array, string|int|null $key, array $inserted): void`](#insertbeforearray-array-stringintnull-key-array-inserted-void)
+  - [`invoke(iterable $callbacks, ...$args): array`](#invokeiterable-callbacks-args-array)
+  - [`invokeMethod(iterable $objects, string $method, ...$args): array`](#invokemethoditerable-objects-string-method-args-array)
+  - [`isList(mixed $value): bool`](#islistmixed-value-bool)
+  - [`last(array $array, ?callable $predicate=null, ?callable $else=null): mixed`](#lastarray-array-callable-predicatenull-callable-elsenull-mixed)
+  - [`lastKey(array $array, ?callable $predicate=null): int|string|null` (since 4.0.4)](#lastkeyarray-array-callable-predicatenull-intstringnull-since-404)
+  - [`map(array $array, callable $transformer): array`](#maparray-array-callable-transformer-array)
+  - [`mapWithKeys(array $array, callable $transformer): array`](#mapwithkeysarray-array-callable-transformer-array)
+  - [`mergeTree(array $array1, array $array2): array`](#mergetreearray-array1-array-array2-array)
+  - [`normalize(array $array, ?string $filling=null): array`](#normalizearray-array-string-fillingnull-array)
+  - [`pick(array &$array, string|int $key, mixed $default=null): mixed`](#pickarray-array-stringint-key-mixed-defaultnull-mixed)
+  - [`renameKey(array &$array, string|int $oldKey, string|int $newKey): bool`](#renamekeyarray-array-stringint-oldkey-stringint-newkey-bool)
+  - [`getKeyOffset(array $array, string|int $key): ?int`](#getkeyoffsetarray-array-stringint-key-int)
+  - [`some(array $array, callable $predicate): bool`](#somearray-array-callable-predicate-bool)
+  - [`toKey(mixed $value): string|int`](#tokeymixed-value-stringint)
+  - [`toObject(iterable $array, object $object): object`](#toobjectiterable-array-object-object-object)
+  - [`wrap(array $array, string $prefix=, string $suffix=): array`](#wraparray-array-string-prefix-string-suffix-array)
+- [ArrayHash](#arrayhash)
+- [ArrayList](#arraylist)
+
+
+This page covers the [Nette\Utils\Arrays](#arrays), [ArrayHash](#arrayhash), and [ArrayList](#arraylist) classes, which relate to arrays.
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+## Arrays
+
+[Nette\Utils\Arrays](https://api.nette.org/utils/master/Nette/Utils/Arrays.html) is a static class containing useful functions for working with arrays. Its equivalent for iterators is [Nette\Utils\Iterables](iterables.md).
+
+The following examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Arrays;
+```
+
+### `associate(array $array, string|array $path): array|\stdClass`
+
+This function flexibly transforms the `$array` into an associative array or objects according to the specified path `$path`. The path can be a string or an array. It consists of the names of keys in the input array and operators like `[]`, `->`, `=`, and `|`. Throws `Nette\InvalidArgumentException` if the path is invalid.
+
+```php
+// convert to an associative array using a simple key
+$arr = [
+    ['name' => 'John', 'age' => 11],
+    ['name' => 'Mary', 'age' => null],
+    // ...
+];
+$result = Arrays::associate($arr, 'name');
+// $result = ['John' => ['name' => 'John', 'age' => 11], 'Mary' => ['name' => 'Mary', 'age' => null]]
+```
+
+```php
+// assigning values from one key to another using the = operator
+$result = Arrays::associate($arr, 'name=age'); // or ['name', '=', 'age']
+// $result = ['John' => 11, 'Mary' => null, ...]
+```
+
+```php
+// creating an object using the -> operator
+$result = Arrays::associate($arr, '->name'); // or ['->', 'name']
+// $result = (object) ['John' => ['name' => 'John', 'age' => 11], 'Mary' => ['name' => 'Mary', 'age' => null]]
+```
+
+```php
+// grouping into two levels using the | operator
+$result = Arrays::associate($arr, 'name|age'); // or ['name', '|', 'age']
+// $result: ['John' => [11 => ['name' => 'John', 'age' => 11]], 'Mary' => ['' => ['name' => 'Mary', 'age' => null]], ...]
+```
+
+```php
+// adding to an array using []
+$result = Arrays::associate($arr, 'name[]'); // or ['name', '[]']
+// $result: ['John' => [['name' => 'John', 'age' => 11]], 'Mary' => [['name' => 'Mary', 'age' => null]], ...]
+```
+
+### `contains(array $array, $value): bool`
+
+Tests an array for the presence of a value. Uses strict comparison (`===`).
+
+```php
+Arrays::contains([1, 2, 3], 1);    // true
+Arrays::contains(['1', false], 1); // false
+```
+
+### `every(array $array, callable $predicate): bool`
+
+Tests whether all elements in the array pass the test implemented by the provided `$predicate` function with the signature `function ($value, $key, array $array): bool`.
+
+```php
+$array = [1, 30, 39, 29, 10, 13];
+$isBelowThreshold = fn($value) => $value < 40;
+$res = Arrays::every($array, $isBelowThreshold); // true
+```
+
+See [some()](#somearray-array-callable-predicate-bool).
+
+### `filter(array $array, callable $predicate): array` (since 4.0.4)
+
+Returns a new array containing all key-value pairs matching the given `$predicate`. The callback has the signature `function ($value, int|string $key, array $array): bool`.
+
+```php
+Arrays::filter(
+	['a' => 1, 'b' => 2, 'c' => 3],
+	fn($v) => $v < 3,
+);
+// returns ['a' => 1, 'b' => 2]
+```
+
+### `first(array $array, ?callable $predicate=null, ?callable $else=null): mixed`
+
+Returns the first item (matching the specified predicate if given). If there is no such item, it returns the result of invoking `$else` or null. The `$predicate` has the signature `function ($value, int|string $key, array $array): bool`.
+
+It does not change the internal pointer, unlike `reset()`. The `$predicate` and `$else` parameters exist since version 4.0.4.
+
+```php
+Arrays::first([1, 2, 3]);                   // 1
+Arrays::first([1, 2, 3], fn($v) => $v > 2); // 3
+Arrays::first([]);                          // null
+Arrays::first([], else: fn() => false);     // false
+```
+
+See [last()](#lastarray-array-callable-predicatenull-callable-elsenull-mixed).
+
+### `firstKey(array $array, ?callable $predicate=null): int|string|null` (since 4.0.4)
+
+Returns the key of the first item (matching the specified predicate if given) or null if there is no such item. The `$predicate` has the signature `function ($value, int|string $key, array $array): bool`.
+
+```php
+Arrays::firstKey([1, 2, 3]);                   // 0
+Arrays::firstKey([1, 2, 3], fn($v) => $v > 2); // 2
+Arrays::firstKey(['a' => 1, 'b' => 2]);        // 'a'
+Arrays::firstKey([]);                          // null
+```
+
+See [lastKey()](#lastkeyarray-array-callable-predicatenull-intstringnull-since-404).
+
+### `flatten(array $array, bool $preserveKeys=false): array`
+
+Flattens a multi-level array into a single level. Keys can be preserved if `$preserveKeys` is set to true.
+
+```php
+$array = Arrays::flatten([1, 2, [3, 4, [5, 6]]]);
+// $array = [1, 2, 3, 4, 5, 6];
+```
+
+### `get(array $array, string|int|array $key, mixed $default=null): mixed`
+
+Returns the item `$array[$key]`. If it does not exist, it throws `Nette\InvalidArgumentException`, unless a default value is provided as the third argument, which is then returned.
+
+```php
+// if $array['foo'] does not exist, throws an exception
+$value = Arrays::get($array, 'foo');
+
+// if $array['foo'] does not exist, returns 'bar'
+$value = Arrays::get($array, 'foo', 'bar');
+```
+
+The `$key` can also be an array representing a path into a nested array.
+
+```php
+$array = ['color' => ['favorite' => 'red'], 5];
+
+$value = Arrays::get($array, ['color', 'favorite']);
+// returns 'red'
+```
+
+### `getRef(array &$array, string|int|array $key): mixed`
+
+Gets a reference to the specified array item. If the item does not exist, it will be created with a value of null.
+
+```php
+$valueRef = & Arrays::getRef($array, 'foo');
+// returns a reference to $array['foo']
+```
+
+Works with multidimensional arrays, just like [get()](#getarray-array-stringintarray-key-mixed-defaultnull-mixed).
+
+```php
+$value = & Arrays::getRef($array, ['color', 'favorite']);
+// returns a reference to $array['color']['favorite']
+```
+
+### `grep(array $array, string $pattern, bool $invert=false): array`
+
+Returns only those array items whose value matches the regular expression `$pattern`. If `$invert` is `true`, it returns items that do *not* match. A compilation or runtime error in the expression throws `Nette\RegexpException`.
+
+```php
+$filteredArray = Arrays::grep($array, '~^\d+$~');
+// returns only array elements consisting of digits
+```
+
+### `insertAfter(array &$array, string|int|null $key, array $inserted): void`
+
+Inserts the contents of the `$inserted` array into the `$array` immediately after the item with key `$key`. If `$key` is `null` (or does not exist in the array), it is inserted at the end.
+
+```php
+$array = ['first' => 10, 'second' => 20];
+Arrays::insertAfter($array, 'first', ['hello' => 'world']);
+// $array = ['first' => 10, 'hello' => 'world', 'second' => 20];
+```
+
+### `insertBefore(array &$array, string|int|null $key, array $inserted): void`
+
+Inserts the contents of the `$inserted` array into the `$array` before the item with key `$key`. If `$key` is `null` (or does not exist in the array), it is inserted at the beginning.
+
+```php
+$array = ['first' => 10, 'second' => 20];
+Arrays::insertBefore($array, 'first', ['hello' => 'world']);
+// $array = ['hello' => 'world', 'first' => 10, 'second' => 20];
+```
+
+### `invoke(iterable $callbacks, ...$args): array`
+
+Invokes all callbacks in the iterable and returns an array of the results.
+
+```php
+$callbacks = [
+	'+' => fn($a, $b) => $a + $b,
+	'*' => fn($a, $b) => $a * $b,
+];
+
+$array = Arrays::invoke($callbacks, 5, 11);
+// $array = ['+' => 16, '*' => 55];
+```
+
+### `invokeMethod(iterable $objects, string $method, ...$args): array`
+
+Invokes a method on each object in an iterable and returns an array of the results.
+
+```php
+$objects = ['a' => $obj1, 'b' => $obj2];
+
+$array = Arrays::invokeMethod($objects, 'foo', 1, 2);
+// $array = ['a' => $obj1->foo(1, 2), 'b' => $obj2->foo(1, 2)];
+```
+
+### `isList(mixed $value): bool`
+
+Checks if the array is indexed in ascending order of numeric keys from zero, a.k.a. a list.
+
+```php
+Arrays::isList(['a', 'b', 'c']); // true
+Arrays::isList([4 => 1, 2, 3]); // false
+Arrays::isList(['a' => 1, 'b' => 2]); // false
+```
+
+### `last(array $array, ?callable $predicate=null, ?callable $else=null): mixed`
+
+Returns the last item (matching the specified predicate if given). If there is no such item, it returns the result of invoking `$else` or null. The `$predicate` has the signature `function ($value, int|string $key, array $array): bool`.
+
+It does not change the internal pointer, unlike `end()`. The `$predicate` and `$else` parameters exist since version 4.0.4.
+
+```php
+Arrays::last([1, 2, 3]);                   // 3
+Arrays::last([1, 2, 3], fn($v) => $v < 3); // 2
+Arrays::last([]);                          // null
+Arrays::last([], else: fn() => false);     // false
+```
+
+See [first()](#firstarray-array-callable-predicatenull-callable-elsenull-mixed).
+
+### `lastKey(array $array, ?callable $predicate=null): int|string|null` (since 4.0.4)
+
+Returns the key of the last item (matching the specified predicate if given) or null if there is no such item. The `$predicate` has the signature `function ($value, int|string $key, array $array): bool`.
+
+```php
+Arrays::lastKey([1, 2, 3]);                    // 2
+Arrays::lastKey([1, 2, 3], fn($v) => $v < 3);  // 1
+Arrays::lastKey(['a' => 1, 'b' => 2]);         // 'b'
+Arrays::lastKey([]);                           // null
+```
+
+See [firstKey()](#firstkeyarray-array-callable-predicatenull-intstringnull-since-404).
+
+### `map(array $array, callable $transformer): array`
+
+Calls `$transformer` on all elements in the array and returns an array of the return values. The callback has the signature `function ($value, $key, array $array): mixed`.
+
+```php
+$array = ['foo', 'bar', 'baz'];
+$res = Arrays::map($array, fn($value) => $value . $value);
+// $res = ['foofoo', 'barbar', 'bazbaz']
+```
+
+### `mapWithKeys(array $array, callable $transformer): array`
+
+Creates a new array by transforming the values and keys of the original array. The `$transformer` function has the signature `function ($value, $key, array $array): ?array{$newKey, $newValue}`. If `$transformer` returns `null`, the element is skipped. For retained elements, the first element of the returned array is used as the new key, and the second element as the new value.
+
+```php
+$array = ['a' => 1, 'b' => 2];
+$result = Arrays::mapWithKeys($array, fn($v, $k) => $v > 1 ? [$v * 2, strtoupper($k)] : null);
+// [4 => 'B']
+```
+
+This method is useful in situations where you need to change the structure of an array (both keys and values simultaneously) or filter elements during transformation (by returning null for unwanted elements).
+
+### `mergeTree(array $array1, array $array2): array`
+
+Recursively merges two arrays. It is useful, for example, for merging tree structures. It follows the same rules as the `+` operator applied to arrays, i.e., it adds key/value pairs from the second array to the first, and in case of key collisions, it keeps the value from the first array.
+
+```php
+$array1 = ['color' => ['favorite' => 'red'], 5];
+$array2 = [10, 'color' => ['favorite' => 'green', 'blue']];
+
+$array = Arrays::mergeTree($array1, $array2);
+// $array = ['color' => ['favorite' => 'red', 'blue'], 5];
+```
+
+Values from the second array are always appended to the end of the first. The disappearance of the value `10` from the second array might seem a bit confusing. It's important to realize that this value, as well as the value `5` in the first array, is assigned the same numeric key `0`. Therefore, the resulting array only contains the element from the first array for this key.
+
+### `normalize(array $array, ?string $filling=null): array`
+
+Normalizes an array into an associative array. Numeric keys are replaced by their values, and the new value becomes `$filling`.
+
+```php
+$array = Arrays::normalize([1 => 'first', 'a' => 'second']);
+// $array = ['first' => null, 'a' => 'second'];
+```
+
+```php
+$array = Arrays::normalize([1 => 'first', 'a' => 'second'], 'foobar');
+// $array = ['first' => 'foobar', 'a' => 'second'];
+```
+
+### `pick(array &$array, string|int $key, mixed $default=null): mixed`
+
+Returns and removes the value of an item with key `$key` from an array. If the item does not exist, it throws an exception, or returns `$default` if provided.
+
+```php
+$array = [1 => 'foo', 'x' => 'bar'];
+$a = Arrays::pick($array, 'x');
+// $a = 'bar'
+$b = Arrays::pick($array, 'not-exists', 'foobar');
+// $b = 'foobar'
+$c = Arrays::pick($array, 'not-exists');
+// throws Nette\InvalidArgumentException
+```
+
+### `renameKey(array &$array, string|int $oldKey, string|int $newKey): bool`
+
+Renames a key in an array. Returns `true` if the key was found in the array.
+
+```php
+$array = ['first' => 10, 'second' => 20];
+Arrays::renameKey($array, 'first', 'renamed');
+// $array = ['renamed' => 10, 'second' => 20];
+```
+
+### `getKeyOffset(array $array, string|int $key): ?int`
+
+Returns the zero-indexed position of the given array key. Returns `null` if the key is not found.
+
+```php
+$array = ['first' => 10, 'second' => 20];
+$position = Arrays::getKeyOffset($array, 'first'); // returns 0
+$position = Arrays::getKeyOffset($array, 'second'); // returns 1
+$position = Arrays::getKeyOffset($array, 'not-exists'); // returns null
+```
+
+### `some(array $array, callable $predicate): bool`
+
+Tests whether at least one element in the array passes the test implemented by the provided `$predicate` callback with the signature `function ($value, $key, array $array): bool`.
+
+```php
+$array = [1, 2, 3, 4];
+$isEven = fn($value) => $value % 2 === 0;
+$res = Arrays::some($array, $isEven); // true
+```
+
+See [every()](#everyarray-array-callable-predicate-bool).
+
+### `toKey(mixed $value): string|int`
+
+Converts a value to an array key, which is either an integer or a string. Floats are truncated, booleans are converted to `0` or `1`, null becomes an empty string, and objects throw an exception.
+
+```php
+Arrays::toKey('1');  // 1
+Arrays::toKey('01'); // '01'
+```
+
+### `toObject(iterable $array, object $object): object`
+
+Copies the elements of the iterable `$array` to the `$object` object and then returns the object.
+
+```php
+$obj = new stdClass;
+$array = ['foo' => 1, 'bar' => 2];
+Arrays::toObject($array, $obj); // it sets $obj->foo = 1; $obj->bar = 2;
+```
+
+### `wrap(array $array, string $prefix=, string $suffix=): array`
+
+Casts each item in the array to a string and wraps it with the `$prefix` and `$suffix`.
+
+```php
+$array = Arrays::wrap(['a' => 'red', 'b' => 'green'], '<<', '>>');
+// $array = ['a' => '<<red>>', 'b' => '<<green>>'];
+```
+
+## ArrayHash
+
+The [Nette\Utils\ArrayHash](https://api.nette.org/utils/master/Nette/Utils/ArrayHash.html) object is a descendant of the generic `stdClass` class and extends it with the ability to be treated like an array, for example, accessing members using square brackets:
+
+```php
+$hash = new Nette\Utils\ArrayHash;
+$hash['foo'] = 123;
+$hash->bar = 456; // object notation also works
+$hash->foo; // 123
+```
+
+You can use the `count($hash)` function to get the number of elements.
+
+You can iterate over the object as you would an array, even with a reference:
+
+```php
+foreach ($hash as $key => $value) {
+	// ...
+}
+
+foreach ($hash as $key => &$value) {
+	$value = 'new value';
+}
+```
+
+Existing arrays can be transformed into an `ArrayHash` using the static method `from()`:
+
+```php
+$array = ['foo' => 123, 'bar' => 456];
+
+$hash = Nette\Utils\ArrayHash::from($array);
+$hash->foo; // 123
+$hash->bar; // 456
+```
+
+The transformation is recursive: any sub-arrays are also converted to `ArrayHash` objects.
+
+```php
+$array = ['foo' => 123, 'inner' => ['a' => 'b']];
+
+$hash = Nette\Utils\ArrayHash::from($array);
+$hash->inner; // object ArrayHash
+$hash->inner->a; // 'b'
+$hash['inner']['a']; // 'b'
+```
+
+This recursive behavior can be disabled with the second parameter:
+
+```php
+$hash = Nette\Utils\ArrayHash::from($array, false);
+$hash->inner; // array
+```
+
+Transform back to an array using the `(array)` cast:
+
+```php
+$array = (array) $hash;
+```
+
+## ArrayList
+
+[Nette\Utils\ArrayList](https://api.nette.org/utils/master/Nette/Utils/ArrayList.html) represents a linear array where the indexes are only integers ascending from 0.
+
+```php
+$list = new Nette\Utils\ArrayList;
+$list[] = 'a';
+$list[] = 'b';
+$list[] = 'c';
+// ArrayList(0 => 'a', 1 => 'b', 2 => 'c')
+count($list); // 3
+```
+
+Existing arrays can be transformed into `ArrayList` using the static method `from()`:
+
+```php
+$array = ['foo', 'bar'];
+$list = Nette\Utils\ArrayList::from($array);
+```
+
+You can use the `count($list)` function to get the number of items.
+
+You can iterate over the object as you would an array, even with a reference:
+
+```php
+foreach ($list as $key => $value) {
+	// ...
+}
+
+foreach ($list as $key => &$value) {
+	$value = 'new value';
+}
+```
+
+Accessing keys outside the allowed range (0 to count-1) or attempting to set non-integer keys throws a `Nette\OutOfRangeException`:
+
+```php
+echo $list[-1]; // throws Nette\OutOfRangeException
+unset($list[30]); // throws Nette\OutOfRangeException
+```
+
+Removing a key causes the elements to be renumbered:
+
+```php
+unset($list[1]);
+// ArrayList(0 => 'a', 1 => 'c')
+```
+
+You can add a new element to the beginning using the `prepend()` method:
+
+```php
+$list->prepend('d');
+// ArrayList(0 => 'd', 1 => 'a', 2 => 'c')
+```

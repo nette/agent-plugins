@@ -1,0 +1,530 @@
+# Form Controls
+
+Contents:
+
+- [`addText(string $name, $label=null, ?int $cols=null, ?int $maxLength=null): TextInput`](#addtextstring-name-labelnull-int-colsnull-int-maxlengthnull-textinput)
+- [`addTextArea(string $name, $label=null): TextArea`](#addtextareastring-name-labelnull-textarea)
+- [`addInteger(string $name, $label=null): TextInput`](#addintegerstring-name-labelnull-textinput)
+- [`addFloat(string $name, $label=null): TextInput` (since 3.1.12)](#addfloatstring-name-labelnull-textinput-since-3112)
+- [`addEmail(string $name, $label=null, int $maxLength=255): TextInput`](#addemailstring-name-labelnull-int-maxlength255-textinput)
+- [`addPassword(string $name, $label=null, ?int $cols=null, ?int $maxLength=null): TextInput`](#addpasswordstring-name-labelnull-int-colsnull-int-maxlengthnull-textinput)
+- [`addCheckbox(string $name, $caption=null): Checkbox`](#addcheckboxstring-name-captionnull-checkbox)
+- [`addCheckboxList(string $name, $label=null, ?array $items=null): CheckboxList`](#addcheckboxliststring-name-labelnull-array-itemsnull-checkboxlist)
+- [`addRadioList(string $name, $label=null, ?array $items=null): RadioList`](#addradioliststring-name-labelnull-array-itemsnull-radiolist)
+- [`addSelect(string $name, $label=null, ?array $items=null, ?int $size=null): SelectBox`](#addselectstring-name-labelnull-array-itemsnull-int-sizenull-selectbox)
+- [`addMultiSelect(string $name, $label=null, ?array $items=null, ?int $size=null): MultiSelectBox`](#addmultiselectstring-name-labelnull-array-itemsnull-int-sizenull-multiselectbox)
+- [`addUpload(string $name, $label=null): UploadControl`](#adduploadstring-name-labelnull-uploadcontrol)
+- [`addMultiUpload(string $name, $label=null): UploadControl`](#addmultiuploadstring-name-labelnull-uploadcontrol)
+- [`addDate(string $name, $label=null): DateTimeControl` (since 3.1.14)](#adddatestring-name-labelnull-datetimecontrol-since-3114)
+- [`addTime(string $name, $label=null, bool $withSeconds=false): DateTimeControl` (since 3.1.14)](#addtimestring-name-labelnull-bool-withsecondsfalse-datetimecontrol-since-3114)
+- [`addDateTime(string $name, $label=null, bool $withSeconds=false): DateTimeControl` (since 3.1.14)](#adddatetimestring-name-labelnull-bool-withsecondsfalse-datetimecontrol-since-3114)
+- [`addColor(string $name, $label=null): ColorPicker` (since 3.1.14)](#addcolorstring-name-labelnull-colorpicker-since-3114)
+- [`addHidden(string $name, mixed $default=null): HiddenField`](#addhiddenstring-name-mixed-defaultnull-hiddenfield)
+- [`addSubmit(string $name, $caption=null): SubmitButton`](#addsubmitstring-name-captionnull-submitbutton)
+- [`addButton(string $name, $caption=null): Button`](#addbuttonstring-name-captionnull-button)
+- [`addImageButton(string $name, ?string $src=null, ?string $alt=null): ImageButton`](#addimagebuttonstring-name-string-srcnull-string-altnull-imagebutton)
+- [`addContainer(string|int $name): Container`](#addcontainerstringint-name-container)
+- [Overview of Settings](#overview-of-settings)
+- [Omitted Values](#omitted-values)
+- [Disabling Inputs](#disabling-inputs)
+- [Custom Controls](#custom-controls)
+- [Low-Level Fields](#low-level-fields)
+
+
+Overview of standard form controls.
+
+## `addText(string $name, $label=null, ?int $cols=null, ?int $maxLength=null): TextInput`
+
+Adds a single-line text input field (class [TextInput](https://api.nette.org/forms/master/Nette/Forms/Controls/TextInput.html)). If the user does not fill in the field, it returns an empty string `''`, or use `setNullable()` to make it return `null` instead.
+
+```php
+$form->addText('name', 'Name:')
+	->setRequired()
+	->setNullable();
+```
+
+Automatically validates UTF-8, trims leading and trailing whitespace, and removes line breaks that could be sent by an attacker.
+
+The maximum length can be limited using `setMaxLength()`. The [addFilter()](validation.md#modifying-input-values) method allows modifying the value entered by the user.
+
+Using `setHtmlType()`, you can change the visual appearance of the text field to types like `search`, `tel`, or `url` as defined in the [specification](https://developer.mozilla.org/en-US/docs/Learn/Forms/HTML5_input_types). Remember that changing the type is purely visual and does not replace validation functionality. For the `url` type, it's advisable to add a specific [URL validation rule](validation.md#text-inputs).
+
+For other input types like `number`, `range`, `email`, `date`, `datetime-local`, `time`, and `color`, use specialized methods such as [addInteger](#addintegerstring-name-labelnull-textinput), [addFloat](#addfloatstring-name-labelnull-textinput-since-3112), [addEmail](#addemailstring-name-labelnull-int-maxlength255-textinput), [addDate](#adddatestring-name-labelnull-datetimecontrol-since-3114), [addTime](#addtimestring-name-labelnull-bool-withsecondsfalse-datetimecontrol-since-3114), [addDateTime](#adddatetimestring-name-labelnull-bool-withsecondsfalse-datetimecontrol-since-3114), and [addColor](#addcolorstring-name-labelnull-colorpicker-since-3114), which provide server-side validation. The types `month` and `week` are not yet fully supported by all browsers.
+
+An “empty value” can be set for the control. This acts somewhat like a default value, but if the user doesn't change it, the control returns an empty string or `null`.
+
+```php
+$form->addText('phone', 'Phone:')
+	->setHtmlType('tel')
+	->setEmptyValue('+420');
+```
+
+## `addTextArea(string $name, $label=null): TextArea`
+
+Adds a multi-line text input field (class [TextArea](https://api.nette.org/forms/master/Nette/Forms/Controls/TextArea.html)). If the user doesn't fill in the field, it returns an empty string `''`, or use `setNullable()` to make it return `null` instead.
+
+```php
+$form->addTextArea('note', 'Note:')
+	->addRule($form::MaxLength, 'Your note is way too long', 10000);
+```
+
+Automatically validates UTF-8 and normalizes line endings to `\n`. Unlike the single-line input field, no whitespace trimming occurs.
+
+The maximum length can be limited using `setMaxLength()`. The [addFilter()](validation.md#modifying-input-values) method allows modifying the user-entered value. An empty value can be set using `setEmptyValue()`.
+
+## `addInteger(string $name, $label=null): TextInput`
+
+Adds an input field for entering an integer (class [TextInput](https://api.nette.org/forms/master/Nette/Forms/Controls/TextInput.html)). Returns either an integer or `null` if the user enters nothing.
+
+```php
+$form->addInteger('year', 'Year:')
+	->addRule($form::Range, 'The year must be between %d and %d.', [1900, 2023]);
+```
+
+The control renders as `<input type="number">`. Using the `setHtmlType()` method, you can change the type to `range` for display as a slider, or to `text` if you prefer a standard text field without the special behavior of the `number` type.
+
+## `addFloat(string $name, $label=null): TextInput` (since 3.1.12)
+
+Adds an input field for entering a floating-point number (class [TextInput](https://api.nette.org/forms/master/Nette/Forms/Controls/TextInput.html)). Returns either a float or `null` if the user enters nothing.
+
+```php
+$form->addFloat('level', 'Level:')
+	->setDefaultValue(0)
+	->addRule($form::Range, 'The level must be between %d and %d.', [0, 100]);
+```
+
+The control renders as `<input type="number">`. Using the `setHtmlType()` method, you can change the type to `range` for display as a slider, or to `text` if you prefer a standard text field without the special behavior of the `number` type.
+
+Nette and the Chrome browser accept both a comma and a dot as decimal separators. To enable this functionality in Firefox as well, it is recommended to set the `lang` attribute either for the specific control or for the entire page, for example, `<html lang="en">`.
+
+## `addEmail(string $name, $label=null, int $maxLength=255): TextInput`
+
+Adds an input field for entering an email address (class [TextInput](https://api.nette.org/forms/master/Nette/Forms/Controls/TextInput.html)). If the user doesn't fill in the field, it returns an empty string `''`, or use `setNullable()` to make it return `null` instead.
+
+```php
+$form->addEmail('email', 'E-mail:');
+```
+
+Validates that the value is a valid email address. It does not check if the domain actually exists, only the syntax is verified. Automatically validates UTF-8 and trims leading and trailing whitespace.
+
+The maximum length can be limited using `setMaxLength()`. The [addFilter()](validation.md#modifying-input-values) method allows modifying the user-entered value. An empty value can be set using `setEmptyValue()`.
+
+## `addPassword(string $name, $label=null, ?int $cols=null, ?int $maxLength=null): TextInput`
+
+Adds a password input field (class [TextInput](https://api.nette.org/forms/master/Nette/Forms/Controls/TextInput.html)).
+
+```php
+$form->addPassword('password', 'Password:')
+	->setRequired()
+	->addRule($form::MinLength, 'Password must be at least %d characters long', 8)
+	->addRule($form::Pattern, 'Password must contain a number', '.*[0-9].*');
+```
+
+When the form is redisplayed, the field will be empty. Automatically validates UTF-8, trims leading and trailing whitespace, and removes line breaks that could be sent by an attacker.
+
+## `addCheckbox(string $name, $caption=null): Checkbox`
+
+Adds a checkbox (class [Checkbox](https://api.nette.org/forms/master/Nette/Forms/Controls/Checkbox.html)). Returns `true` or `false`, depending on whether it is checked.
+
+```php
+$form->addCheckbox('agree', 'I agree with terms')
+	->setRequired('You must agree with our terms');
+```
+
+## `addCheckboxList(string $name, $label=null, ?array $items=null): CheckboxList`
+
+Adds a list of checkboxes for selecting multiple items (class [CheckboxList](https://api.nette.org/forms/master/Nette/Forms/Controls/CheckboxList.html)). Returns an array of the keys of the selected items. The `getSelectedItems()` method returns the selected items as key-value pairs.
+
+```php
+$form->addCheckboxList('colors', 'Colors:', [
+	'r' => 'red',
+	'g' => 'green',
+	'b' => 'blue',
+]);
+```
+
+Pass the array of offered items as the third parameter or using the `setItems()` method. By passing `false` as the second argument to `setItems()`, the values are used as keys as well.
+
+Use `setDisabled(['r', 'g'])` to disable individual items.
+
+The control automatically checks that no forgery occurred and that the selected items are indeed among the offered ones and were not disabled. The `getRawValue()` method can be used to retrieve submitted items without this important check.
+
+When setting default selected items, it also checks that they are among the offered ones, otherwise it throws an exception. This check can be disabled using `checkDefaultValue(false)`.
+
+If you are submitting the form using the `GET` method, you can choose a more compact data transfer method that saves query string size. Activate it by setting an HTML attribute on the form:
+
+```php
+$form->setHtmlAttribute('data-nette-compact');
+```
+
+## `addRadioList(string $name, $label=null, ?array $items=null): RadioList`
+
+Adds radio buttons (class [RadioList](https://api.nette.org/forms/master/Nette/Forms/Controls/RadioList.html)). Returns the key of the selected item, or `null` if the user selected nothing. The `getSelectedItem()` method returns the value instead of the key.
+
+```php
+$sex = [
+	'm' => 'male',
+	'f' => 'female',
+	'o' => 'other',
+];
+$form->addRadioList('gender', 'Gender:', $sex);
+```
+
+Pass the array of offered items as the third parameter or using the `setItems()` method.
+
+Use `setDisabled(['m'])` to disable individual items.
+
+The control automatically checks that no forgery occurred and that the selected item is indeed one of the offered ones and was not disabled. The `getRawValue()` method can be used to retrieve the submitted item without this important check.
+
+When setting the default selected item, it also checks that it is one of the offered ones, otherwise it throws an exception. This check can be disabled using `checkDefaultValue(false)`.
+
+## `addSelect(string $name, $label=null, ?array $items=null, ?int $size=null): SelectBox`
+
+Adds a select box (class [SelectBox](https://api.nette.org/forms/master/Nette/Forms/Controls/SelectBox.html)). Returns the key of the selected item, or `null` if the user selected nothing. The `getSelectedItem()` method returns the value instead of the key.
+
+```php
+$countries = [
+	'CZ' => 'Czech Republic',
+	'SK' => 'Slovakia',
+	'GB' => 'United Kingdom',
+];
+
+$form->addSelect('country', 'Country:', $countries)
+	->setDefaultValue('SK');
+```
+
+Pass the array of offered items as the third parameter or using the `setItems()` method. Items can also be a two-dimensional array (representing optgroups):
+
+```php
+$countries = [
+	'Europe' => [
+		'CZ' => 'Czech Republic',
+		'SK' => 'Slovakia',
+		'GB' => 'United Kingdom',
+	],
+	'CA' => 'Canada',
+	'US' => 'USA',
+	'?'  => 'other',
+];
+```
+
+In select boxes, the first item often has a special meaning, serving as a prompt to action. Use the `setPrompt()` method to add such an item.
+
+```php
+$form->addSelect('country', 'Country:', $countries)
+	->setPrompt('Choose a country');
+```
+
+Use `setDisabled(['CZ', 'SK'])` to disable individual items.
+
+The control automatically checks that no forgery occurred and that the selected item is indeed one of the offered ones and was not disabled. The `getRawValue()` method can be used to retrieve the submitted item without this important check.
+
+When setting the default selected item, it also checks that it is one of the offered ones, otherwise it throws an exception. This check can be disabled using `checkDefaultValue(false)`.
+
+## `addMultiSelect(string $name, $label=null, ?array $items=null, ?int $size=null): MultiSelectBox`
+
+Adds a select box for selecting multiple items (class [MultiSelectBox](https://api.nette.org/forms/master/Nette/Forms/Controls/MultiSelectBox.html)). Returns an array of the keys of the selected items. The `getSelectedItems()` method returns the selected items as key-value pairs.
+
+```php
+$form->addMultiSelect('countries', 'Countries:', $countries);
+```
+
+Pass the array of offered items as the third parameter or using the `setItems()` method. Items can also be a two-dimensional array.
+
+Use `setDisabled(['CZ', 'SK'])` to disable individual items.
+
+The control automatically checks that no forgery occurred and that the selected items are indeed among the offered ones and were not disabled. The `getRawValue()` method can be used to retrieve submitted items without this important check.
+
+When setting default selected items, it also checks that they are among the offered ones, otherwise it throws an exception. This check can be disabled using `checkDefaultValue(false)`.
+
+## `addUpload(string $name, $label=null): UploadControl`
+
+Adds a file upload field (class [UploadControl](https://api.nette.org/forms/master/Nette/Forms/Controls/UploadControl.html)). Returns a [FileUpload](../http/request.md#overview-of-fileupload-methods) object, even if the user did not upload any file, which can be checked using the `FileUpload::hasFile()` method. Using `setNullable()`, you can make the control return `null` instead of a `FileUpload` object when no file is uploaded.
+
+```php
+$form->addUpload('avatar', 'Avatar:')
+	->addRule($form::Image, 'Avatar must be JPEG, PNG, GIF, WebP or AVIF.')
+	->addRule($form::MaxFileSize, 'Maximum size is 1 MB.', 1024 * 1024);
+```
+
+If the file fails to upload correctly, the form is not successfully submitted, and an error is displayed. That is, upon successful submission, it is not necessary to check the `FileUpload::isOk()` method.
+
+Never trust the original file name returned by the `FileUpload::getName()` method; the client could have sent a malicious file name with the intent to damage or hack your application.
+
+The `MimeType` and `Image` rules detect the required type based on the file's signature and do not verify its integrity. Whether an image is corrupted can be determined, for example, by attempting to [load it](../http/request.md#toimage-netteutilsimage).
+
+## `addMultiUpload(string $name, $label=null): UploadControl`
+
+Adds a field for uploading multiple files at once (class [UploadControl](https://api.nette.org/forms/master/Nette/Forms/Controls/UploadControl.html)). Returns an array of [FileUpload](../http/request.md#overview-of-fileupload-methods) objects. The `FileUpload::hasFile()` method for each of them will return `true`.
+
+```php
+$form->addMultiUpload('files', 'Files:')
+	->addRule($form::MaxLength, 'Maximum of %d files can be uploaded.', 10);
+```
+
+If any file fails to upload correctly, the form is not successfully submitted, and an error is displayed. That is, upon successful submission, it is not necessary to check the `FileUpload::isOk()` method for each file.
+
+Never trust the original file names returned by the `FileUpload::getName()` method; the client could have sent malicious file names with the intent to damage or hack your application.
+
+The `MimeType` and `Image` rules detect the required type based on the file's signature and do not verify its integrity. Whether an image is corrupted can be determined, for example, by attempting to [load it](../http/request.md#toimage-netteutilsimage).
+
+## `addDate(string $name, $label=null): DateTimeControl` (since 3.1.14)
+
+Adds a field that allows the user to easily enter a date consisting of year, month, and day (class [DateTimeControl](https://api.nette.org/forms/master/Nette/Forms/Controls/DateTimeControl.html)).
+
+As a default value, it accepts objects implementing the `DateTimeInterface`, a string containing time, or a number representing a UNIX timestamp. The same applies to the arguments of the `Min`, `Max`, or `Range` rules, which define the minimum and maximum allowed dates.
+
+```php
+$form->addDate('date', 'Date:')
+	->setDefaultValue(new DateTime)
+	->addRule($form::Min, 'The date must be at least one month old.', new DateTime('-1 month'));
+```
+
+By default, it returns a `DateTimeImmutable` object. Using the `setFormat()` method, you can specify a [text format](https://www.php.net/manual/en/datetime.format.php#refsect1-datetime.format-parameters) or a timestamp:
+
+```php
+$form->addDate('date', 'Date:')
+	->setFormat('Y-m-d');
+```
+
+## `addTime(string $name, $label=null, bool $withSeconds=false): DateTimeControl` (since 3.1.14)
+
+Adds a field that allows the user to easily enter a time consisting of hours, minutes, and optionally seconds (class [DateTimeControl](https://api.nette.org/forms/master/Nette/Forms/Controls/DateTimeControl.html)).
+
+As a default value, it accepts objects implementing the `DateTimeInterface`, a string containing time, or a number representing a UNIX timestamp. Only the time information from these inputs is used; the date is ignored. The same applies to the arguments of the `Min`, `Max`, or `Range` rules, which define the minimum and maximum allowed times. If the set minimum value is higher than the maximum, a time range spanning midnight is created.
+
+```php
+$form->addTime('time', 'Time:', withSeconds: true)
+	->addRule($form::Range, 'Time must be between %d and %d.', ['12:30', '13:30']);
+```
+
+By default, it returns a `DateTimeImmutable` object (with the date set to January 1, year 1). Using the `setFormat()` method, you can specify a [text format](https://www.php.net/manual/en/datetime.format.php#refsect1-datetime.format-parameters):
+
+```php
+$form->addTime('time', 'Time:')
+	->setFormat('H:i');
+```
+
+## `addDateTime(string $name, $label=null, bool $withSeconds=false): DateTimeControl` (since 3.1.14)
+
+Adds a field that allows the user to easily enter both date and time, consisting of year, month, day, hours, minutes, and optionally seconds (class [DateTimeControl](https://api.nette.org/forms/master/Nette/Forms/Controls/DateTimeControl.html)).
+
+As a default value, it accepts objects implementing the `DateTimeInterface`, a string containing time, or a number representing a UNIX timestamp. The same applies to the arguments of the `Min`, `Max`, or `Range` rules, which define the minimum and maximum allowed date and time.
+
+```php
+$form->addDateTime('datetime', 'Date and Time:')
+	->setDefaultValue(new DateTime)
+	->addRule($form::Min, 'The date must be at least one month old.', new DateTime('-1 month'));
+```
+
+By default, it returns a `DateTimeImmutable` object. Using the `setFormat()` method, you can specify a [text format](https://www.php.net/manual/en/datetime.format.php#refsect1-datetime.format-parameters) or a timestamp:
+
+```php
+$form->addDateTime('datetime')
+	->setFormat(DateTimeControl::FormatTimestamp);
+```
+
+## `addColor(string $name, $label=null): ColorPicker` (since 3.1.14)
+
+Adds a color picker field (class [ColorPicker](https://api.nette.org/forms/master/Nette/Forms/Controls/ColorPicker.html)). The color is returned as a string in the format `#rrggbb`. If the user does not make a selection, it returns black `#000000`.
+
+```php
+$form->addColor('color', 'Color:')
+	->setDefaultValue('#3C8ED7');
+```
+
+## `addHidden(string $name, mixed $default=null): HiddenField`
+
+Adds a hidden field (class [HiddenField](https://api.nette.org/forms/master/Nette/Forms/Controls/HiddenField.html)).
+
+```php
+$form->addHidden('userid');
+```
+
+Use `setNullable()` to make it return `null` instead of an empty string. The [addFilter()](validation.md#modifying-input-values) method allows modifying the submitted value.
+
+Although the control is hidden, **it is important to realize** that its value can still be modified or spoofed by an attacker. Always thoroughly verify and validate all received values on the server side to prevent security risks associated with data manipulation.
+
+## `addSubmit(string $name, $caption=null): SubmitButton`
+
+Adds a submit button (class [SubmitButton](https://api.nette.org/forms/master/Nette/Forms/Controls/SubmitButton.html)).
+
+```php
+$form->addSubmit('submit', 'Submit');
+```
+
+(since 3.3.0) The handler can be passed directly to the button as the third parameter `$onSubmit` instead of attaching it to the `onClick` event:
+
+```php
+$form->addSubmit('submit', 'Submit', function (SubmitButton $button, $data): void {
+	// ...
+});
+```
+
+It is possible to have more than one submit button in the form:
+
+```php
+$form->addSubmit('register', 'Register');
+$form->addSubmit('cancel', 'Cancel');
+```
+
+To determine which one was clicked, use:
+
+```php
+if ($form['register']->isSubmittedBy()) {
+  // ...
+}
+```
+
+If you do not want to validate the entire form when a button is pressed (for example, for *Cancel* or *Preview* buttons), use [setValidationScope()](validation.md#disabling-validation).
+
+## `addButton(string $name, $caption=null): Button`
+
+Adds a button (class [Button](https://api.nette.org/forms/master/Nette/Forms/Controls/Button.html)) that does not have a submit function. It can therefore be used for other functions, e.g., calling a JavaScript function on click.
+
+```php
+$form->addButton('raise', 'Raise salary')
+	->setHtmlAttribute('onclick', 'raiseSalary()');
+```
+
+## `addImageButton(string $name, ?string $src=null, ?string $alt=null): ImageButton`
+
+Adds a submit button in the form of an image (class [ImageButton](https://api.nette.org/forms/master/Nette/Forms/Controls/ImageButton.html)).
+
+```php
+$form->addImageButton('submit', '/path/to/image.png', 'Submit');
+```
+
+When using multiple submit buttons, you can determine which one was clicked using `$form['submit']->isSubmittedBy()`.
+
+## `addContainer(string|int $name): Container`
+
+Adds a sub-form (class [Container](https://api.nette.org/forms/master/Nette/Forms/Container.html)), or a container, into which other controls can be added in the same way as they are added to the form. Methods like `setDefaults()` or `getValues()` work as well.
+
+```php
+$sub1 = $form->addContainer('first');
+$sub1->addText('name', 'Your name:');
+$sub1->addEmail('email', 'Email:');
+
+$sub2 = $form->addContainer('second');
+$sub2->addText('name', 'Your name:');
+$sub2->addEmail('email', 'Email:');
+```
+
+The submitted data is then returned as a multi-dimensional structure:
+
+```php
+[
+	'first' => [
+		'name' => /* ... */,
+		'email' => /* ... */,
+	],
+	'second' => [
+		'name' => /* ... */,
+		'email' => /* ... */,
+	],
+]
+```
+
+## Overview of Settings
+
+For all controls, we can call the following methods (see the [API documentation](https://api.nette.org/forms/master/Nette/Forms/Controls.html) for a complete overview):
+
+|  |  |
+| --- | --- |
+| `setDefaultValue($value)` | sets the default value |
+| `getValue()` | gets the current value |
+| `setOmitted()` | [Omitted Values](#omitted-values) |
+| `setDisabled()` | [Disabling Inputs](#disabling-inputs) |
+
+Rendering:
+
+|  |  |
+| --- | --- |
+| `setCaption($caption)` | changes the control's label |
+| `setTranslator($translator)` | sets the [translator](rendering.md#translating) |
+| `setHtmlAttribute($name, $value)` | sets an [HTML attribute](rendering.md#html-attributes) for the element |
+| `setHtmlId($id)` | sets the HTML attribute `id` |
+| `setOption($key, $value)` | [sets rendering options](rendering.md#options) |
+
+Validation:
+
+|  |  |
+| --- | --- |
+| `setRequired()` | makes the control [required](validation.md) |
+| `addRule()` | adds a [validation rule](validation.md#rules) |
+| `addCondition()`, `addConditionOn()` | sets a [validation condition](validation.md#conditions) |
+| `addError($message)` | [adds an error message](validation.md#processing-errors) |
+
+For controls `addText()`, `addPassword()`, `addTextArea()`, `addEmail()`, `addInteger()`, `addFloat()`, the following methods can be called:
+
+|  |  |
+| --- | --- |
+| `setNullable()` | sets whether getValue() returns `null` instead of an empty string |
+| `setEmptyValue($value)` | sets a special value that is considered an empty string |
+| `setMaxLength($length)` | sets the maximum allowed number of characters |
+| `addFilter($filter)` | [modifies input](validation.md#modifying-input-values) |
+
+## Omitted Values
+
+If we are not interested in the value filled in by the user, we can use `setOmitted()` to exclude it from the result of the `$form->getValues()` method or from the data passed to handlers. This is useful for various password confirmation fields, anti-spam controls, etc.
+
+```php
+$form->addPassword('passwordVerify', 'Password again:')
+	->setRequired('Fill your password again to check for typo')
+	->addRule($form::Equal, 'Passwords do not match', $form['password'])
+	->setOmitted();
+```
+
+## Disabling Inputs
+
+Controls can be disabled using `setDisabled()`. A disabled control cannot be edited by the user.
+
+```php
+$form->addText('username', 'User name:')
+	->setDisabled();
+```
+
+Disabled controls are not sent by the browser to the server at all, so you won't find them in the data returned by the `$form->getValues()` function. However, if you set `setOmitted(false)`, Nette will include their default value in this data.
+
+When `setDisabled()` is called, the **control's value is cleared** for security reasons. If you are setting a default value, it is necessary to do so after disabling it:
+
+```php
+$form->addText('username', 'User name:')
+	->setDisabled()
+	->setDefaultValue($userName);
+```
+
+An alternative to disabled controls are controls with the HTML `readonly` attribute, which the browser does send to the server. Although the control is read-only, **it is important to realize** that its value can still be modified or spoofed by an attacker.
+
+## Custom Controls
+
+Besides the wide range of built-in form controls, you can add custom controls to the form:
+
+```php
+$form->addComponent(new DateInput('Date:'), 'date');
+// alternative syntax: $form['date'] = new DateInput('Date:');
+```
+
+How to write such a control, including reading submitted data, validation, and rendering, is described in a [separate chapter](custom-controls.md). You'll also learn about extension methods there, which let you create your own adding method like `$form->addZip()`.
+
+## Low-Level Fields
+
+It's also possible to use controls that are only written in the template and not added to the form using any of the `$form->addXyz()` methods. For example, when listing records from a database where we don't know in advance how many there will be or what their IDs will be, and we want to display a checkbox or radio button for each row, we can simply code it in the template:
+
+```latte
+{foreach $items as $item}
+	<p><input type=checkbox name="sel[]" value={$item->id}> {$item->name}</p>
+{/foreach}
+```
+
+And after submission, we retrieve the value:
+
+```php
+$data = $form->getHttpData($form::DataText, 'sel[]');
+$data = $form->getHttpData($form::DataText | $form::DataKeys, 'sel[]');
+```
+
+where the first parameter is the element type (`DataFile` for `type=file`, `DataLine` for single-line inputs like `text`, `password`, `email`, etc., and `DataText` for all others) and the second parameter `sel[]` corresponds to the HTML name attribute. We can combine the element type with the `DataKeys` value, which preserves the keys of the elements. This is particularly useful for `select`, `radioList`, and `checkboxList`.
+
+Crucially, `getHttpData()` returns a sanitized value. In this case, it will always be an array of valid UTF-8 strings, regardless of what an attacker might try to submit to the server. This is analogous to working directly with `$_POST` or `$_GET`, but with the significant difference that it always returns clean data, just as you are accustomed to with standard Nette form controls.

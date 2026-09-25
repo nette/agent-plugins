@@ -1,0 +1,263 @@
+# Helpers
+
+Contents:
+
+- [HttpAssert (since 2.5.6)](#httpassert-since-256)
+- [DomQuery](#domquery)
+- [FileMock](#filemock)
+- [`Assert::with()`](#assertwith)
+- [`Helpers::purge()`](#helperspurge)
+- [`Environment::lock()`](#environmentlock)
+- [`Environment::bypassFinals()`](#environmentbypassfinals)
+- [`Environment::setup()`](#environmentsetup)
+- [`Environment::setupFunctions()` (since 2.5.0)](#environmentsetupfunctions-since-250)
+- [`Environment::VariableRunner`](#environmentvariablerunner)
+- [`Environment::VariableThread`](#environmentvariablethread)
+
+
+## HttpAssert (since 2.5.6)
+
+The `Tester\HttpAssert` class provides tools for testing HTTP servers. It allows you to easily perform HTTP requests and verify status codes, headers, and response body content using a fluent interface.
+
+```php
+# Basic HTTP request and response verification
+$response = Tester\HttpAssert::fetch('https://example.com/api/users');
+$response
+	->expectCode(200)
+	->expectHeader('Content-Type', contains: 'json')
+	->expectBody(contains: 'users');
+```
+
+The `fetch()` method creates a GET request by default, but all parameters can be customized:
+
+```php
+HttpAssert::fetch(
+	'https://api.example.com/users',
+	method: 'POST',
+	headers: [
+		'Authorization' => 'Bearer token123',  # associative array
+		'Accept: application/json',            # or string format
+	],
+	cookies: ['session' => 'abc123'],
+	follow: false,                             # do not follow redirects
+	body: '{"name": "John"}'
+)
+	->expectCode(201);
+```
+
+Status codes can be verified using `expectCode()` and `denyCode()` methods. You can pass either a specific number or a validation function:
+
+```php
+$response
+	->expectCode(200)                           # exact code
+	->expectCode(fn($code) => $code < 400)      # custom validation
+	->denyCode(404)                             # must not be 404
+	->denyCode(fn($code) => $code >= 500);      # must not be server error
+```
+
+For header verification, use `expectHeader()` and `denyHeader()` methods. You can check whether a header exists, verify its exact value, or match part of its content:
+
+```php
+$response
+	->expectHeader('Content-Type')                     # header must exist
+	->expectHeader('Content-Type', 'application/json') # exact value
+	->expectHeader('Content-Type', contains: 'json')   # contains text
+	->expectHeader('Server', matches: 'nginx %a%')     # matches pattern
+	->denyHeader('X-Powered-By')                       # header must not exist
+	->denyHeader('X-Debug', contains: 'sensitive')     # must not contain text
+	->denyHeader('X-Debug', matches: '~debug~i');      # must not match pattern
+```
+
+Response body verification works similarly with `expectBody()` and `denyBody()` methods:
+
+```php
+$response
+	->expectBody('OK')                              # exact value
+	->expectBody(contains: '"status": "success"')   # contains JSON fragment
+	->expectBody(matches: '%A% hello %A%')          # matches pattern
+	->expectBody(fn($body) => json_decode($body) !== null) # custom validation
+	->denyBody('Error occurred')                    # must not have exact value
+	->denyBody(contains: 'error')                   # must not contain text
+	->denyBody(matches: '~exception|fatal~i');      # must not match pattern
+```
+
+The `follow` parameter controls how HttpAssert handles HTTP redirects:
+
+```php
+# Testing redirect without following (default)
+HttpAssert::fetch('https://example.com/redirect', follow: false)
+	->expectCode(301)
+	->expectHeader('Location', 'https://example.com/new-url');
+
+# Following all redirects to the final response
+HttpAssert::fetch('https://example.com/redirect', follow: true)
+	->expectCode(200)
+	->expectBody(contains: 'final content');
+```
+
+## DomQuery
+
+`Tester\DomQuery` is a class extending `SimpleXMLElement` with easy querying in HTML or XML using CSS selectors.
+
+```php
+# create DomQuery from HTML string
+$dom = Tester\DomQuery::fromHtml('
+	<article class="post">
+		<h1>Title</h1>
+		<div class="content">Text</div>
+	</article>
+');
+
+# test element existence using CSS selectors
+Assert::true($dom->has('article.post'));
+Assert::true($dom->has('h1'));
+
+# find elements as an array of DomQuery objects
+$headings = $dom->find('h1');
+Assert::same('Title', (string) $headings[0]);
+
+# test if element matches selector (since version 2.5.3)
+$content = $dom->find('.content')[0];
+Assert::true($content->matches('div'));
+Assert::false($content->matches('p'));
+
+# find the closest ancestor matching the selector (since 2.5.5)
+$article = $content->closest('.post');
+Assert::true($article->matches('article'));
+```
+
+For XML documents, use the `fromXml()` method:
+
+```php
+$dom = Tester\DomQuery::fromXml('<catalog><item>First</item></catalog>');
+Assert::true($dom->has('item'));
+```
+
+## FileMock
+
+`Tester\FileMock` emulates files in memory and facilitates testing code that uses functions like `fopen()`, `file_get_contents()`, `parse_ini_file()` and similar. Example usage:
+
+```php
+# Tested class
+class Logger
+{
+	public function __construct(
+		private string $logFile,
+	) {
+	}
+
+	public function log(string $message): void
+	{
+		file_put_contents($this->logFile, $message . "\n", FILE_APPEND);
+	}
+}
+
+# New empty file
+$file = Tester\FileMock::create('');
+
+$logger = new Logger($file);
+$logger->log('Login');
+$logger->log('Logout');
+
+# Test the created content
+Assert::same("Login\nLogout\n", file_get_contents($file));
+```
+
+The optional second parameter `$extension` sets the file extension in the generated URL, which is handy when the tested code decides based on it:
+
+```php
+$file = Tester\FileMock::create('{"key": "value"}', 'json');
+```
+
+## `Assert::with()`
+
+This is not an assertion, but a helper for testing private methods and properties of objects.
+
+```php
+class Entity
+{
+	private $enabled;
+	// ...
+}
+
+$ent = new Entity;
+
+Assert::with($ent, function () {
+	Assert::true($this->enabled); // accessible private $ent->enabled
+});
+```
+
+## `Helpers::purge()`
+
+The `purge()` method creates the specified directory, and if it already exists, it deletes its entire content. It is useful for creating a temporary directory. For example, in `tests/bootstrap.php`:
+
+```php
+@mkdir(__DIR__ . '/tmp');  # @ - directory may already exist
+
+define('TempDir', __DIR__ . '/tmp/' . getmypid());
+Tester\Helpers::purge(TempDir);
+```
+
+## `Environment::lock()`
+
+Tests run in parallel. Sometimes, however, we need the execution of the tests not to overlap. Typically, database tests require preparing the database content and ensuring no other test interferes with the database during its execution. In these tests, we use `Tester\Environment::lock($name, $dir)`:
+
+```php
+Tester\Environment::lock('database', __DIR__ . '/tmp');
+```
+
+The first parameter is the name of the lock, the second is the path to the directory for storing the lock. The test that acquires the lock first proceeds; the other tests must wait for it to complete.
+
+## `Environment::bypassFinals()`
+
+Classes or methods marked as `final` are difficult to test. Calling `Tester\Environment::bypassFinals()` at the beginning of a test causes the `final` keywords to be omitted during code loading.
+
+```php
+require __DIR__ . '/bootstrap.php';
+
+Tester\Environment::bypassFinals();
+
+class MyClass extends NormallyFinalClass  # <-- NormallyFinalClass is no longer final
+{
+	// ...
+}
+```
+
+## `Environment::setup()`
+
+- improves the readability of error dumps (including coloring); otherwise, the default PHP stack trace is printed
+- enables checking that assertions were called in the test; otherwise, tests without assertions (e.g., forgotten ones) also pass
+- automatically starts collecting information about the executed code (when `--coverage` is used) (described further)
+- prints the status OK or FAILURE at the end of the script
+
+## `Environment::setupFunctions()` (since 2.5.0)
+
+Creates the global functions `test()`, `testException()`, `testNoError()`, `setUp()`, and `tearDown()`, into which you can structure your tests.
+
+```php
+test('test description', function () {
+	Assert::same(123, foo());
+	Assert::false(bar());
+	// ...
+});
+```
+
+## `Environment::VariableRunner`
+
+Allows you to determine whether the test was run directly or via the Tester.
+
+```php
+if (getenv(Tester\Environment::VariableRunner)) {
+	# run by Tester
+} else {
+	# run some other way
+}
+```
+
+## `Environment::VariableThread`
+
+Tester runs tests in parallel in the specified number of threads. If we are interested in the thread number, we find it from the environment variable:
+
+```php
+echo "Running in thread number " . getenv(Tester\Environment::VariableThread);
+```

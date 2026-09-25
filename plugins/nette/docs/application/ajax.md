@@ -1,0 +1,254 @@
+# AJAX & Snippets
+
+Contents:
+
+- [AJAX Request](#ajax-request)
+- [Snippets](#snippets)
+  - [Naja](#naja)
+  - [Redrawing Snippets](#redrawing-snippets)
+  - [Snippets in Latte](#snippets-in-latte)
+  - [Snippet Areas](#snippet-areas)
+  - [Snippets in Components](#snippets-in-components)
+  - [Sending Custom Data](#sending-custom-data)
+  - [Redirecting](#redirecting)
+- [Passing Parameters](#passing-parameters)
+- [Further Reading](#further-reading)
+
+
+In the era of modern web applications, where functionality is often distributed between the server and the browser, AJAX is an essential connecting element. What options does the Nette Framework offer in this area?
+
+- sending parts of the template, known as snippets
+- passing variables between PHP and JavaScript
+- tools for debugging AJAX requests
+
+## AJAX Request
+
+An AJAX request does not fundamentally differ from a classic HTTP request. A presenter is called with specific parameters. It is up to the presenter to decide how to respond to the request – it can return data in JSON format, send a part of HTML code, an XML document, etc.
+
+On the browser side, we initiate an AJAX request using the `fetch()` function:
+
+```js
+fetch(url, {
+	headers: {'X-Requested-With': 'XMLHttpRequest'},
+})
+.then(response => response.json())
+.then(payload => {
+	// process the response
+});
+```
+
+On the server side, an AJAX request is recognized by the `$httpRequest->isAjax()` method of the service [encapsulating the HTTP request](../http/request.md). It uses the `X-Requested-With` HTTP header for detection, so it is crucial to send it. Within the presenter, you can use the `$this->isAjax()` method.
+
+If you want to send data in JSON format, use the [`sendJson()`](presenters.md#sending-a-response) method. The method also terminates the presenter's activity.
+
+```php
+public function actionExport(): void
+{
+	$this->sendJson($this->model->getData());
+}
+```
+
+If you plan to respond with a special template designed for AJAX, you can do it as follows:
+
+```php
+public function handleClick($param): void
+{
+	if ($this->isAjax()) {
+		$this->template->setFile('path/to/ajax.latte');
+	}
+	// ...
+}
+```
+
+## Snippets
+
+Snippets are the most powerful tool Nette offers for connecting the server with the client. With them, you can turn an ordinary application into an AJAX one with minimal effort and just a few lines of code. The Fifteen example demonstrates how it all works, and its code can be found on [GitHub](https://github.com/nette-examples/fifteen).
+
+Snippets allow you to update only parts of the page, instead of reloading the entire page. This is not only faster and more efficient but also provides a more comfortable user experience. Snippets might remind you of Hotwire for Ruby on Rails or Symfony UX Turbo. Interestingly, Nette introduced snippets 14 years earlier.
+
+How do snippets work? When the page is first loaded (a non-AJAX request), the entire page, including all snippets, is loaded. When the user interacts with the page (e.g., clicks a button, submits a form, etc.), an AJAX request is initiated instead of reloading the entire page. The code in the presenter performs the action and decides which snippets need updating. Nette renders these snippets and sends them as a JSON payload containing an array with snippets. The handling code in the browser then inserts the received snippets back into the page. Thus, only the code of the changed snippets is transferred, saving bandwidth and speeding up loading compared to transferring the entire page content. If no snippet is invalidated using `redrawControl()`, Nette returns the entire page even for an AJAX request – snippets are sent only when something is invalidated.
+
+### Naja
+
+To handle snippets on the browser side, the [Naja library](https://naja.js.org) is used. [Install it](https://naja.js.org/#/guide/01-install-setup-naja) as a Node.js package (for use with bundlers like Webpack, Rollup, Vite, Parcel, and others):
+
+```shell
+npm install naja
+```
+
+…or insert it directly into the page template:
+
+```latte
+<script src="https://unpkg.com/naja@3/dist/Naja.min.js"></script>
+```
+
+First, you need to [initialize](https://naja.js.org/#/guide/01-install-setup-naja?id=initialization) the library:
+
+```js
+naja.initialize();
+```
+
+To turn an ordinary link (signal) or form submission into an AJAX request, simply mark the relevant link, form, or button with the `ajax` class:
+
+```latte
+<a n:href="go!" class="ajax">Go</a>
+
+<form n:name="form" class="ajax">
+    <input n:name="submit">
+</form>
+
+or
+
+<form n:name="form">
+    <input n:name="submit" class="ajax">
+</form>
+```
+
+### Redrawing Snippets
+
+Every object of the [Control](components.md) class (including the Presenter itself) keeps track of whether changes have occurred that require it to be redrawn. The `redrawControl()` method is used for this purpose:
+
+```php
+public function handleLogin(string $user): void
+{
+	// after login, it is necessary to redraw the relevant part
+	$this->redrawControl();
+	// ...
+}
+```
+
+Nette allows for even finer control over what needs to be redrawn. The method can accept the name of the snippet as an argument. Thus, it is possible to invalidate (meaning: force redrawing) at the level of template parts. If the entire component is invalidated, every snippet within it will also be redrawn:
+
+```php
+// invalidates the 'header' snippet
+$this->redrawControl('header');
+```
+
+You can also cancel a pending invalidation using the second parameter `$redraw`: calling `$this->redrawControl('header', redraw: false)` marks the snippet as not needing a redraw. The full signature is `redrawControl(?string $snippet = null, bool $redraw = true)`.
+
+### Snippets in Latte
+
+Using snippets in Latte is extremely easy. To define a part of the template as a snippet, simply wrap it with the `{snippet}` and `{/snippet}` tags:
+
+```latte
+{snippet header}
+	<h1>Hello ... </h1>
+{/snippet}
+```
+
+The snippet creates a `<div>` element in the HTML page with a special generated `id`. When the snippet is redrawn, the content of this element is updated. Therefore, it is necessary that when the page is initially rendered, all snippets are also rendered, even if they might be empty at the beginning.
+
+You can also create a snippet using an element other than `<div>` with an n:attribute:
+
+```latte
+<article n:snippet="header" class="foo bar">
+	<h1>Hello ... </h1>
+</article>
+```
+
+### Snippet Areas
+
+Snippet names can also be expressions:
+
+```latte
+{foreach $items as $id => $item}
+	<li n:snippet="item-{$id}">{$item}</li>
+{/foreach}
+```
+
+On its own, this is a non-functional intermediate step: rendered outside a static `{snippet}` or `{snippetArea}`, a dynamic snippet triggers an `E_USER_WARNING` with the message *Dynamic snippets are allowed only inside static snippet/snippetArea.* We fix that below.
+
+This creates several snippets like `item-0`, `item-1`, etc. If we were to directly invalidate a dynamic snippet (e.g., `item-1`), nothing would be redrawn. The reason is that snippets truly function as excerpts, and only they themselves are rendered directly. However, in the template, there is technically no snippet named `item-1`. It only comes into existence when the code surrounding the snippet, i.e., the foreach loop, is executed. Therefore, we mark the part of the template that needs to be executed using the `{snippetArea}` tag:
+
+```latte
+<ul n:snippetArea="itemsContainer">
+	{foreach $items as $id => $item}
+		<li n:snippet="item-{$id}">{$item}</li>
+	{/foreach}
+</ul>
+```
+
+And we request the redrawing of both the individual snippet and the entire parent area:
+
+```php
+$this->redrawControl('itemsContainer');
+$this->redrawControl('item-1');
+```
+
+At the same time, it is advisable to ensure that the `$items` array contains only the items that should be redrawn.
+
+If we include another template containing snippets into the main template using the `{include}` tag, it is necessary to wrap the template inclusion within a `snippetArea` again and invalidate it along with the snippet:
+
+```latte
+{snippetArea include}
+	{include 'included.latte'}
+{/snippetArea}
+```
+
+```latte
+{* included.latte *}
+{snippet item}
+	...
+{/snippet}
+```
+
+```php
+$this->redrawControl('include');
+$this->redrawControl('item');
+```
+
+### Snippets in Components
+
+You can create snippets within [components](components.md), and Nette will automatically redraw them. However, there is a limitation: to redraw snippets, Nette calls the `render()` method without any parameters. Therefore, passing parameters in the template will not work:
+
+```latte
+OK
+{control productGrid}
+
+will not work:
+{control productGrid $arg, $arg}
+{control productGrid:paginator}
+```
+
+### Sending Custom Data
+
+Along with snippets, you can send any additional data to the client. Simply write them into the `payload` object:
+
+```php
+public function actionDelete(int $id): void
+{
+	// ...
+	if ($this->isAjax()) {
+		$this->payload->message = 'Success';
+	}
+}
+```
+
+### Redirecting
+
+During an AJAX request, the `redirect()` and `redirectUrl()` methods do not send an HTTP redirect. Instead, they write the target URL into the payload (the data object sent in the AJAX response), specifically its `payload.redirect` property, and send it; the actual redirection is then performed by the client-side library (Naja).
+
+## Passing Parameters
+
+When sending parameters to a component via an AJAX request, whether they are signal parameters or persistent parameters, we must specify their global name in the request, which includes the component's name. The `getParameterId()` method returns the full parameter name.
+
+```js
+let url = new URL({link //foo!});
+url.searchParams.set({$control->getParameterId('bar')}, bar);
+
+fetch(url, {
+	headers: {'X-Requested-With': 'XMLHttpRequest'},
+})
+```
+
+And the handle method with corresponding parameters in the component:
+
+```php
+public function handleFoo(int $bar): void
+{
+}
+```
+
+## Further Reading
+
+- [Dynamic Snippets](../best-practices/dynamic-snippets.md)

@@ -1,0 +1,168 @@
+# Getting Started with Nette Tester
+
+Contents:
+
+- [What Makes Tester Unique?](#what-makes-tester-unique)
+- [Installation and Requirements](#installation-and-requirements)
+- [Running Tests](#running-tests)
+- [Watch Mode](#watch-mode)
+- [Code Coverage Reports](#code-coverage-reports)
+- [Supported PHP versions](#supported-php-versions)
+
+
+Even good programmers make mistakes. The difference between a good programmer and a bad one is that the good one makes a mistake only once and the next time they detect it using automated tests.
+
+- “Those who do not test are doomed to repeat their mistakes.” (proverb)
+- “As soon as we get rid of one error, another one appears.” (Murphy's Law)
+- “Whenever you are tempted to write a print statement, write it as a test instead.” (Martin Fowler)
+
+Have you ever written code like this in PHP?
+
+```php
+$obj = new MyClass;
+$result = $obj->process($input);
+
+var_dump($result);
+```
+
+That is, have you printed out the result of a function call just to visually check if it returns what it should? You probably do this many times a day. Hand on heart: if everything works correctly, do you delete this code? Do you expect the class not to break in the future? Murphy's laws guarantee the opposite :-)
+
+Basically, you wrote a test. It just needs a slight modification so that it does not require visual inspection but checks itself. And if you don't delete the test, you can run it at any time in the future to verify that everything still works as it should. Over time, you'll create a large number of such tests, so it would be useful to run them automatically.
+
+And Nette Tester will help you with all this.
+
+## What Makes Tester Unique?
+
+Writing tests for Nette Tester is unique in that **each test is a standard PHP script** that can be run standalone.
+
+So, when you write a test, you can simply run it and find out whether it contains, for example, a programming error and whether it works correctly. If not, you can easily step through it in your IDE and look for the bug. You can even open it in a browser.
+
+And most importantly – by running it, you perform the test. You immediately find out whether it passed or failed. How? Let's show it. We'll write a trivial test of working with a PHP array and save it to the file `ArrayTest.php`:
+
+```php
+<?php
+use Tester\Assert;
+
+require __DIR__ . '/vendor/autoload.php';  # load Composer autoloader
+Tester\Environment::setup();               # initialize Nette Tester
+
+$stack = [];
+Assert::same(0, count($stack));   # we expect count() to return zero
+
+$stack[] = 'foo';
+Assert::same(1, count($stack));   # we expect count() to return one
+Assert::contains('foo', $stack);  # verify that $stack contains the item 'foo'
+```
+
+As you can see, so-called [assertion methods](assertions.md) like `Assert::same()` are used to confirm that the actual value matches the expected value.
+
+We have the test written, and we can run it from the command line. The first run will reveal possible syntax errors, and if you did not make a typo anywhere, it will print:
+
+```
+$ php ArrayTest.php
+
+OK
+```
+
+Try changing the assertion in the test to a false one, like `Assert::contains('XXX', $stack);`, and watch what happens when running:
+
+```
+$ php ArrayTest.php
+
+Failed: ['foo'] should contain 'XXX'
+
+in ArrayTest.php(17) Assert::contains('XXX', $stack);
+
+FAILURE
+```
+
+We continue with writing tests in the [Writing Tests](writing-tests.md) chapter.
+
+## Installation and Requirements
+
+The minimum PHP version required by Tester is 8.0 (more details in the table [Supported PHP versions](#supported-php-versions)). The preferred way of installation is using [Composer](https://doc.nette.org/en/best-practices/composer):
+
+```
+composer require --dev nette/tester
+```
+
+Try running Nette Tester from the command line (without arguments it will only print help):
+
+```
+vendor/bin/tester
+```
+
+## Running Tests
+
+As the application grows, the number of tests grows with it. It would not be practical to run tests one by one. Therefore, Tester has a bulk test runner, which we call from the command line. As a parameter, we specify the directory in which the tests are located. A dot means the current directory.
+
+```
+vendor/bin/tester .
+```
+
+The test runner searches the specified directory and all subdirectories and looks for tests, which are files `*.phpt` and `*Test.php`. It will also find our test `ArrayTest.php`, since it matches the mask.
+
+Then it starts testing. Each test is run as a new PHP process, so it runs completely isolated from the others. It runs them in parallel in multiple threads, making it extremely fast. And it first runs the tests that failed during the previous run, so you immediately find out if you managed to fix the bug.
+
+During test execution, Tester continuously prints the results to the terminal as characters:
+
+- <code style="color: #CCC; background-color: #000">.</code> – test passed
+- <code style="color: #CCC; background-color: #000">s</code> – test has been skipped
+- <code style="color: #FFF; background-color: #900">F</code> – test failed
+
+The output may look like this:
+
+```
+ _____ ___  ___ _____ ___  ___
+|_   _/ __)( __/_   _/ __)| _ )
+  |_| \___ /___) |_| \___ |_|_\  v2.6.0
+
+PHP 8.5.2 (cli) | php | 8 threads
+
+........s................F.........
+
+-- FAILED: greeting.phpt
+   Failed: 'Hello John' should be
+       ... 'Hello Peter'
+
+   in greeting.phpt(19) Assert::same('Hello Peter', $o->say('John'));
+
+FAILURES! (35 tests, 1 failures, 1 skipped, 1.7 seconds)
+```
+
+35 tests were run, one failed, one was skipped.
+
+We continue in the [Running Tests](running-tests.md) chapter.
+
+## Watch Mode
+
+Are you refactoring code? Or perhaps even developing according to the TDD (Test Driven Development) methodology? Then you'll like the watch mode. In this mode, Tester monitors the source code and automatically runs itself whenever it changes.
+
+During development, you have a terminal in the corner of your monitor where a green status bar shines at you, and when it suddenly changes to red, you know that you have just done something not quite right. It's actually a great game where you program and try to keep the color.
+
+Watch mode is started with the parameter [`--watch`](running-tests.md#-w----watch-path).
+
+## Code Coverage Reports
+
+Tester can generate reports with an overview of how much source code the tests cover. The report can be either in human-readable HTML format or Clover XML for further machine processing.
+
+See a [sample HTML report](https://files.nette.org/assets/tester/coverage.html) with code coverage.
+
+## Supported PHP versions
+
+| Version | Compatible with PHP |
+| --- | --- |
+| Tester 2.6 | PHP 8.0 – 8.5 |
+| Tester 2.5 | PHP 8.0 – 8.5 |
+| Tester 2.4 | PHP 7.2 – 8.2 |
+| Tester 2.3 | PHP 7.1 – 8.0 |
+| Tester 2.1 – 2.2 | PHP 7.1 – 7.3 |
+| Tester 2.0 | PHP 5.6 – 7.3 |
+| Tester 1.7 | PHP 5.3 – 7.3 + HHVM 3.3+ |
+| Tester 1.6 | PHP 5.3 – 7.0 + HHVM |
+| Tester 1.3 – 1.5 | PHP 5.3 – 5.6 + HHVM |
+| Tester 0.9 – 1.2 | PHP 5.3 – 5.6 |
+
+Applies to the latest patch version.
+
+Tester up to version 1.7 also supported [HHVM](https://hhvm.com) 3.3.0 or higher (via `tester -p hhvm`). Support was discontinued from Tester version 2.0.

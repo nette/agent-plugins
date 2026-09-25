@@ -1,0 +1,151 @@
+# Smart HTML Attributes
+
+Contents:
+
+- [Boolean Attributes](#boolean-attributes)
+- [Null Values](#null-values)
+- [Classes](#classes)
+- [Styles](#styles)
+- [Data Attributes](#data-attributes)
+- [Aria Attributes](#aria-attributes)
+- [Type Checking](#type-checking)
+- [Migration from Latte 3.0](#migration-from-latte-30)
+
+
+Latte 3.1 comes with a set of improvements that focus on one of the most common activities in templates – printing HTML attributes. It brings more convenience, flexibility and security.
+
+## Boolean Attributes
+
+HTML uses special attributes like `checked`, `disabled`, `selected`, or `hidden`, where the specific value is irrelevant – only their presence matters. They act as simple flags.
+
+Latte handles them automatically. You can pass any expression to the attribute. If it is truthy, the attribute is rendered. If it is falsey (e.g. `false`, `null`, `0`, or an empty string), the attribute is completely omitted.
+
+This means you can say goodbye to cumbersome macro conditions or `n:attr` and simply use:
+
+```latte
+<input type="text" disabled={$isDisabled} readonly={$isReadOnly}>
+```
+
+If `$isDisabled` is `false` and `$isReadOnly` is `true`, it renders:
+
+```latte
+<input type="text" readonly>
+```
+
+If you need this toggling behavior for standard attributes that don't have this automatic handling (like `data-` or `aria-` attributes), use the [toggle](filters.md#toggle-since-310) filter.
+
+## Null Values
+
+This is one of the most pleasant changes. Previously, if a variable was `null`, it printed as an empty string `""`. This often led to empty attributes in HTML like `class=""` or `title=""`.
+
+In Latte 3.1, a new universal rule applies: **A value of `null` means the attribute does not exist.**
+
+```latte
+<div title="{$title}"></div>
+```
+
+If `$title` is `null`, the output is `<div></div>`. If it contains a string, e.g. “Hello”, the output is `<div title="Hello"></div>`. Thanks to this, you don't have to wrap attributes in conditions. This rule applies when the entire attribute value is a single `{...}` expression; in a mixed value like `title="foo {$bar}"`, a `null` is rendered as an empty string.
+
+If you use filters, keep in mind that they usually convert `null` to a string (e.g. empty string). To prevent this, use the [nullsafe filter](filters.md#nullsafe-filters-since-310) `?|`:
+
+```latte
+<div title="{$title?|upper}"></div>
+```
+
+## Classes
+
+You can pass an array to the `class` attribute. This is perfect for conditional classes: if the array is associative, the keys are used as class names and the values as conditions. The class is rendered only if the condition is true.
+
+```latte
+<button class={[
+	btn,
+	btn-primary,
+	active => $isActive,
+]}>Press me</button>
+```
+
+If `$isActive` is true, it renders:
+
+```latte
+<button class="btn btn-primary active">Press me</button>
+```
+
+This behavior is not limited to `class`. It works for a selected set of attributes that expect a space-separated list of values: `accesskey`, `class`, `headers`, `itemprop`, `ping`, `rel`, `role`, `sandbox`, and all `aria-*` attributes. For any other attribute, passing an array triggers a warning and the value is dropped.
+
+```latte
+<a rel={[nofollow, noopener, external => $isExternal]}>link</a>
+```
+
+## Styles
+
+The `style` attribute also supports arrays. It is especially useful for conditional styles. If an array item contains a key (CSS property) and a value, the property is omitted when the value is `null`, `false`, `0`, or an empty string, so for example `opacity => 0` is not rendered.
+
+```latte
+<div style={[
+	background => lightblue,
+	display => $isVisible ? block : null,
+	font-size => '16px',
+]}></div>
+```
+
+If `$isVisible` is false, it renders:
+
+```latte
+<div style="background: lightblue; font-size: 16px"></div>
+```
+
+## Data Attributes
+
+Often we need to pass configuration for JavaScript into HTML. Previously this was done via `json_encode`. Now you can simply pass an array or stdClass object to a `data-` attribute and Latte will serialize it to JSON:
+
+```latte
+<div data-config={[ theme: dark, version: 2 ]}></div>
+```
+
+Outputs:
+
+```latte
+<div data-config='{"theme":"dark","version":2}'></div>
+```
+
+Also, `true` and `false` are rendered as strings `"true"` and `"false"` (i.e. valid JSON).
+
+## Aria Attributes
+
+The WAI-ARIA specification requires text values `"true"` and `"false"` for boolean values. Latte handles this automatically for `aria-` attributes:
+
+```latte
+<button aria-expanded={=true} aria-checked={=false}></button>
+```
+
+Outputs:
+
+```latte
+<button aria-expanded="true" aria-checked="false"></button>
+```
+
+Just like `class`, `aria-` attributes also accept an array. It is treated as a space-separated list: plain values are used as they are, and a key is included only when its value is `true`:
+
+```latte
+<span aria-labelledby={[title, description => $hasDescription]}></span>
+```
+
+## Type Checking
+
+Have you ever seen `<input value="Array">` in your generated HTML? It's a classic bug that often goes unnoticed. Latte introduces strict type checking for HTML attributes to make your templates more resilient against such oversights.
+
+Latte knows which attributes are which and what values they expect:
+
+- **Standard attributes** (like `href`, `id`, `value`, `placeholder`…) expect a value that can be rendered as text. This includes strings, numbers, or stringable objects. `null` is also accepted (it drops the attribute). However, if you accidentally pass an array, boolean or a generic object, Latte triggers a warning and intelligently ignores the invalid value.
+- **Boolean attributes** (like `checked`, `disabled`…) accept any type, as their presence is determined by truthy/falsey logic.
+- **Smart attributes** (like `class`, `style`, `data-`…) specifically handle arrays as valid inputs.
+
+This check ensures that your application doesn't produce unexpected HTML.
+
+## Migration from Latte 3.0
+
+Since the behavior of `null` (it used to print `""`, now it drops the attribute) and `data-` attributes (booleans used to print `"1"`/`""`, now `"true"`/`"false"`) has changed, you might need to update your templates.
+
+For a smooth transition, Latte provides a migration mode that highlights differences. Read the detailed guide [Migration from Latte 3.0 to 3.1](cookbook/migration-from-latte-30.md).
+
+![](https://files.nette.org/git/latte/3.x/html-attributes.webp)

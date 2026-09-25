@@ -1,0 +1,193 @@
+# HTTP Configuration
+
+Contents:
+
+- [HTTP Headers](#http-headers)
+  - [Content Security Policy](#content-security-policy)
+  - [HTTP Cookie](#http-cookie)
+  - [HTTP Proxy](#http-proxy)
+  - [Force HTTPS (since 3.3.4)](#force-https-since-334)
+  - [Application Base URL (since 3.4.1)](#application-base-url-since-341)
+- [Session](#session)
+  - [Session Cookie](#session-cookie)
+- [DI Services](#di-services)
+
+
+Overview of configuration options for Nette HTTP.
+
+If you are not using the entire framework, but only this library, read [how to load the configuration](../bootstrap/index.md).
+
+## HTTP Headers
+
+```neon
+http:
+	# headers that are sent with each response
+	headers:
+		X-Powered-By: MyCMS
+		X-Content-Type-Options: nosniff
+		X-XSS-Protection: '1; mode=block'
+
+	# affects the X-Frame-Options header
+	frames: ...      # (string|bool|null) defaults to 'SAMEORIGIN'
+```
+
+For security reasons, the framework sends the `X-Frame-Options: SAMEORIGIN` header, which indicates that a page can be displayed inside another page (in an `<iframe>` element) only if it is on the same domain. This might be undesirable in certain situations (e.g., if you are developing a Facebook application), so the behavior can be changed by setting `frames: http://allowed-host.com` to allow a specific host, `frames: true` to allow framing from anywhere (the header is omitted), or `frames: false` to forbid it entirely (`X-Frame-Options: DENY`).
+
+By default, Nette also sends the `X-Powered-By: Nette Framework 3` and `Content-Type: text/html; charset=utf-8` headers. You can remove any header, including these defaults, by setting its value to an empty string.
+
+### Content Security Policy
+
+The `Content-Security-Policy` (CSP) headers can be easily configured; their description can be found in the [CSP specification](https://content-security-policy.com). CSP directives (such as `script-src`) can be written either as strings according to the specification or as arrays of values for better readability. Then there is no need to use quotation marks around keywords like `'self'`. Nette will also automatically generate a `nonce` value, so something like `'nonce-y4PopTLM=='` will be sent in the header.
+
+```neon
+http:
+	# Content Security Policy
+	csp:
+		# string according to the CSP specification
+		default-src: "'self' https://example.com"
+
+		# array of values
+		script-src:
+			- nonce
+			- strict-dynamic
+			- self
+			- https://example.com
+
+		# bool in the case of switches
+		upgrade-insecure-requests: true
+		block-all-mixed-content: false
+```
+
+Use `<script n:nonce>...</script>` in templates, and the nonce value will be filled in automatically. Making secure websites in Nette is really easy.
+
+Similarly, `Content-Security-Policy-Report-Only` headers (which can be used concurrently with CSP) and [Feature Policy](https://developers.google.com/web/updates/2018/06/feature-policy) can be configured:
+
+```neon
+http:
+	# Content Security Policy Report-Only
+	cspReportOnly:
+		default-src: self
+		report-uri: 'https://my-report-uri-endpoint'
+
+	# Feature Policy
+	featurePolicy:
+		unsized-media: none
+		geolocation:
+			- self
+			- https://example.com
+```
+
+### HTTP Cookie
+
+You can change the default values of some parameters of the [Nette\Http\Response::setCookie()](response.md#setcookiestring-name-string-value-expire-string-pathnull-string-domainnull-bool-securenull-bool-httponlynull-samesitestring-samesitelax-bool-partitionedfalse) method and session handling.
+
+```neon
+http:
+	# cookie scope by path
+	cookiePath: ...          # (string) defaults to '/'
+
+	# domains that can receive the cookie
+	cookieDomain: 'example.com'  # (string|domain) defaults to unset
+
+	# send cookies only via HTTPS?
+	cookieSecure: ...        # (bool|auto) defaults to auto
+
+	# disables sending the cookie that Nette uses for CSRF protection
+	disableNetteCookie: ...  # (bool) defaults to false
+```
+
+The `cookieDomain` attribute determines which domains (origins) can accept cookies. If not specified, the cookie is accepted by the same (sub)domain that set it, *excluding* its subdomains. If `cookieDomain` is specified, subdomains are also included. Therefore, specifying `cookieDomain` is less restrictive than omitting it.
+
+For example, if `cookieDomain: nette.org` is set, cookies are also available on all subdomains like `doc.nette.org`. This can also be achieved with the special value `domain`, i.e., `cookieDomain: domain`.
+
+The default value `auto` for the `cookieSecure` attribute means that if the website runs on HTTPS, cookies will be sent with the `Secure` flag and will therefore only be available via HTTPS.
+
+### HTTP Proxy
+
+If the site runs behind an HTTP proxy, enter the proxy's IP address so that HTTPS connection detection and the client's IP address work correctly. That is, so that [Nette\Http\Request::getRemoteAddress()](request.md#getremoteaddress-string) and [isSecured()](request.md#issecured-bool) return the correct values, and links are generated with the `https:` protocol in templates.
+
+```neon
+http:
+	# IP address, range (e.g., 127.0.0.1/8), or an array of these values
+	proxy: 127.0.0.1       # (string|string[]) defaults to not set
+```
+
+### Force HTTPS (since 3.3.4)
+
+Unconditionally forces the request scheme to HTTPS. This is useful for HTTPS-only sites running behind a load balancer or reverse proxy that terminates TLS but does not pass the `X-Forwarded-Proto` header, so the standard HTTPS detection (even with [HTTP Proxy](#http-proxy) configured) would not catch it.
+
+```neon
+http:
+	# force HTTPS scheme for all requests
+	forceHttps: true       # (bool) defaults to false
+```
+
+### Application Base URL (since 3.4.1)
+
+Nette detects the address the application runs at from the HTTP request, so nothing needs to be configured. When run from the command line (cron, tasks, an MCP server) there is no request, and derived values such as `%baseUrl%`, links from `LinkGenerator` or `$baseUrl` in templates would have nothing to come from. For these cases you can specify the base URL of the application:
+
+```neon
+http:
+	# used only when the address cannot be detected from the request
+	baseUrl: https://example.com/    # (string) defaults to not set
+```
+
+The value applies only when the environment yields no host. On the web the actual request always takes precedence, so the same configuration works on localhost and in production. The URL must be absolute, including any subdirectory (`https://example.com/eshop`).
+
+## Session
+
+Basic [sessions](sessions.md) settings:
+
+```neon
+session:
+	# show the session panel in Tracy Bar?
+	debugger: ...        # (bool) defaults to false
+
+	# inactivity time after which the session expires
+	expiration: 14 days  # (string) defaults to '3 hours'
+
+	# when should the session start?
+	autoStart: ...       # (smart|always|never) defaults to 'smart'
+
+	# handler, a service implementing SessionHandlerInterface
+	handler: @handlerService
+```
+
+The `autoStart` option controls when the session should start. The value `always` means the session starts whenever the application starts. The value `smart` means the session starts with the application only if it already exists, or at the moment we want to read from or write to it. Finally, the value `never` disables the automatic start of the session.
+
+Furthermore, you can set all PHP [session directives](https://www.php.net/manual/en/session.configuration.php) (in camelCase format) and also [readAndClose](https://www.php.net/manual/en/function.session-start.php#refsect1-function.session-start-parameters). Example:
+
+```neon
+session:
+	# 'session.name' written as 'name'
+	name: MYID
+
+	# 'session.save_path' written as 'savePath'
+	savePath: "%tempDir%/sessions"
+```
+
+### Session Cookie
+
+The session cookie is sent with the same parameters as [other cookies](#http-cookie), but you can change these specifically for it:
+
+```neon
+session:
+	# domains that can receive the cookie
+	cookieDomain: 'example.com'   # (string|domain)
+
+	# restriction for cross-origin access
+	cookieSamesite: None          # (Strict|Lax|None) defaults to Lax
+```
+
+The `cookieSamesite` attribute affects whether the cookie is sent with [cross-origin requests](../nette/glossary.md#samesite-cookie), which provides some protection against [Cross-Site Request Forgery](../nette/glossary.md#cross-site-request-forgery-csrf) (CSRF) attacks.
+
+## DI Services
+
+These services are added to the DI container:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `http.request` | [Nette\Http\Request](https://api.nette.org/http/master/Nette/Http/Request.html) | [HTTP request](request.md) |
+| `http.response` | [Nette\Http\Response](https://api.nette.org/http/master/Nette/Http/Response.html) | [HTTP response](response.md) |
+| `session.session` | [Nette\Http\Session](https://api.nette.org/http/master/Nette/Http/Session.html) | [session management](sessions.md) |
+| `http.requestFactory` | [Nette\Http\RequestFactory](https://api.nette.org/http/master/Nette/Http/RequestFactory.html) | factory that creates the HTTP request |

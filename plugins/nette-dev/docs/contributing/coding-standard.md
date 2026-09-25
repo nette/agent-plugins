@@ -1,0 +1,141 @@
+# Coding Standard
+
+Contents:
+
+- [General Rules](#general-rules)
+- [Naming Conventions](#naming-conventions)
+- [Wrapping and Braces](#wrapping-and-braces)
+- [Documentation Blocks (phpDoc)](#documentation-blocks-phpdoc)
+- [Global Functions and Constants](#global-functions-and-constants)
+- [Tabs Instead of Spaces](#tabs-instead-of-spaces)
+
+
+This document describes the rules and recommendations for developing Nette. When contributing code to Nette, you must follow them. The easiest way to do this is to imitate the existing code. The goal is to make all the code look as if it were written by one person.
+
+Nette Coding Standard corresponds to [PSR-12 Extended Coding Style](https://www.php-fig.org/psr/psr-12/) with two main exceptions: it uses [tabs instead of spaces](#tabs-instead-of-spaces) for indentation, and uses [PascalCase for class constants](https://blog.nette.org/en/for-less-screaming-in-the-code).
+
+> [!TIP]
+> Many of these rules can be automatically checked and fixed by the [Nette Coding Standard](https://doc.nette.org/en/tools/coding-standard) tool, so you don't have to check them by hand.
+
+## General Rules
+
+- Every PHP file must contain `declare(strict_types=1)`
+- Two empty lines are used to separate methods for better readability
+- The reason for using the shut-up operator (`@`) must be documented: `@mkdir($dir); // @ - directory may exist`
+- If a weakly typed comparison operator is used (i.e., `==`, `!=`, …), the intention must be documented: `// == to accept null`
+- You can write multiple exception classes into a single file named `exceptions.php`, and multiple enums into `enums.php`
+- The visibility of methods is not specified for interfaces because they are always public
+- Each property, return value, and parameter must have a type specified. Conversely, for final constants, we never specify the type because it is obvious
+- Single quotes should be used to delimit strings, except when the literal itself contains apostrophes
+
+## Naming Conventions
+
+- Avoid using abbreviations unless the full name is excessive
+- Use uppercase for two-letter abbreviations, and PascalCase/camelCase for longer abbreviations
+- Use a noun or noun phrase for the class name
+- Class names must contain not only specificity (`Array`) but also generality (`ArrayIterator`). PHP attributes are an exception
+- [Class constants and enums should use PascalCaps](https://blog.nette.org/en/for-less-screaming-in-the-code)
+- [Interfaces and abstract classes should not contain prefixes or suffixes](https://blog.nette.org/en/prefixes-and-suffixes-do-not-belong-in-interface-names) like `Abstract`, `Interface` or `I`
+
+## Wrapping and Braces
+
+Nette Coding Standard corresponds to PSR-12 (or PER Coding Style), but specifies or modifies it in some points:
+
+- Arrow functions are written without a space before the parenthesis, i.e., `fn($a) => $b`
+- No empty line is required between different types of `use` import statements
+- The return type of a function/method and the opening curly brace are always on separate lines:
+
+```php
+	public function find(
+		string $dir,
+		array $options,
+	): array
+	{
+		// method body
+	}
+```
+
+The opening curly brace on a separate line is important for visually separating the function/method signature from the body. If the signature is on one line, the separation is clear (image on the left). If it's on multiple lines, in PSR the signature and body blend together (middle), while in the Nette standard they remain separated (right):
+
+![](https://files.nette.org/git/contributing/new-line-after.webp)
+
+## Documentation Blocks (phpDoc)
+
+The main rule: **Never duplicate** any signature information like parameter type or return type without adding value.
+
+Documentation block for a class definition:
+
+- Starts with a description of the class
+- Followed by an empty line
+- Followed by `@property` (or `@property-read`, `@property-write`) annotations, one per line. Syntax: annotation, space, type, space, `$name`
+- Followed by `@method` annotations, one per line. Syntax: annotation, space, return type, space, `name(type $param, ...)`
+- The `@author` annotation is omitted. Authorship is kept in the source code history
+- The `@internal` or `@deprecated` annotations can be used
+
+```php
+/**
+ * MIME message part.
+ *
+ * @property string $encoding
+ * @property-read array $headers
+ * @method string getSomething(string $name)
+ * @method static bool isEnabled()
+ */
+```
+
+A documentation block for a property containing only the `@var` annotation should be on a single line:
+
+```php
+/** @var string[] */
+private array $name;
+```
+
+Documentation block for a method definition:
+
+- Starts with a short description of the method
+- No empty line
+- `@param` annotations, one per line
+- `@return` annotation
+- `@throws` annotations, one per line
+- The `@internal` or `@deprecated` annotations can be used
+
+Every annotation is followed by one space, except for `@param`, which is followed by two spaces for better readability.
+
+```php
+/**
+ * Finds a file in directory.
+ * @param  string[]  $options
+ * @return string[]
+ * @throws DirectoryNotFoundException
+ */
+public function find(string $dir, array $options): array
+```
+
+## Global Functions and Constants
+
+Global functions and constants are written without a leading backslash, i.e., `count($arr)` not `\count($arr)`. For functions that PHP can optimize, add `use function` at the beginning of the file so the compiler can translate them more efficiently. These include functions like `count`, `strlen`, `is_array`, `is_string`, `is_scalar`, `sprintf`, etc. Functions are listed on a single line to keep the import block compact:
+
+```php
+use Nette;
+use function count, is_array, is_scalar, sprintf;
+```
+
+Occasionally, we also import constants whose value knowledge may help the compiler:
+
+```php
+use const PHP_OS_FAMILY;
+```
+
+## Tabs Instead of Spaces
+
+Tabs have several advantages over spaces:
+
+- The size of the indentation is customizable in editors and on the [web](https://developer.mozilla.org/en-US/docs/Web/CSS/tab-size)
+- They do not impose the user's indentation size preference on the code, making the code more portable
+- They can be typed with a single keystroke (anywhere, not just in editors that convert tabs to spaces)
+- Indentation is their purpose
+- They respect the needs of visually impaired and blind colleagues
+
+By using tabs in our projects, we allow for width customization, which may seem unnecessary to most people, but is essential for people with visual impairments.
+
+For blind programmers who use braille displays, each space represents a braille cell. So if the default indentation is 4 spaces, a 3rd level indentation wastes 12 valuable braille cells before the code even begins. On a 40-cell display, the most common for laptops, that's more than a quarter of the available cells wasted without providing any information.

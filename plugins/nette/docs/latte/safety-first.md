@@ -1,0 +1,381 @@
+# Latte is Synonymous with Safety
+
+Contents:
+
+- [Cross-site Scripting (XSS)](#cross-site-scripting-xss)
+  - [How Does the Vulnerability Arise?](#how-does-the-vulnerability-arise)
+  - [How to Defend Against XSS?](#how-to-defend-against-xss)
+- [Context-Aware Escaping](#context-aware-escaping)
+  - [Want an Example?](#want-an-example)
+- [Latte vs Naive Systems](#latte-vs-naive-systems)
+- [Live Demonstration](#live-demonstration)
+- [How to Hack Naive Systems](#how-to-hack-naive-systems)
+  - [Attribute Vulnerability](#attribute-vulnerability)
+  - [Printing a Variable in JavaScript](#printing-a-variable-in-javascript)
+  - [Link Checking](#link-checking)
+  - [Client-Side Frameworks](#client-side-frameworks)
+- [Limits of Latte](#limits-of-latte)
+
+
+Latte is the only PHP templating system with effective protection against the critical Cross-site Scripting (XSS) vulnerability. This is thanks to context-aware escaping. We will discuss:
+
+- the principle of the XSS vulnerability and why it is so dangerous
+- what makes Latte so effective in defending against XSS
+- how security holes can easily be created in Twig, Blade, and similar templates
+
+## Cross-site Scripting (XSS)
+
+Cross-site Scripting (XSS for short) is one of the most common and dangerous vulnerabilities in websites. It allows an attacker to inject a malicious script (malware) into someone else's page, which then runs in the browser of an unsuspecting user.
+
+What can such a script do? For example, it can send any content from the compromised page to the attacker, including sensitive data displayed after login. It can modify the page or perform other requests on behalf of the user. If it were webmail, for instance, it could read sensitive messages, modify the displayed content, or reconfigure settings, e.g., enable forwarding copies of all messages to the attacker's address to gain access to future emails.
+
+This is why XSS consistently ranks among the most dangerous vulnerabilities. If a vulnerability appears on a website, it must be removed as soon as possible to prevent exploitation.
+
+### How Does the Vulnerability Arise?
+
+The error occurs where the web page is generated and variables are printed. Imagine creating a search page, where the beginning includes a paragraph with the searched term like this:
+
+```php
+echo '<p>Search results for <em>' . $search . '</em></p>';
+```
+
+An attacker can enter any string into the search box, and thus into the `$search` variable, including HTML code like `<script>alert("Hacked!")</script>`. Since the output is not sanitized, it becomes part of the displayed page:
+
+```latte
+<p>Search results for <em><script>alert("Hacked!")</script></em></p>
+```
+
+Instead of displaying the search string, the browser executes the JavaScript. And thus, the attacker takes control of the page.
+
+You might argue that inserting code into a variable executes JavaScript, but only in the attacker's browser. How does it reach the victim? From this perspective, we distinguish several types of XSS. In our search example, we are talking about *reflected XSS*. Here, the victim needs to be tricked into clicking a link containing the malicious code in a parameter:
+
+```
+https://example.com/?search=<script>alert("Hacked!")</script>
+```
+
+Guiding the user to click the link requires some social engineering, but it's not overly complicated. Users click on links, whether in emails or on social media, without much thought. The fact that the address contains something suspicious can be masked using a URL shortener; the user then only sees `bit.ly/xxx`.
+
+However, there is a second, much more dangerous form of attack known as *stored XSS* or *persistent XSS*, where the attacker manages to save malicious code on the server so that it is automatically inserted into certain pages.
+
+An example is pages where users write comments. An attacker submits a post containing code, and it gets saved on the server. If the pages are not sufficiently secured, the code will then run in the browser of every visitor.
+
+It might seem that the core of the attack lies in getting the string `<script>` into the page. In reality, [there are many ways to insert JavaScript](https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html). Let's show an example using an HTML attribute. Consider a photo gallery where captions can be added to images, which are displayed in the `alt` attribute:
+
+```php
+echo '<img src="' . $imageFile . '" alt="' . $imageAlt . '">';
+```
+
+An attacker simply needs to insert a cleverly crafted string `" onload="alert('Hacked!')` as the caption, and if the output is not sanitized, the resulting code will look like this:
+
+```latte
+<img src="photo0145.webp" alt="" onload="alert('Hacked!')">
+```
+
+The injected `onload` attribute now becomes part of the page. The browser executes the code contained within it as soon as the image is downloaded. Hacked!
+
+### How to Defend Against XSS?
+
+Any attempts to detect attacks using blacklists, such as blocking the string `<script>`, are insufficient. The foundation of a functional defense is **consistent sanitization of all data printed within the page.**
+
+Primarily, this involves replacing all characters with special meanings with their corresponding sequences, colloquially known as **escaping** (the first character of the sequence is called the escape character, hence the name). For example, in HTML text, the character `<` has a special meaning; if it's not meant to be interpreted as the start of a tag, we must replace it with a visually corresponding sequence, the HTML entity `&lt;`. The browser then displays the less-than sign.
+
+**It is crucial to distinguish the context in which data is printed.** Because strings are sanitized differently in different contexts. Different characters have special meanings in different contexts. For example, escaping differs in HTML text, HTML attributes, inside certain special elements, etc. We will discuss this in detail shortly.
+
+Sanitization is best performed right when the string is printed on the page, ensuring it is actually done and done exactly once. It's best if the sanitization is handled **automatically** by the templating system itself. Because if sanitization is not automatic, the programmer might forget it. And a single oversight means the website is vulnerable.
+
+However, XSS is not only about printing data in templates but also concerns other parts of the application that must handle untrusted data correctly. For instance, JavaScript in your application must use `innerText` or `textContent` in connection with untrusted data, not `innerHTML`. Special attention must be paid to functions that evaluate strings as JavaScript, such as `eval()`, but also `setTimeout()`, or the use of `setAttribute()` with event attributes like `onload`, etc. This, however, goes beyond the scope covered by templates.
+
+**The ideal defense in 3 points:**
+
+1. Recognizes the context in which data is being printed.
+2. Sanitizes data according to the rules of that context (i.e., “context-aware”).
+3. Does this automatically.
+
+## Context-Aware Escaping
+
+What exactly is meant by the word context? It's a location within the document with its own rules for handling the data being printed. It depends on the document type (HTML, XML, CSS, JavaScript, plain text, …) and can differ in specific parts. For example, in an HTML document, there are many places (contexts) where very different rules apply. You might be surprised how many there are. Here are the first four:
+
+```latte
+<p>#text</p>
+<img src="#attribute">
+<textarea>#rawtext</textarea>
+<!-- #comment -->
+```
+
+The default and basic context of an HTML page is HTML text. What are the rules here? The characters `<` and `&` have special meanings, representing the start of a tag or entity, so we must escape them by replacing them with HTML entities (`<` becomes `&lt;`, `&` becomes `&amp;`).
+
+The second most common context is the value of an HTML attribute. It differs from text in that the quotation mark `"` or `'`, which delimits the attribute, has a special meaning here. It needs to be written as an entity so it's not interpreted as the end of the attribute. Conversely, the `<` character can be used safely within an attribute because it has no special meaning there; it cannot be interpreted as the start of a tag or comment. But beware, in HTML, attribute values can also be written without quotes, in which case a whole range of characters have special meanings, making it another separate context.
+
+You might be surprised, but special rules apply inside the `<textarea>` and `<title>` elements, where the `<` character doesn't need to be (but can be) escaped unless followed by `/`. But that's more of a minor detail.
+
+It gets interesting inside HTML comments. Here, HTML entities are not used for escaping. In fact, no specification states how escaping should be done in comments. You just need to follow somewhat [curious rules](https://html.spec.whatwg.org/multipage/syntax.html#comments) and avoid certain character combinations within them.
+
+Contexts can also be layered, which occurs when we embed JavaScript or CSS into HTML. This can be done in two different ways, using an element or an attribute:
+
+```latte
+<script>#js-element</script>
+<img onclick="#js-attribute">
+
+<style>#css-element</style>
+<p style="#css-attribute"></p>
+```
+
+Two paths and two different ways of escaping data. Inside the `<script>` and `<style>` elements, just like with HTML comments, escaping using HTML entities is not performed. When printing data inside these elements, only one rule needs to be followed: the text must not contain the sequence `</script` or `</style`, respectively.
+
+Conversely, in `style` and `on***` attributes, escaping is done using HTML entities.
+
+And, of course, within the nested JavaScript or CSS, the escaping rules of those languages apply. So, a string in an attribute like `onload` is first escaped according to JS rules and then according to HTML attribute rules.
+
+Phew… As you can see, HTML is a very complex document where contexts are layered, and without realizing exactly where you are printing data (i.e., in which context), you cannot say how to do it correctly.
+
+### Want an Example?
+
+Let's take the string `Rock'n'Roll`.
+
+If you print it in HTML text, in this particular case, no replacement is needed because the string does not contain any characters with special meaning. The situation changes if you print it inside an HTML attribute enclosed in single quotes. In that case, you need to escape the quotes into HTML entities:
+
+```latte
+<div title='Rock&apos;n&apos;Roll'></div>
+```
+
+That was simple. A much more interesting situation arises when contexts are layered, for example, if the string is part of JavaScript.
+
+First, let's print it within the JavaScript itself. That is, we wrap it in quotes and simultaneously escape the quotes contained within it using the `\` character:
+
+```js
+'Rock\'n\'Roll'
+```
+
+We can also add a function call to make the code do something:
+
+```js
+alert('Rock\'n\'Roll');
+```
+
+If we insert this code into an HTML document using `<script>`, no further modification is needed because it does not contain the forbidden sequence `</script`:
+
+```latte
+<script> alert('Rock\'n\'Roll'); </script>
+```
+
+However, if we wanted to insert it into an HTML attribute, we still need to escape the quotes into HTML entities:
+
+```latte
+<div onclick='alert(&apos;Rock\&apos;n\&apos;Roll&apos;)'></div>
+```
+
+But the nested context doesn't have to be just JS or CSS. It is also commonly a URL. Parameters in URLs are escaped by converting characters with special meanings into sequences starting with `%`. Example:
+
+```
+https://example.org/?a=Jazz&b=Rock%27n%27Roll
+```
+
+And when we print this string in an attribute, we still apply escaping according to this context and replace `&` with `&amp;`:
+
+```latte
+<a href="https://example.org/?a=Jazz&amp;b=Rock%27n%27Roll">
+```
+
+If you've read this far, congratulations, it was exhaustive. Now you have a good understanding of what contexts and escaping are. And you don't need to worry about it being complicated. Latte does this for you automatically.
+
+## Latte vs Naive Systems
+
+We have shown how to properly escape in an HTML document and how crucial the knowledge of context is, i.e., the place where we print data. In other words, how context-aware escaping works. Although it is a necessary prerequisite for a functional defense against XSS, **Latte is the only PHP templating system that can do this.**
+
+How is this possible when all systems today claim to have automatic escaping? Automatic escaping without knowledge of context is a bit of a fallacy, which **creates a false sense of security**.
+
+Templating systems like Twig, Laravel Blade, and others do not see any HTML structure in the template. Therefore, they do not see contexts either. Compared to Latte, they are blind and naive. They only process their own tags; everything else is an insignificant stream of characters to them:
+
+```twig
+░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░
+░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░{{ foo }}░░░░
+```
+
+```twig
+- in text: <span>{{ foo }}</span>
+- in tag: <span {{ foo }} ></span>
+- in attribute: <span title='{{ foo }}'></span>
+- in unquoted attribute: <span title={{ foo }}></span>
+- in attribute containing URL: <a href="{{ foo }}"></a>
+- in attribute containing JavaScript: <img onload="{{ foo }}">
+- in attribute containing CSS: <span style="{{ foo }}"></span>
+- in JavaScript: <script>var = {{ foo }}</script>
+- in CSS: <style>body { content: {{ foo }}; }</style>
+- in comment: <!-- {{ foo }} -->
+```
+
+Naive systems just mechanically convert the characters `< > & ' "` to HTML entities, which, while a valid method of escaping in most use cases, is far from always sufficient. Thus, they cannot detect or prevent the creation of various security holes, as we will show below.
+
+Latte sees the template just like you do. It understands HTML, XML, recognizes tags, attributes, etc. And thanks to this, it distinguishes individual contexts and treats data accordingly. It thus offers truly effective protection against the critical Cross-site Scripting vulnerability.
+
+```latte
+░░░░░░░░░░░<span>{$foo}</span>
+░░░░░░░░░░<span {$foo} ></span>
+░░░░░░░░░░░░░░░░<span title='{$foo}'></span>
+░░░░░░░░░░░░░░░░░░░░░░░░░<span title={$foo}></span>
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░<a href="{$foo}"></a>
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░<img onload="{$foo}">
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░<span style="{$foo}"></span>
+░░░░░░░░░░░░░░░░░░<script>░░░░░░{$foo}</script>
+░░░░░░░░░░<style>░░░░░░░░░░░░░░░░{$foo}░░░</style>
+░░░░░░░░░░░░░░<!--░{$foo}░-->
+```
+
+```latte
+- in text: <span>{$foo}</span>
+- in tag: <span {$foo} ></span>
+- in attribute: <span title='{$foo}'></span>
+- in unquoted attribute: <span title={$foo}></span>
+- in attribute containing URL: <a href="{$foo}"></a>
+- in attribute containing JavaScript: <img onload="{$foo}">
+- in attribute containing CSS: <span style="{$foo}"></span>
+- in JavaScript: <script>var = {$foo}</script>
+- in CSS: <style>body { content: {$foo}; }</style>
+- in comment: <!-- {$foo} -->
+```
+
+## Live Demonstration
+
+On the left, you see the template in Latte; on the right is the generated HTML code. The variable `$text` is printed several times, each time in a slightly different context. And thus, escaped slightly differently. You can edit the template code yourself, for example, change the content of the variable, etc. Try it:
+
+
+
+
+```
+{* TRY TO EDIT THIS TEMPLATE *}
+{var $text = "Rock'n'Roll"}
+- <span>{$text}</span>
+- <span title='{$text}'></span>
+- <span title={$text}></span>
+- <img onload="{$text}">
+- <script>var = {$text}</script>
+- <!-- {$text} -->
+```
+
+```
+- <span>Rock'n'Roll</span>
+- <span title='Rock&apos;n&apos;Roll'></span>
+- <span title="Rock&apos;n&apos;Roll"></span>
+- <img onload="&quot;Rock&apos;n&apos;Roll&quot;">
+- <script>var = "Rock'n'Roll"</script>
+- <!-- Rock'n'Roll -->
+```
+
+ 
+
+Isn't that great! Latte performs context-aware escaping automatically, so the programmer:
+
+- doesn't need to think about or know how to escape where
+- cannot make a mistake
+- cannot forget about escaping
+
+These are not even all the contexts that Latte distinguishes when printing and for which it adapts data handling. We will now go through other interesting cases.
+
+## How to Hack Naive Systems
+
+Using several practical examples, we will show how important context differentiation is and why naive templating systems do not provide sufficient protection against XSS, unlike Latte. We will use Twig as a representative of a naive system in the examples, but the same applies to other systems.
+
+### Attribute Vulnerability
+
+Let's try to inject malicious code into the page using an HTML attribute, as we [showed above](#how-does-the-vulnerability-arise). Let's have a template in Twig rendering an image:
+
+```twig
+<img src={{ imageFile }} alt={{ imageAlt }}>
+```
+
+Notice that there are no quotes around the attribute values. The coder might have forgotten them, which simply happens. For example, in React, code is written this way, without quotes, and a coder who switches between languages can easily forget the quotes.
+
+An attacker inserts a cleverly crafted string `foo onload=alert('Hacked!')` as the image caption. We already know that Twig cannot determine whether a variable is being printed in the HTML text flow, inside an attribute, an HTML comment, etc.; in short, it does not distinguish contexts. And it just mechanically converts the characters `< > & ' "` into HTML entities. So the resulting code will look like this:
+
+```latte
+<img src=photo0145.webp alt=foo onload=alert(&#039;Hacked!&#039;)>
+```
+
+**A security hole has been created!**
+
+A forged `onload` attribute has become part of the page, and the browser executes it immediately after downloading the image.
+
+Now let's see how Latte handles the same template:
+
+```latte
+<img src={$imageFile} alt={$imageAlt}>
+```
+
+Latte sees the template the same way you do. Unlike Twig, it understands HTML and knows that the variable is being printed as the value of an attribute that is not enclosed in quotes. Therefore, it adds them. When an attacker inserts the same caption, the resulting code will look like this:
+
+```latte
+<img src="photo0145.webp" alt="foo onload=alert(&apos;Hacked!&apos;)">
+```
+
+**Latte successfully prevented XSS.**
+
+### Printing a Variable in JavaScript
+
+Thanks to context-aware escaping, it is possible to use PHP variables natively within JavaScript.
+
+```latte
+<p onclick="alert({$movie})">{$movie}</p>
+
+<script>var movie = {$movie};</script>
+```
+
+If the variable `$movie` contains the string `'Amarcord & 8 1/2'`, the following output will be generated. Notice the different escaping used within HTML compared to within JavaScript, and yet another different escaping in the `onclick` attribute:
+
+```latte
+<p onclick="alert(&quot;Amarcord &amp; 8 1/2&quot;)">Amarcord &amp; 8 1/2</p>
+
+<script>var movie = "Amarcord & 8 1/2";</script>
+```
+
+### Link Checking
+
+Latte automatically checks whether a variable used in URL attributes such as `src`, `href`, `action`, `formaction`, or `data` on the `<object>` element contains a safe URL. It permits common protocols (`http`, `https`, `ftp`, `mailto`, `tel`, `sms`) as well as relative URLs, while blocking potentially dangerous ones such as `javascript:`.
+
+```latte
+{var $link = 'javascript:attack()'}
+
+<a href={$link}>click here</a>
+```
+
+Outputs:
+
+```latte
+<a href="">click here</a>
+```
+
+The check can be disabled using the [nocheck](filters.md#nocheck) filter.
+
+### Client-Side Frameworks
+
+Frameworks such as Vue or Angular treat a part of the page as their own template and interpret the double curly braces `{{ ... }}` inside it as an expression. If an attacker manages to get such a sequence into a printed variable, the framework evaluates it in the browser after the page has loaded, even though no XSS occurred on the server side.
+
+Latte prevents this. When printing into HTML text, it converts the pair `{{` into `{<!-- -->{`; the empty comment is invisible to the reader, yet it prevents the framework from recognizing its own tag. Any other occurrence of the `{` character is replaced by the entity `&#123;` (inside attribute values, every `{` is escaped this way).
+
+```latte
+{var $query = 'Hi {{ constructor.constructor("alert(1)")() }}'}
+
+<h1>Search: {$query}</h1>
+```
+
+Outputs:
+
+```
+<h1>Search: Hi {<!-- -->{ constructor.constructor("alert(1)")() }}</h1>
+```
+
+The protection works automatically and requires no configuration.
+
+## Limits of Latte
+
+Latte is not a complete XSS protection for the entire application. We would be unhappy if you stopped thinking about security when using Latte. Latte's goal is to ensure that an attacker cannot alter the page structure or forge HTML elements or attributes. But it does not check the content correctness of the printed data. Nor the correctness of JavaScript behavior. That goes beyond the competence of the templating system. Verifying the correctness of data, especially data entered by the user and therefore untrusted, is an important task for the programmer.
+
+> [!TIP]
+> Do you want to test your knowledge of escaping in individual contexts? Try the [XSS vulnerability quiz](https://blog.nette.org/en/quiz-can-you-defend-against-xss-vulnerability).

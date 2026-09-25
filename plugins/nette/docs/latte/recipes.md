@@ -1,0 +1,160 @@
+# Tips and Tricks
+
+Contents:
+
+- [Editors and IDE](#editors-and-ide)
+- [Latte Inside JavaScript or CSS](#latte-inside-javascript-or-css)
+- [Replacement for `use` Clause in Latte](#replacement-for-use-clause-in-latte)
+- [Generating XML in Latte](#generating-xml-in-latte)
+- [Passing Data from an Included Template](#passing-data-from-an-included-template)
+
+
+## Editors and IDE
+
+Write templates in an editor or IDE that supports Latte. It will be much more pleasant.
+
+- PhpStorm: install the [Latte plugin](https://plugins.jetbrains.com/plugin/24218-latte-support) in `Settings > Plugins > Marketplace`
+- VS Code: install [Nette Latte + Neon](https://marketplace.visualstudio.com/items?itemName=Kasik96.latte), [Nette Latte templates](https://marketplace.visualstudio.com/items?itemName=smuuf.latte-lang) or the latest [Nette for VS Code](https://marketplace.visualstudio.com/items?itemName=franken-ui.nette-for-vscode) plugin
+- NetBeans IDE: native support for Latte is included in the installation
+- Sublime Text 3: find and install the `Nette` package in Package Control and choose Latte in `View > Syntax`
+- in older editors, use Smarty highlighting for `.latte` files
+
+The plugin for PhpStorm is very advanced and can provide excellent suggestions for PHP code. For optimal functionality, use [typed templates](type-system.md).
+
+![](https://files.nette.org/git/latte/3.x/latte-phpstorm-plugin.webp)
+
+Support for Latte can also be found in the web code highlighter [Prism.js](https://prismjs.com/#supported-languages) and the editor [Ace](https://ace.c9.io).
+
+## Latte Inside JavaScript or CSS
+
+Latte can be used very comfortably inside JavaScript or CSS. However, how can you avoid situations where Latte mistakenly considers JavaScript code or CSS styles as Latte tags?
+
+```latte
+<style>
+	/* ERROR: interprets as tag {color} */
+	body {color: blue}
+</style>
+
+<script>
+	// ERROR: interprets as tag {id}
+	var obj = {id: 123};
+</script>
+```
+
+**Option 1**
+
+Avoid situations where a letter immediately follows `{`, for example, by inserting a space, newline, or quote before it:
+
+```latte
+<style>
+	body {
+		color: blue
+	}
+</style>
+
+<script>
+	var obj = {'id': 123};
+</script>
+```
+
+**Option 2**
+
+Completely disable the processing of Latte tags within an element using [n:syntax](tags.md#syntax):
+
+```latte
+<script n:syntax="off">
+	var obj = {id: 123};
+</script>
+```
+
+**Option 3**
+
+Switch the Latte tag syntax within the element to double curly braces:
+
+```latte
+<script n:syntax="double">
+	var obj = {id: 123};          // this is JavaScript
+
+	{{if $cond}} alert(); {{/if}} // this is a Latte tag
+</script>
+```
+
+In JavaScript, [do not put variables in quotes](tags.md#printing-in-javascript).
+
+## Replacement for `use` Clause in Latte
+
+How can you replace the `use` clauses used in PHP in Latte, so you don't have to write the namespace when accessing a class? PHP example:
+
+```php
+use Pets\Model\Dog;
+
+if ($dog->status === Dog::StatusHungry) {
+	// ...
+}
+```
+
+**Option 1**
+
+Instead of the `use` clause, store the class name in a variable and then use `$Dog` instead of `Dog`:
+
+```latte
+{var $Dog = Pets\Model\Dog::class}
+
+<div>
+	{if $dog->status === $Dog::StatusHungry}
+		...
+	{/if}
+</div>
+```
+
+**Option 2**
+
+If the `$dog` object is an instance of `Pets\Model\Dog`, then `{if $dog->status === $dog::StatusHungry}` can be used.
+
+## Generating XML in Latte
+
+Latte can generate any text format (HTML, XML, CSV, iCal, etc.), but to correctly escape the displayed data, we must tell it which format we are generating. The [`{contentType}`](tags.md#contenttype) tag is used for this.
+
+```latte
+{contentType application/xml}
+<?xml version="1.0" encoding="UTF-8"?>
+...
+```
+
+Then, for example, we can generate a sitemap in a similar way:
+
+```latte
+{contentType application/xml}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" >
+	<url n:foreach="$urls as $url">
+		<loc>{$url->loc}</loc>
+		<lastmod>{$url->lastmod->format('Y-m-d')}</lastmod>
+		<changefreq>{$url->frequency}</changefreq>
+		<priority>{$url->priority}</priority>
+	</url>
+</urlset>
+```
+
+## Passing Data from an Included Template
+
+Variables created using `{var}` or `{default}` in an included template exist only within that template and are not available in the including template. If you want to pass some data back from the included template to the including one, one option is to pass an object to the template and insert the data into it.
+
+Main template:
+
+```latte
+{* create an empty object $vars *}
+{var $vars = (object) null}
+
+{include 'included.latte', vars: $vars}
+
+{* now contains property foo *}
+{$vars->foo}
+```
+
+Included template `included.latte`:
+
+```latte
+{* write data to the property foo *}
+{var $vars->foo = 123}
+```

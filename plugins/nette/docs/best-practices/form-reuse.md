@@ -1,0 +1,342 @@
+# Reusing Forms in Multiple Places
+
+Contents:
+
+- [Form Factory](#form-factory)
+- [Factory Dependencies](#factory-dependencies)
+- [More Factory Classes](#more-factory-classes)
+- [Form Handling](#form-handling)
+- [Inheriting from the Form Class](#inheriting-from-the-form-class)
+- [Form Component](#form-component)
+
+
+Nette offers several ways to reuse the same form in multiple places without duplicating code. This article will cover various solutions, including those you should avoid.
+
+## Form Factory
+
+A fundamental approach to reusing a component in multiple locations is to create a method or class that generates this component. This method is then called from various places in the application. Such a method or class is called a *factory*. Please don't confuse this with the *factory method* design pattern, which describes a specific way of using factories and isn't directly related to this topic.
+
+As an example, let's create a factory that builds an editing form:
+
+```php
+use Nette\Application\UI\Form;
+
+class FormFactory
+{
+	public function createEditForm(): Form
+	{
+		$form = new Form;
+		$form->addText('title', 'Title:');
+		// additional form fields are added here
+		$form->addSubmit('send', 'Save');
+		return $form;
+	}
+}
+```
+
+Now you can use this factory in various parts of your application, such as presenters or components. You do this by [requesting it as a dependency](../dependency-injection/passing-dependencies.md). First, register the class in the configuration file:
+
+```neon
+services:
+	- FormFactory
+```
+
+Then, use it in a presenter:
+
+```php
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private FormFactory $formFactory,
+	) {
+	}
+
+	protected function createComponentEditForm(): Form
+	{
+		$form = $this->formFactory->createEditForm();
+		$form->onSuccess[] = function () {
+			// processing of submitted data
+		};
+		return $form;
+	}
+}
+```
+
+You can extend the form factory with more methods to create other types of forms as needed by your application. And naturally, we can add a method that creates a basic form without elements, which other methods can then utilize:
+
+```php
+class FormFactory
+{
+	public function createForm(): Form
+	{
+		$form = new Form;
+		return $form;
+	}
+
+	public function createEditForm(): Form
+	{
+		$form = $this->createForm();
+		$form->addText('title', 'Title:');
+		// additional form fields are added here
+		$form->addSubmit('send', 'Save');
+		return $form;
+	}
+}
+```
+
+The `createForm()` method doesn't do much useful yet, but that will change soon.
+
+## Factory Dependencies
+
+Over time, it may become necessary for forms to be multilingual. This means setting a [translator](../forms/rendering.md#translating) for all forms. To achieve this, modify the `FormFactory` class to accept the `Translator` object as a dependency in its constructor and pass it to the created form:
+
+```php
+use Nette\Localization\Translator;
+
+class FormFactory
+{
+	public function __construct(
+		private Translator $translator,
+	) {
+	}
+
+	public function createForm(): Form
+	{
+		$form = new Form;
+		$form->setTranslator($this->translator);
+		return $form;
+	}
+
+	// ...
+}
+```
+
+Since the `createForm()` method is also called by other methods creating specific forms, setting the translator here is sufficient. And we're done. There's no need to modify any presenter or component code, which is excellent.
+
+## More Factory Classes
+
+Alternatively, you can create separate factory classes for each form you intend to use in your application. This approach can enhance code readability and simplify form management. Let the original `FormFactory` create only a basic form with fundamental configuration (like translation support), and create a new factory, `EditFormFactory`, specifically for the editing form.
+
+```php
+class FormFactory
+{
+	public function __construct(
+		private Translator $translator,
+	) {
+	}
+
+	public function create(): Form
+	{
+		$form = new Form;
+		$form->setTranslator($this->translator);
+		return $form;
+	}
+}
+
+
+// ✅ using composition
+class EditFormFactory
+{
+	public function __construct(
+		private FormFactory $formFactory,
+	) {
+	}
+
+	public function create(): Form
+	{
+		$form = $this->formFactory->create();
+		// additional form fields are added here
+		$form->addSubmit('send', 'Save');
+		return $form;
+	}
+}
+```
+
+It's crucial that the relationship between the `FormFactory` and `EditFormFactory` classes is realized through [composition](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-composition), not [object inheritance](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-inheritance):
+
+```php
+// ⛔ NO! INHERITANCE DOESN'T BELONG HERE
+class EditFormFactory extends FormFactory
+{
+	public function create(): Form
+	{
+		$form = parent::create();
+		$form->addText('title', 'Title:');
+		// additional form fields are added here
+		$form->addSubmit('send', 'Save');
+		return $form;
+	}
+}
+```
+
+Using inheritance here would be entirely counterproductive. You'd encounter problems very quickly. For instance, if you wanted to add parameters to the `create()` method, PHP would report an error because its signature would differ from the parent's. Or when passing dependencies to the `EditFormFactory` class via the constructor. This would lead to what's known as [constructor hell](../dependency-injection/passing-dependencies.md#constructor-hell).
+
+Generally, it's better to prefer [composition over inheritance](../dependency-injection/faq.md#why-is-composition-preferred-over-inheritance).
+
+## Form Handling
+
+The form handler, invoked upon successful submission, can also be part of the factory class. It functions by passing the submitted data to the model layer for processing. Any processing errors are passed [back to](../forms/validation.md#processing-errors) the form. In the following example, the model is represented by the `Facade` class:
+
+```php
+class EditFormFactory
+{
+	public function __construct(
+		private FormFactory $formFactory,
+		private Facade $facade,
+	) {
+	}
+
+	public function create(): Form
+	{
+		$form = $this->formFactory->create();
+		$form->addText('title', 'Title:');
+		// additional form fields are added here
+		$form->addSubmit('send', 'Save');
+		$form->onSuccess[] = $this->processForm(...);
+		return $form;
+	}
+
+	private function processForm(Form $form, array $data): void
+	{
+		try {
+			// processing of submitted data
+			$this->facade->process($data);
+
+		} catch (AnyModelException $e) {
+			$form->addError('...');
+		}
+	}
+}
+```
+
+However, let the presenter handle the redirection itself. It adds another handler to the `onSuccess` event, which performs the redirection. This allows the form to be used in various presenters, each redirecting to a different location upon success.
+
+```php
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private EditFormFactory $formFactory,
+	) {
+	}
+
+	protected function createComponentEditForm(): Form
+	{
+		$form = $this->formFactory->create();
+		$form->onSuccess[] = function () {
+			$this->flashMessage('Record was saved');
+			$this->redirect('Homepage:');
+		};
+		return $form;
+	}
+}
+```
+
+This solution leverages the characteristic of forms where if `addError()` is called on the form or one of its elements, subsequent `onSuccess` handlers are not invoked.
+
+## Inheriting from the Form Class
+
+An assembled form should not be a descendant of the `Form` class. In other words, avoid this approach:
+
+```php
+// ⛔ NO! INHERITANCE DOESN'T BELONG HERE
+class EditForm extends Form
+{
+	public function __construct(Translator $translator)
+	{
+		parent::__construct();
+		$this->addText('title', 'Title:');
+		// additional form fields are added here
+		$this->addSubmit('send', 'Save');
+		$this->setTranslator($translator);
+	}
+}
+```
+
+Instead of assembling the form within the constructor, use a factory.
+
+It's important to recognize that the `Form` class is primarily a tool for building forms, i.e., a *form builder*. The assembled form can be considered its product. However, a product is not a specific type of builder; there's no *is a* relationship between them, which is the foundation of inheritance.
+
+## Form Component
+
+A completely different approach involves creating a [component](../application/components.md) that encapsulates the form. This opens up new possibilities, such as rendering the form in a specific way, as the component includes its own template. Alternatively, signals can be used for AJAX communication and dynamically loading information into the form, for example, for suggestions, etc.
+
+```php
+use Nette\Application\UI\Form;
+
+class EditControl extends Nette\Application\UI\Control
+{
+	public array $onSave = [];
+
+	public function __construct(
+		private Facade $facade,
+	) {
+	}
+
+	protected function createComponentForm(): Form
+	{
+		$form = new Form;
+		$form->addText('title', 'Title:');
+		// additional form fields are added here
+		$form->addSubmit('send', 'Save');
+		$form->onSuccess[] = $this->processForm(...);
+
+		return $form;
+	}
+
+	private function processForm(Form $form, array $data): void
+	{
+		try {
+			// processing of submitted data
+			$this->facade->process($data);
+
+		} catch (AnyModelException $e) {
+			$form->addError('...');
+			return;
+		}
+
+		// event invocation
+		$this->onSave($this, $data);
+	}
+}
+```
+
+Next, let's create a factory that will produce this component. It's sufficient to [define its interface](../application/components.md#components-with-dependencies):
+
+```php
+interface EditControlFactory
+{
+	function create(): EditControl;
+}
+```
+
+And add it to the configuration file:
+
+```neon
+services:
+	- EditControlFactory
+```
+
+Now, we can request the factory and use it in the presenter:
+
+```php
+class MyPresenter extends Nette\Application\UI\Presenter
+{
+	public function __construct(
+		private EditControlFactory $controlFactory,
+	) {
+	}
+
+	protected function createComponentEditForm(): EditControl
+	{
+		$control = $this->controlFactory->create();
+
+		$control->onSave[] = function (EditControl $control, $data) {
+			$this->redirect('this');
+			// or redirect to the edit result, e.g.:
+			// $this->redirect('detail', ['id' => $data->id]);
+		};
+
+		return $control;
+	}
+}
+```

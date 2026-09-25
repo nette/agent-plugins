@@ -1,0 +1,14 @@
+# Supported Databases
+
+These database servers are supported:
+
+|  |  |  |  |
+| --- | --- | --- | --- |
+| Database server | DSN name | Core support | Explorer support |
+| MySQL (\>= 5.1) | mysql | YES | YES |
+| PostgreSQL (\>= 9.0) | pgsql | YES | YES |
+| Sqlite 3 (\>= 3.8) | sqlite | YES | YES |
+| Oracle | oci | YES | – |
+| MS SQL (PDO_SQLSRV) | sqlsrv | YES | YES |
+| MS SQL (PDO_DBLIB) | mssql | YES | – |
+| ODBC | odbc | YES | – |

@@ -1,0 +1,226 @@
+# Getting Started with Tracy
+
+Contents:
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Tracy Bar](#tracy-bar)
+- [Visualization of Errors and Exceptions](#visualization-of-errors-and-exceptions)
+- [Development vs Production Mode](#development-vs-production-mode)
+- [Error Logging](#error-logging)
+  - [Markdown Reports (since 2.12.0)](#markdown-reports-since-2120)
+- [AI Agent Support (since 2.12.0)](#ai-agent-support-since-2120)
+- [Opening Files in the Editor](#opening-files-in-the-editor)
+- [Supported PHP Versions](#supported-php-versions)
+- [Ports](#ports)
+
+
+The Tracy library is a useful everyday helper for PHP programmers. It helps you to:
+
+- quickly detect and correct errors
+- log errors
+- dump variables
+- measure execution time of scripts/queries
+- see memory consumption
+
+PHP is a language perfectly suited for creating hard-to-detect errors, as it gives developers considerable freedom. This makes a debugging tool like Tracy all the more valuable. It represents the absolute pinnacle among diagnostic tools for PHP.
+
+If you're encountering Tracy for the first time today, believe that your life will start to be divided into the time before Tracy and the time with her. Welcome to the better part!
+
+## Installation
+
+The best way to install Tracy is to [download the latest package](https://github.com/nette/tracy/releases) or use Composer:
+
+```shell
+composer require tracy/tracy
+```
+
+Alternatively, you can download the whole package or the [tracy.phar](https://github.com/nette/tracy/releases) file.
+
+## Usage
+
+Tracy is activated by calling the `Tracy\Debugger::enable()` method as soon as possible at the beginning of the program, before any output is sent:
+
+```php
+use Tracy\Debugger;
+
+require 'vendor/autoload.php'; // alternatively tracy.phar
+
+Debugger::enable();
+```
+
+The first thing you'll notice on the page is the Tracy Bar in the bottom right corner. If you don't see it, it may mean that Tracy is running in production mode. This is because Tracy is only visible on localhost for security reasons. To test if it works, you can temporarily put it into development mode using the `Debugger::enable(Debugger::Development)` parameter.
+
+## Tracy Bar
+
+The Tracy Bar is a floating panel displayed in the bottom right corner of the page. You can move it with the mouse, and it will remember its position after the page reloads.
+
+[![](https://files.nette.org/git/tracy/2.x/tracy-bar.webp)](https://nette.github.io/tracy/tracy-debug-bar.html)
+
+You can add other useful panels to the Tracy Bar. You can find interesting ones in [addons](https://componette.org) or you can [create your own](extensions.md).
+
+If you do not want to show the Tracy Bar, set:
+
+```php
+Debugger::$showBar = false;
+```
+
+## Visualization of Errors and Exceptions
+
+You surely know how PHP reports errors: it prints something like this into the page's source code:
+
+```
+Parse error:  syntax error, unexpected '}' in HomePresenter.php on line 15
+```
+
+or an uncaught exception:
+
+```
+Fatal error:  Uncaught Nette\MemberAccessException: Call to undefined method Nette\Application\UI\Form::addTest()? in /sandbox/vendor/nette/utils/src/Utils/ObjectMixin.php:100
+Stack trace:
+#0 /sandbox/vendor/nette/utils/src/Utils/Object.php(75): Nette\Utils\ObjectMixin::call(Object(Nette\Application\UI\Form), 'addTest', Array)
+#1 /sandbox/app/Forms/SignFormFactory.php(32): Nette\Object->__call('addTest', Array)
+#2 /sandbox/app/Presentation/Sign/SignPresenter.php(21): App\Forms\SignFormFactory->create()
+#3 /sandbox/vendor/nette/component-model/src/ComponentModel/Container.php(181): App\Presentation\Sign\SignPresenter->createComponentSignInForm('signInForm')
+#4 /sandbox/vendor/nette/component-model/src/ComponentModel/Container.php(139): Nette\ComponentModel\Container->createComponent('signInForm')
+#5 /sandbox/temp/cache/latte/15206b353f351f6bfca2c36cc.php(17): Nette\ComponentModel\Co in /sandbox/vendor/nette/utils/src/Utils/ObjectMixin.php on line 100
+```
+
+Navigating such output isn't exactly easy. If you enable Tracy, errors and exceptions are displayed in a completely different form:
+
+![](https://files.nette.org/git/tracy/2.x/tracy-exception.webp)
+
+The error message literally screams. You can see the part of the source code with the highlighted line where the error occurred. The message *Call to undefined method Nette\Http\User::isLogedIn()* clearly explains the error. The entire page is interactive; you can click through for more details. [Try it](https://nette.github.io/tracy/tracy-exception.html).
+
+And guess what? Fatal errors are captured and displayed in the same way. Without needing to install any extensions.
+
+![](https://files.nette.org/git/tracy/2.x/tracy-error.webp)
+
+Errors like a typo in a variable name or an attempt to open a non-existent file generate reports at the E_NOTICE or E_WARNING level. These can be easily overlooked within the page's graphical layout, or even be completely invisible (unless you look at the source code). Let Tracy manage them:
+
+[![](https://files.nette.org/git/tracy/2.x/tracy-notice2.webp)](https://nette.github.io/tracy/tracy-debug-bar.html)
+
+Or they can be displayed like errors:
+
+```php
+Debugger::$strictMode = true; // display all errors
+Debugger::$strictMode = E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED; // all errors except deprecated notices
+```
+
+![](https://files.nette.org/git/tracy/2.x/tracy-notice.webp)
+
+Note: Tracy, when activated, changes the error reporting level to E_ALL. If you want to change this, do so after calling `enable()`.
+
+## Development vs Production Mode
+
+As you can see, Tracy is quite talkative, which can be appreciated in the development environment, while on the production server it would cause a disaster. That's because no debugging information should be displayed there. Tracy therefore has **environment auto-detection**. If the example is run on a live server, the error will be logged instead of displayed, and the visitor will only see a user-friendly message:
+
+![](https://files.nette.org/git/tracy/2.x/tracy-error2.webp)
+
+Production mode suppresses the display of all debugging information sent out using [dump()](dumper.md), and of course also all error messages generated by PHP. So if you have forgotten some `dump($obj)` in the code, you don't have to worry, nothing will be displayed on the production server.
+
+How does mode auto-detection work? The mode is development if the application is running on localhost (i.e., IP address `127.0.0.1` or `::1`) and there is no proxy (i.e., its HTTP header is not present). Otherwise, it runs in production mode.
+
+If you want to enable development mode in other cases, for example for developers accessing from a specific IP address, you can specify it as a parameter of the `enable()` method:
+
+```php
+Debugger::enable('23.75.345.200'); // you can also provide an array of IP addresses
+```
+
+We definitely recommend combining the IP address with a cookie. Store a secret token, e.g., `secret1234`, in the `tracy-debug` cookie, and in this way, activate the development mode only for developers accessing from a specific IP address who have the mentioned token in the cookie:
+
+```php
+Debugger::enable('secret1234@23.75.345.200');
+```
+
+You can also directly set the development/production mode using the `Debugger::Development` or `Debugger::Production` constants as a parameter of the `enable()` method.
+
+If you use the Nette Framework, take a look at how to [set the mode for it](../application/bootstrapping.md#development-vs-production-mode), and it will then also be used for Tracy.
+
+## Error Logging
+
+In production mode, Tracy automatically logs all errors and caught exceptions to a text log. For logging to work, you need to set the absolute path to the log directory in the `$logDirectory` variable or pass it as the second parameter to the `enable()` method:
+
+```php
+Debugger::$logDirectory = __DIR__ . '/log';
+```
+
+Error logging is extremely useful. Imagine that all users of your application are actually beta testers who do top-notch work in finding errors for free, and you would be foolish to throw their valuable reports away unnoticed into the trash bin.
+
+If you need to log your own messages or caught exceptions, use the `log()` method:
+
+```php
+Debugger::log('Unexpected error'); // text message
+
+try {
+	criticalOperation();
+} catch (Exception $e) {
+	Debugger::log($e); // log exception
+	// or
+	Debugger::log($e, Debugger::ERROR); // also sends an email notification
+}
+```
+
+If you want Tracy to log PHP errors like `E_NOTICE` or `E_WARNING` with detailed information (HTML report), set `Debugger::$logSeverity`:
+
+```php
+Debugger::$logSeverity = E_NOTICE | E_WARNING;
+```
+
+For a true professional, the error log is a key source of information, and they want to be informed immediately about every new error. Tracy accommodates this by being able to send email notifications for new log entries. The `$email` variable determines where to send these emails:
+
+```php
+Debugger::$email = 'admin@example.com';
+```
+
+If you use the entire Nette Framework, you can set this and other options in the [configuration file](../nette/configuring.md).
+
+To protect your e-mail box from being flooded, Tracy sends **only one message** and creates a file `email-sent`. When a developer receives the e-mail notification, they check the log, correct the application, and delete the `email-sent` monitoring file. This reactivates the e-mail sending.
+
+### Markdown Reports (since 2.12.0)
+
+Next to every `log/exception-*.html`, Tracy writes an `.md` sibling with the same content in markdown: the message, the stack trace, and the excerpts of the source code. These files are created unconditionally, regardless of whether an AI agent is working with the application.
+
+Their purpose is batch processing. Instead of clicking through hundreds of HTML reports one by one, you can hand over the whole log directory to an AI agent and let it compare each report against the current state of the code and propose fixes.
+
+## AI Agent Support (since 2.12.0)
+
+When an AI agent drives your application through a browser (Chrome DevTools MCP, Playwright, Puppeteer), Tracy detects it via the JavaScript `navigator.webdriver` property and sends a markdown version of the key diagnostics into the browser console alongside the standard UI:
+
+- **BlueScreen** – exception, stack trace and variable values sent to `console.error()` next to the red screen, for both synchronous rendering and AJAX errors.
+- **Tracy Bar** – markdown summary of the main panels (SQL, Errors, Dumps) sent to `console.log()`.
+- **`Debugger::dump()`** – a plain text variant alongside the regular HTML output, so dumps don't get buried in the page.
+- **Production 500 page** – `console.error()` informs the agent that an error has occurred and that details have been logged on the server.
+
+Detection sets the cookie `tracy-webdriver=1`; you can set it manually in DevTools to enable the markdown output from a regular browser. Agent activation does not affect the `.md` siblings written next to every `log/exception-*.html` – those are produced unconditionally and form the basis for batch processing of production logs.
+
+Custom Tracy Bar panels can supply their own markdown by implementing [`getAgentInfo()`](extensions.md#ai-agent-support-since-2120). For Claude Code and Codex users, the [Nette plugin](https://ai.nette.org/en/agent-plugins) includes the `tracy-debugging` skill that teaches the agent how to read Tracy's output from `list_console_messages()`.
+
+## Opening Files in the Editor
+
+When the error page is displayed, you can click on file names and they will open in your editor with the cursor on the corresponding line. Files can also be created (action `create file`) or bugs fixed in them (action `fix it`). In order to do this, you need to [configure the browser and the system](open-files-in-ide.md).
+
+## Supported PHP Versions
+
+| Tracy | Compatible with PHP |
+| --- | --- |
+| Tracy 2.10 – 3.0 | PHP 8.0 – 8.4 |
+| Tracy 2.9 | PHP 7.2 – 8.2 |
+| Tracy 2.8 | PHP 7.2 – 8.1 |
+| Tracy 2.6 – 2.7 | PHP 7.1 – 8.0 |
+| Tracy 2.5 | PHP 5.4 – 7.4 |
+| Tracy 2.4 | PHP 5.4 – 7.2 |
+
+Applies to the latest patch versions.
+
+## Ports
+
+This is a list of unofficial ports to other frameworks and CMS:
+
+- [Drupal 7](https://www.drupal.org/project/traced)
+- Laravel framework: [recca0120/laravel-tracy](https://github.com/recca0120/laravel-tracy), [whipsterCZ/laravel-tracy](https://github.com/whipsterCZ/laravel-tracy)
+- [OpenCart](https://github.com/BurdaPraha/oc_tracy)
+- [ProcessWire CMS/CMF](https://github.com/adrianbj/TracyDebugger)
+- [Slim Framework](https://github.com/runcmf/runtracy)
+- Symfony framework: [kutny/tracy-bundle](https://github.com/kutny/tracy-bundle), [VasekPurchart/Tracy-Blue-Screen-Bundle](https://github.com/VasekPurchart/Tracy-Blue-Screen-Bundle)
+- [WordPress](https://github.com/ktstudio/WP-Tracy)

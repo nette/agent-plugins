@@ -1,0 +1,45 @@
+# Composing Presenters from Traits
+
+If you need to implement the same functionality in multiple presenters (e.g., verifying user login), placing the code in a common ancestor is a common approach. Another option is to create single-purpose [traits](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-traits).
+
+The advantage of using traits is that each presenter can incorporate only the traits it actually needs, especially since multiple inheritance is not supported in PHP.
+
+These traits can leverage the fact that all [inject methods](inject-method-attribute.md#inject-methods) are called sequentially when the presenter instance is created. You just need to ensure that the name of each inject method is unique across all used traits and the presenter itself.
+
+Traits can attach initialization code to the [onStartup or onRender](../application/presenters.md#events) events.
+
+Examples:
+
+```php
+trait RequireLoggedUser
+{
+	public function injectRequireLoggedUser(): void
+	{
+		$this->onStartup[] = function () {
+			if (!$this->getUser()->isLoggedIn()) {
+				$this->redirect('Sign:in', $this->storeRequest());
+			}
+		};
+	}
+}
+
+trait StandardTemplateFilters
+{
+	public function injectStandardTemplateFilters(TemplateBuilder $builder): void
+	{
+		$this->onRender[] = function () use ($builder) {
+			$builder->setupTemplate($this->template);
+		};
+	}
+}
+```
+
+The presenter then simply uses these traits:
+
+```php
+class ArticlePresenter extends Nette\Application\UI\Presenter
+{
+	use StandardTemplateFilters;
+	use RequireLoggedUser;
+}
+```

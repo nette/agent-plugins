@@ -1,0 +1,34 @@
+# Stopwatch
+
+Another useful tool is the debugger stopwatch with nanosecond precision:
+
+```php
+Debugger::timer();
+
+// sweet dreams my cherrie
+sleep(2);
+
+$elapsed = Debugger::timer();
+// $elapsed = 2
+```
+
+Multiple measurements can be achieved using an optional parameter as an identifier.
+
+```php
+Debugger::timer('page-generating');
+// some code
+
+Debugger::timer('rss-generating');
+// some code
+
+$rssElapsed = Debugger::timer('rss-generating');
+$pageElapsed = Debugger::timer('page-generating');
+```
+
+```php
+Debugger::timer(); // runs the timer
+
+// ... some time-consuming operation
+
+echo Debugger::timer(); // elapsed time in seconds
+```

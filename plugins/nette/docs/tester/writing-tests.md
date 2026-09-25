@@ -1,0 +1,283 @@
+# Writing Tests
+
+Contents:
+
+- [Well-Arranged Tests](#well-arranged-tests)
+- [Helper Functions](#helper-functions)
+- [Annotations and Skipping Tests](#annotations-and-skipping-tests)
+- [Directory Structure](#directory-structure)
+- [Special Situations](#special-situations)
+
+
+Writing tests for Nette Tester is unique because each test is a PHP script that can be run standalone. This holds great potential. While writing a test, you can simply run it to check if it works correctly. If it doesn't, you can easily step through it in your IDE to find the bug.
+
+You can even open the test in a browser. But most importantly, by running it, you execute the test. You immediately find out whether it passed or failed.
+
+In the introductory chapter, we [showed](guide.md#what-makes-tester-unique) a very trivial test involving array manipulation. Now, we'll create our own class to test, although it will also be simple.
+
+Let's start with a typical directory structure for a library or project. It's important to separate tests from the rest of the code, for example, for deployment purposes, as we don't want to upload tests to the production server. The structure might look like this:
+
+```
+├── src/           # code that we will test
+│   ├── Rectangle.php
+│   └── ...
+├── tests/         # tests
+│   ├── bootstrap.php
+│   ├── RectangleTest.php
+│   └── ...
+├── vendor/
+└── composer.json
+```
+
+Now, let's create the individual files. We'll start with the class being tested, placing it in the file `src/Rectangle.php`:
+
+```php
+<?php
+class Rectangle
+{
+	private float $width;
+	private float $height;
+
+	public function __construct(float $width, float $height)
+	{
+		if ($width < 0 || $height < 0) {
+			throw new InvalidArgumentException('The dimension must not be negative.');
+		}
+		$this->width = $width;
+		$this->height = $height;
+	}
+
+	public function getArea(): float
+	{
+		return $this->width * $this->height;
+	}
+
+	public function isSquare(): bool
+	{
+		return $this->width === $this->height;
+	}
+}
+```
+
+And we'll create a test for it. The test filename should match the pattern `*Test.php` or `*.phpt`; we'll choose the `RectangleTest.php` variant:
+
+```php
+<?php
+use Tester\Assert;
+
+require __DIR__ . '/bootstrap.php';
+
+// general rectangle
+$rect = new Rectangle(10, 20);
+Assert::same(200.0, $rect->getArea());  # verify the expected results
+Assert::false($rect->isSquare());
+```
+
+As you can see, [assertion methods](assertions.md) such as `Assert::same()` are used to assert that an actual value matches an expected value.
+
+The final step is the `bootstrap.php` file. It contains code common to all tests, such as class autoloading, environment configuration, temporary directory creation, helper functions, and the like. All tests load the bootstrap and then focus solely on testing. The bootstrap might look like this:
+
+```php
+<?php
+require __DIR__ . '/vendor/autoload.php';  # load Composer autoloader
+
+Tester\Environment::setup();               # initialization of Nette Tester
+
+// and other configurations (just an example, not needed in our case)
+date_default_timezone_set('Europe/Prague');
+define('TmpDir', '/tmp/app-tests');
+```
+
+This bootstrap assumes that the Composer autoloader will be able to load the `Rectangle.php` class as well. This can be achieved, for example, by [setting the autoload section](https://doc.nette.org/en/best-practices/composer#toc-autoloading) in `composer.json`, etc.
+
+We can now run the test from the command line like any other standalone PHP script. The first run will reveal any syntax errors, and if there are no typos, it will output:
+
+```
+$ php RectangleTest.php
+
+OK
+```
+
+If we change the assertion in the test to something incorrect, like `Assert::same(123, $rect->getArea());`, this happens:
+
+```
+$ php RectangleTest.php
+
+Failed: 200.0 should be 123
+
+in RectangleTest.php(5) Assert::same(123, $rect->getArea());
+
+FAILURE
+```
+
+When writing tests, it's good practice to cover all edge cases. For example, inputs like zero, negative numbers, or in other scenarios, empty strings, null, etc. This actually forces you to think and decide how the code should behave in such situations. Tests then solidify this behavior.
+
+In our case, a negative value should throw an exception, which we verify with [Assert::exception()](assertions.md#assertexceptioncallable-callable-string-class-string-messagenull-codenull):
+
+```php
+// width must not be negative
+Assert::exception(
+	fn() => new Rectangle(-1, 20),
+	InvalidArgumentException::class,
+	'The dimension must not be negative.',
+);
+```
+
+And we add a similar test for height. Finally, we test that `isSquare()` returns `true` if both dimensions are the same. Try to write such tests as an exercise.
+
+## Well-Arranged Tests
+
+The size of the test file can increase and quickly become cluttered. Therefore, it is practical to group individual tested areas into separate functions.
+
+First, let's look at a simpler yet elegant option using the global `test()` function. Tester doesn't create this function automatically to avoid collisions if you have a function with the same name in your code. It's created by the `setupFunctions()` method, which you should call in your `bootstrap.php` file:
+
+```php
+Tester\Environment::setup();
+Tester\Environment::setupFunctions();
+```
+
+Using this function, we can nicely structure the test file into named units. When executed, the labels will be printed sequentially.
+
+```php
+<?php
+use Tester\Assert;
+
+require __DIR__ . '/bootstrap.php';
+
+test('general rectangle', function () {
+	$rect = new Rectangle(10, 20);
+	Assert::same(200.0, $rect->getArea());
+	Assert::false($rect->isSquare());
+});
+
+test('general square', function () {
+	$rect = new Rectangle(5, 5);
+	Assert::same(25.0, $rect->getArea());
+	Assert::true($rect->isSquare());
+});
+
+test('dimensions must not be negative', function () {
+	Assert::exception(
+		fn() => new Rectangle(-1, 20),
+        InvalidArgumentException::class,
+	);
+
+	Assert::exception(
+		fn() => new Rectangle(10, -1),
+        InvalidArgumentException::class,
+	);
+});
+```
+
+If you need to run code before or after each `test()`, pass it to the `setUp()` or `tearDown()` function, respectively:
+
+```php
+setUp(function () {
+	// initialization code that runs before each test()
+});
+```
+
+The second variant is object-oriented. We create a so-called TestCase, which is a class where individual units are represented by methods whose names start with `test`.
+
+```php
+class RectangleTest extends Tester\TestCase
+{
+	public function testGeneralOblong()
+	{
+		$rect = new Rectangle(10, 20);
+		Assert::same(200.0, $rect->getArea());
+		Assert::false($rect->isSquare());
+	}
+
+	public function testGeneralSquare()
+	{
+		$rect = new Rectangle(5, 5);
+		Assert::same(25.0, $rect->getArea());
+		Assert::true($rect->isSquare());
+	}
+
+	/** @throws InvalidArgumentException */
+	public function testWidthMustNotBeNegative()
+	{
+		$rect = new Rectangle(-1, 20);
+	}
+
+	/** @throws InvalidArgumentException */
+	public function testHeightMustNotBeNegative()
+	{
+		$rect = new Rectangle(10, -1);
+	}
+}
+
+// Run test methods
+(new RectangleTest)->run();
+```
+
+This time, we used the `@throws` annotation to test for exceptions. You can learn more in the [TestCase](testcase.md) chapter.
+
+## Helper Functions
+
+Nette Tester includes several classes and functions that can make testing easier, for example, testing HTML document content, testing functions that work with files, and so on.
+
+You can find their description on the [Helper Classes](helpers.md) page.
+
+## Annotations and Skipping Tests
+
+Test execution can be affected by annotations in the phpDoc comment at the beginning of the file. For example, it might look like this:
+
+```php
+/**
+ * @phpExtension pdo, pdo_pgsql
+ * @phpVersion >= 7.2
+ */
+```
+
+The annotations shown indicate that the test should only be run with PHP version 7.2 or higher and only if the `pdo` and `pdo_pgsql` PHP extensions are present. These annotations are interpreted by the [command-line test runner](running-tests.md), which skips the test if the conditions are not met and marks it with the letter `s` (skipped) in the output. However, these annotations have no effect when the test is run manually.
+
+You can find a description of the annotations on the [Test Annotations](test-annotations.md) page.
+
+A test can also be skipped based on a custom condition using `Environment::skip()`. For example, this skips the test on Windows:
+
+```php
+if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+	Tester\Environment::skip('Requires UNIX.');
+}
+```
+
+## Directory Structure
+
+For libraries or projects that are even slightly larger, we recommend dividing the test directory into subdirectories according to the namespace of the tested class:
+
+```
+└── tests/
+	├── NamespaceOne/
+	│   ├── MyClass.getUsers.phpt
+	│   ├── MyClass.setUsers.phpt
+	│   └── ...
+	│
+	├── NamespaceTwo/
+	│   ├── MyClass.creating.phpt
+	│   ├── MyClass.dropping.phpt
+	│   └── ...
+	│
+	├── bootstrap.php
+	└── ...
+```
+
+This allows you to run tests from a single namespace, i.e., a subdirectory:
+
+```
+tester tests/NamespaceOne
+```
+
+## Special Situations
+
+A test that does not call any assertion method is considered suspicious and will be evaluated as an error:
+
+```
+Error: This test forgets to execute an assertion.
+```
+
+If a test without assertions is intentionally valid, call `Assert::true(true)` to mark it as such.
+
+Using `exit()` or `die()` to terminate a test with an error message can be misleading. For example, `exit('Error in connection')` terminates the test with an exit code of 0, which signals success. Use `Assert::fail('Error in connection')` instead.

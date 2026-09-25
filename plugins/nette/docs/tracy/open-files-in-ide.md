@@ -1,0 +1,143 @@
+# How to Open a File in Editor from Tracy? (IDE Integration)
+
+Contents:
+
+- [Windows](#windows)
+- [Linux](#linux)
+- [macOS](#macos)
+- [Demos](#demos)
+- [Troubleshooting](#troubleshooting)
+
+
+When the error page is displayed, you can click on file names and they will open in your editor with the cursor on the corresponding line. Files can also be created (action `create file`) or bugs fixed in them (action `fix it`). In order to do this, you need to configure the browser and the system.
+
+Tracy opens files via URLs of the form `editor://open/?file=%file&line=%line`, i.e., using the `editor://` protocol. We need to register a custom handler for this protocol. This handler can be any executable file that processes the parameters and launches your preferred editor.
+
+You can change the URL in the `Tracy\Debugger::$editor` variable, or disable click-through by setting `Tracy\Debugger::$editor = null`.
+
+## Windows
+
+1. Download the appropriate files [from the Tracy repository](https://github.com/nette/tracy/tree/master/tools/open-in-editor/windows) to disk.
+2. Edit the `open-editor.js` file and in the `settings` object, uncomment and, if necessary, modify the path to your editor:
+
+```js
+var settings = {
+
+	// PhpStorm
+	editor: '"C:\\Program Files\\JetBrains\\PhpStorm 2018.1.2\\bin\\phpstorm64.exe" --line %line% "%file%"',
+	title: 'PhpStorm',
+
+	// NetBeans
+	// editor: '"C:\\Program Files\\NetBeans 8.1\\bin\\netbeans.exe" "%file%:%line%" --console suppress',
+
+	// Sublime Text 2
+	// editor: '"C:\\Program Files\\Sublime Text 2\\sublime_text.exe" "%file%:%line%"',
+
+	...
+}
+
+...
+```
+
+Be careful and keep the double backslashes in the paths.
+
+3. Register the handler for the `editor://` protocol in the system.
+
+This is done by running `install.cmd`. **You need to run it as an Administrator.** The `open-editor.js` script will now serve the `editor://` protocol.
+
+In order to open links generated on other servers, such as a production server or Docker, add a remote-to-local URL mapping to `open-editor.js`:
+
+```js
+	mappings: {
+		// remote path: local path
+		'/var/www/nette.app': 'W:\\Nette.web\\_web',
+		'/var/www/second.app': 'W:\\Second.web'
+	}
+```
+
+> [!CAUTION]
+> On Windows, `open-editor.js` runs under the Windows Script Host, whose JScript engine only understands ECMA-262 3rd Edition (1999). When editing the script, stick to old-school JavaScript: use `var` instead of `let` or `const`, avoid arrow functions, and don't put a trailing comma after the last item of an object. Modern syntax causes a script error and the `editor://` protocol silently fails to open the editor.
+
+You can also define the remote-to-local mapping on the PHP side via [Debugger::$editorMapping](configuring.md#others), which works regardless of the editor handler and platform.
+
+## Linux
+
+1. Download the appropriate files [from the Tracy repository](https://github.com/nette/tracy/tree/master/tools/open-in-editor/linux) to the `~/bin` directory.
+2. Edit the `open-editor.sh` file and uncomment and, if necessary, modify the path to your editor in the `editor` variable.
+
+```shell
+#!/bin/bash
+
+# Emacs
+#editor='emacs +$LINE "$FILE"'
+
+# gVim
+#editor='gvim +$LINE "$FILE"'
+
+# gEdit
+#editor='gedit +$LINE "$FILE"'
+
+# Pluma
+#editor='pluma +$LINE "$FILE"'
+
+...
+```
+
+Make it executable:
+
+```shell
+chmod +x ~/bin/open-editor.sh
+```
+
+If the editor you use is not installed from a package, its binary might not be in the system's `$PATH`. This can be easily fixed. In the `~/bin` directory, create a symbolic link to the editor's binary.
+
+3. Register the handler for the `editor://` protocol in the system.
+
+This is done by running the `install.sh` file. The `open-editor.sh` script will now handle the `editor://` protocol.
+
+## macOS
+
+Editors like PhpStorm, TextMate, etc. allow you to open files via a special URL, which you just need to set:
+
+```php
+// PhpStorm
+Tracy\Debugger::$editor = 'phpstorm://open?file=%file&line=%line';
+// TextMate
+Tracy\Debugger::$editor = 'txmt://open/?url=file://%file&line=%line';
+// MacVim
+Tracy\Debugger::$editor = 'mvim://open?url=file:///%file&line=%line';
+// Visual Studio Code
+Tracy\Debugger::$editor = 'vscode://file/%file:%line';
+```
+
+If you are using standalone Tracy, put the line before `Tracy\Debugger::enable()`. If using Nette, place it before `$configurator->enableTracy()` in `Bootstrap.php`.
+
+Unfortunately, the `create file` and `fix it` actions do not work on macOS.
+
+## Demos
+
+Fixing a bug:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/3ITT4mC0Eq4?rel=0&amp;showinfo=0" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>
+
+Creating a new file:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/AJ_FUivAGZQ?rel=0&amp;showinfo=0" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>
+
+## Troubleshooting
+
+- In Firefox you may need to [allow](http://kb.mozillazine.org/Register_protocol#Firefox_3.5_and_above) custom protocol execution in `about:config` by setting `network.protocol-handler.expose.editor` to `false` and `network.protocol-handler.expose-all` to `true`. It should be allowed by default, however.
+- If it doesn't work immediately, don't panic. Try refreshing the page a few times before clicking the link, or restart your browser or computer. That should help.
+- Here is a [link](https://www.winhelponline.com/blog/error-there-is-no-script-engine-for-file-extension-when-running-js-files/) to fix potential errors like: `Input Error: There is no script engine for file extension ".js"` or `Maybe you associated ".js" file to another app, not JScript engine.`
+
+Starting from Google Chrome version 77 you will no longer see the checkbox “Always open these types of links in the associated app” when the editor is launched through a link. Workaround for Windows: create file `fix.reg`:
+
+```
+Windows Registry Editor Version 5.00
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome]
+"AutoLaunchProtocolsFromOrigins"="[{\"allowed_origins\": [\"*\"],\"protocol\": \"editor\"}]"
+```
+
+Import it by double clicking and restart Chrome. The `AutoLaunchProtocolsFromOrigins` policy fully suppresses the browser confirmation dialog. The `install.cmd` script sets this automatically, including a commented-out line for Vivaldi (same policy under `HKLM\SOFTWARE\Policies\Vivaldi`).
+
+For further questions or suggestions, please visit the [forum](https://forum.nette.org).

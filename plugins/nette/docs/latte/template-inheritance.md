@@ -1,0 +1,735 @@
+# Template Inheritance and Reusability
+
+Contents:
+
+- [Layout Inheritance `{layout}`](#layout-inheritance-layout)
+  - [Multilevel Inheritance](#multilevel-inheritance)
+  - [Dynamic Layout Inheritance](#dynamic-layout-inheritance)
+  - [Tips](#tips)
+- [Blocks `{block}`](#blocks-block)
+  - [Local Blocks](#local-blocks)
+  - [Printing Blocks `{include}`](#printing-blocks-include)
+  - [Parent Block](#parent-block)
+  - [Definitions `{define}`](#definitions-define)
+  - [Dynamic Block Names](#dynamic-block-names)
+  - [Checking Block Existence `{ifset}`](#checking-block-existence-ifset)
+  - [Tips](#tips-1)
+- [Horizontal Reuse `{import}`](#horizontal-reuse-import)
+- [Unit Inheritance `{embed}`](#unit-inheritance-embed)
+- [Use Cases](#use-cases)
+  - [`{include template}`](#include-template)
+  - [`{layout}`](#layout)
+  - [`{import}`](#import)
+  - [`{define}`](#define)
+  - [`{embed}`](#embed)
+
+
+Template reusability and inheritance mechanisms are here to boost your productivity because each template contains only its unique content, and repeated elements and structures are reused. We introduce three concepts: [layout-inheritance](#layout-inheritance-layout), [horizontal-reuse](#horizontal-reuse-import), and [unit-inheritance](#unit-inheritance-embed).
+
+The concept of Latte template inheritance is similar to PHP class inheritance. You define a **parent template** from which other **child templates** can inherit and can override parts of the parent template. It works great when elements share a common structure. Sound complicated? Don't worry, it's very easy.
+
+## Layout Inheritance `{layout}`
+
+Let's look at layout template inheritance with an example. This is a parent template, let's call it `layout.latte`, which defines the skeleton of an HTML document:
+
+```latte
+<!doctype html>
+<html lang="en">
+<head>
+	<title>{block title}{/block}</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div id="content">
+		{block content}{/block}
+	</div>
+	<div id="footer">
+		{block footer}&copy; Copyright 2008{/block}
+	</div>
+</body>
+</html>
+```
+
+The `{block}` tags define three blocks that child templates can fill. All the block tag does is tell the template engine that a child template may override these portions by defining its own block with the same name.
+
+A child template might look like this:
+
+```latte
+{layout 'layout.latte'}
+
+{block title}My amazing blog{/block}
+
+{block content}
+	<p>Welcome to my awesome homepage.</p>
+{/block}
+```
+
+The `{layout}` tag is key here. It tells Latte that this template “extends” another template. When Latte renders this template, it first locates the parent template – in this case, `layout.latte`.
+
+At this point, Latte notices the three block tags in `layout.latte` and replaces these blocks with the content of the child template. Since the child template did not define the *footer* block, the content from the parent template is used instead. Content within a `{block}` tag in the parent template is always used as a fallback.
+
+The output might look like this:
+
+```latte
+<!doctype html>
+<html lang="en">
+<head>
+	<title>My amazing blog</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div id="content">
+		<p>Welcome to my awesome homepage.</p>
+	</div>
+	<div id="footer">
+		&copy; Copyright 2008
+	</div>
+</body>
+</html>
+```
+
+In a child template, blocks are usually placed at the top level or inside another block, for example:
+
+```latte
+{block content}
+	<h1>{block title}Welcome to my awesome homepage{/block}</h1>
+{/block}
+```
+
+Also, a block will always be created regardless of whether the surrounding `{if}` condition is evaluated as true or false. So, even though it might not seem like it, this template does define the block.
+
+```latte
+{if false}
+	{block head}
+		<meta name="robots" content="noindex, follow">
+	{/block}
+{/if}
+```
+
+If you want the output inside the block to be displayed conditionally, use the following instead:
+
+```latte
+{block head}
+	{if $condition}
+		<meta name="robots" content="noindex, follow">
+	{/if}
+{/block}
+```
+
+Code in the header of the child template (that is, before the first block or any output) is executed before the layout template is rendered, so you can use it to define variables like `{var $foo = bar}` and propagate data throughout the inheritance chain. Code placed between or after blocks in a template with `{layout}` is not executed at all:
+
+```latte
+{layout 'layout.latte'}
+{var $robots = noindex}
+
+...
+```
+
+(since 3.1.5) If you want to pass variables only to the layout, without creating them in the current template, list them directly in the `{layout}` (or `{extends}`) tag after a comma:
+
+```latte
+{layout 'layout.latte', robots: noindex}
+```
+
+The variable `$robots` will be available in the layout and its blocks, but not in the blocks of the current template. An explicitly passed variable also takes precedence over a template parameter of the same name.
+
+### Multilevel Inheritance
+
+You can use as many levels of inheritance as needed. One common way of using layout inheritance is the following three-level approach:
+
+1. Create a `layout.latte` template that holds the main look and feel of your site.
+2. Create a `layout-SECTIONNAME.latte` template for each section of your site. For example, `layout-news.latte`, `layout-blog.latte`, etc. All these templates extend `layout.latte` and include styles & design specific to each section.
+3. Create individual templates for each type of page, such as a news article or blog post. These templates extend the appropriate section template.
+
+### Dynamic Layout Inheritance
+
+You can use a variable or any PHP expression as the name of the parent template, so inheritance can behave dynamically:
+
+```latte
+{layout $standalone ? 'minimum.latte' : 'layout.latte'}
+```
+
+You can also use the Latte API to choose the layout template [automatically](develop.md#automatic-layout-lookup).
+
+### Tips
+
+Here are some tips for working with layout inheritance:
+
+- If you use `{layout}` in a template, it must be in the template header, that is, before any output. Only tags that produce no output (like `{var}`, `{templateType}`, `{import}`, or comments) may precede it.
+- The layout can be [found automatically](develop.md#automatic-layout-lookup) (like in [presenters](../application/templates.md#template-lookup)). In this case, if the template should not have a layout, it indicates this with the `{layout none}` tag. Conversely, `{layout auto}` (or `{extends auto}`) restores automatic layout lookup.
+- The `{layout}` tag has an alias `{extends}`.
+- The layout file name depends on the [loader](loaders.md).
+- You can have as many blocks as you want. Remember that child templates do not have to define all parent blocks, so you can fill in reasonable defaults in several blocks and then define only those you need later.
+
+## Blocks `{block}`
+
+See also anonymous [`{block}`](tags.md#block)
+
+A block provides a way to change how a certain part of a template is rendered, but it does not interfere in any way with the logic around it. Let's illustrate how a block works, and more importantly, how it doesn't work, with the following example:
+
+```latte
+{foreach $posts as $post}
+{block post}
+	<h1>{$post->title}</h1>
+	<p>{$post->body}</p>
+{/block}
+{/foreach}
+```
+
+If you render this template, the result will be exactly the same with or without the `{block}` tags. Blocks have access to variables from outer scopes. They just provide a way to be overridden by a child template:
+
+```latte
+{layout 'parent.latte'}
+
+{block post}
+	<article>
+		<header>{$post->title}</header>
+		<section>{$post->text}</section>
+	</article>
+{/block}
+```
+
+Now, when rendering the child template, the loop will use the block defined in the child template `child.latte` instead of the one defined in `parent.latte`; the executed template is then equivalent to the following:
+
+```latte
+{foreach $posts as $post}
+	<article>
+		<header>{$post->title}</header>
+		<section>{$post->text}</section>
+	</article>
+{/foreach}
+```
+
+However, if we create a new variable inside a named block or replace the value of an existing one, the change will only be visible inside the block:
+
+```latte
+{var $foo = 'foo'}
+{block post}
+	{do $foo = 'new value'}
+	{var $bar = 'bar'}
+{/block}
+
+foo: {$foo}                  // prints: foo
+bar: {$bar ?? 'not defined'} // prints: not defined
+```
+
+The content of a block can be modified by [filters](syntax.md#filters). The following example removes all HTML and capitalizes it:
+
+```latte
+<title>{block title|stripHtml|capitalize}...{/block}</title>
+```
+
+The tag can also be written as an [n:attribute](syntax.md#nattributes):
+
+```latte
+<article n:block=post>
+	...
+</article>
+```
+
+### Local Blocks
+
+Every block overrides the content of the parent block with the same name – except for local blocks. They are analogous to private methods in classes. You can create a template without worrying that, due to a coincidence of block names, they might be overwritten by another template.
+
+```latte
+{block local helper}
+	...
+{/block}
+```
+
+### Printing Blocks `{include}`
+
+See also [`{include file}`](tags.md#include-filelatte)
+
+To print a block in a specific place, use the `{include blockname}` tag:
+
+```latte
+<title>{block title}{/block}</title>
+
+<h1>{include title}</h1>
+```
+
+You can also print a block from another template:
+
+```latte
+{include footer from 'main.latte'}
+```
+
+The rendered block does not have access to the variables of the active context, unless the block is defined in the same file where it is included. However, it does have access to global variables.
+
+You can pass variables to the block like this:
+
+```latte
+{include footer, foo: bar, id: 123}
+```
+
+The block name can be a variable or any PHP expression. In this case, add the keyword `block` before the variable so that Latte knows at compile time that it's a block and not an [included template](tags.md#include-filelatte), whose name could also be in a variable:
+
+```latte
+{var $name = footer}
+{include block $name}
+```
+
+A block can also be rendered within itself, which is useful, for example, when rendering a tree structure:
+
+```latte
+{define menu, $items}
+<ul>
+	{foreach $items as $item}
+		<li>
+		{if is_array($item)}
+			{include menu, $item}
+		{else}
+			{$item}
+		{/if}
+		</li>
+	{/foreach}
+</ul>
+{/define}
+```
+
+Instead of `{include menu, ...}`, we can also write `{include this, ...}`, where `this` means the current block.
+
+The rendered block content can be modified by [filters](syntax.md#filters). The following example removes all HTML and capitalizes it:
+
+```latte
+<title>{include heading|stripHtml|capitalize}</title>
+```
+
+### Parent Block
+
+If you need to print the content of the block from the parent template, use `{include parent}`. This is useful if you want to supplement the content of the parent block instead of completely overriding it.
+
+```latte
+{block footer}
+	{include parent}
+	<a href="https://github.com/nette">GitHub</a>
+	<a href="https://twitter.com/nettefw">Twitter</a>
+{/block}
+```
+
+### Definitions `{define}`
+
+In addition to blocks, Latte also has “definitions”. In common programming languages, they would be comparable to functions. They are useful for reusing template fragments to avoid repetition.
+
+Latte tries to keep things simple, so basically, definitions are the same as blocks, and **everything said about blocks also applies to definitions**. They differ from blocks in that:
+
+1. they are enclosed in `{define}` tags
+2. they are rendered only when inserted via `{include}`
+3. you can define parameters for them, similar to functions in PHP
+
+```latte
+{block foo}<p>Hello</p>{/block}
+{* prints: <p>Hello</p> *}
+
+{define bar}<p>World</p>{/define}
+{* prints nothing *}
+
+{include bar}
+{* prints: <p>World</p> *}
+```
+
+Imagine you have a helper template with a collection of definitions on how to draw HTML forms.
+
+```latte
+{define input, $name, $value, $type = 'text'}
+	<input type={$type} name={$name} value={$value}>
+{/define}
+
+{define textarea, $name, $value}
+	<textarea name={$name}>{$value}</textarea>
+{/define}
+```
+
+Arguments are always optional with a default value of `null`, unless a default value is specified (here `'text'` is the default value for `$type`). Parameter types can also be declared: `{define input, string $name, ...}`.
+
+The template with the definitions is loaded using [`{import}`](#horizontal-reuse-import). The definitions themselves are rendered [in the same way as blocks](#printing-blocks-include):
+
+```latte
+<p>{include input, 'password', null, 'password'}</p>
+<p>{include textarea, 'comment'}</p>
+```
+
+Like blocks, definitions do not have access to the variables of the active context, only to global variables. The exception is a definition that has no declared parameters, is referenced by a static name, and is included in the same file where it is defined: such a definition does have access to the context variables of the place from which it is included.
+
+### Dynamic Block Names
+
+Latte allows great flexibility in defining blocks because the block name can be any PHP expression. This example defines three blocks named `hi-Peter`, `hi-John`, and `hi-Mary`:
+
+```latte
+{foreach [Peter, John, Mary] as $name}
+	{block "hi-$name"}Hi, I am {$name}.{/block}
+{/foreach}
+```
+
+In the child template, we can then redefine, for example, just one block:
+
+```latte
+{block hi-John}Hello. I am {$name}.{/block}
+```
+
+So the output will look like this:
+
+```latte
+Hi, I am Peter.
+Hello. I am John.
+Hi, I am Mary.
+```
+
+### Checking Block Existence `{ifset}`
+
+See also [`{ifset $var}`](tags.md#ifset-elseifset)
+
+Use the `{ifset blockname}` test to check if a block (or multiple blocks) exists in the current context:
+
+```latte
+{ifset footer}
+	...
+{/ifset}
+
+{ifset footer, header, main}
+	...
+{/ifset}
+```
+
+The block name can be a variable or any PHP expression. In this case, add the keyword `block` before the variable to clarify that it's not a check for the existence of [variables](tags.md#ifset-elseifset):
+
+```latte
+{ifset block $name}
+	...
+{/ifset}
+```
+
+The existence of blocks is also checked by the [`hasBlock()`](functions.md#hasblockstring-name-bool-since-3010) function:
+
+```latte
+{if hasBlock(header) || hasBlock(footer)}
+	...
+{/if}
+```
+
+### Tips
+
+Some tips for working with blocks:
+
+- The last top-level block does not need a closing tag (the block ends with the end of the document). This simplifies writing child templates that contain one primary block.
+- For better readability, you can optionally give the block name in the `{/block}` tag, for example `{/block footer}`. However, the name must match the block name. In larger templates, this technique helps you see which block tags are being closed.
+- You can't directly define multiple block tags with the same name in the same template. But this can be achieved using [dynamic block names](#dynamic-block-names).
+- You can use [n:attributes](syntax.md#nattributes) to define blocks like `<h1 n:block=title>Welcome to my awesome homepage</h1>`
+- Blocks can also be used without names only to apply [filters](syntax.md#filters) to the output: `{block|strip} hello {/block}`
+
+## Horizontal Reuse `{import}`
+
+Horizontal reuse is the third mechanism for reuse and inheritance in Latte. It allows loading blocks from other templates. It's similar to creating a file with helper functions in PHP and then loading it using `require`.
+
+While template layout inheritance is one of Latte's most powerful features, it is limited to simple inheritance – a template can only extend one other template. Horizontal reuse is a way to achieve multiple inheritance.
+
+Let's have a file with block definitions:
+
+```latte
+{block sidebar}...{/block}
+
+{block menu}...{/block}
+```
+
+Using the `{import}` command, we import all the blocks and [definitions](#definitions-define) defined in `blocks.latte` into another template:
+
+```latte
+{import 'blocks.latte'}
+
+{* sidebar and menu blocks can now be used *}
+```
+
+If you import blocks in the parent template (i.e., use `{import}` in `layout.latte`), the blocks will also be available in all child templates, which is very practical.
+
+The template that is intended to be imported (e.g. `blocks.latte`) must not [extend](#layout-inheritance-layout) another template, i.e., use `{layout}`. However, it can import other templates.
+
+The `{import}` tag should be the first template tag after `{layout}`. The template name can be any PHP expression:
+
+```latte
+{import $ajax ? 'ajax.latte' : 'not-ajax.latte'}
+```
+
+You can use as many `{import}` statements as you want in a template. If two imported templates define the same block, the first one wins. However, the main template has the highest priority and can override any imported block.
+
+The `{import}` tag can also pass arguments to the imported template, for example `{import 'blocks.latte', foo: 1}`. These arguments are then available as variables in the imported blocks and definitions.
+
+The content of overwritten blocks can be preserved by inserting the block in the same way as a [parent-block](#parent-block):
+
+```latte
+{layout 'layout.latte'}
+
+{import 'blocks.latte'}
+
+{block sidebar}
+	{include parent}
+{/block}
+
+{block title}...{/block}
+{block content}...{/block}
+```
+
+In this example, `{include parent}` calls the `sidebar` block from the `blocks.latte` template.
+
+## Unit Inheritance `{embed}`
+
+Unit inheritance extends the idea of layout inheritance to the level of content fragments. While layout inheritance works with “document skeletons” brought to life by child templates, unit inheritance allows you to create skeletons for smaller units of content and reuse them wherever you want.
+
+In unit inheritance, the `{embed}` tag is key. It combines the behavior of `{include}` and `{layout}`. It allows you to embed the content of another template or block and optionally pass variables, just like `{include}`. It also allows you to override any block defined inside the embedded template, like `{layout}`.
+
+For example, let's use an accordion element. Take a look at the element skeleton stored in the `collapsible.latte` template:
+
+```latte
+<section class="collapsible {$modifierClass}">
+	<h4 class="collapsible__title">
+		{block title}{/block}
+	</h4>
+
+	<div class="collapsible__content">
+		{block content}{/block}
+	</div>
+</section>
+```
+
+The `{block}` tags define two blocks that child templates can fill. Yes, just like in the case of the parent template in layout inheritance. You also see the `$modifierClass` variable.
+
+Let's use our element in a template. This is where `{embed}` comes in. It's an extremely powerful tag that allows us to do all these things: embed the element's template content, add variables to it, and add blocks with custom HTML to it:
+
+```latte
+{embed 'collapsible.latte', modifierClass: my-style}
+	{block title}
+		Hello World
+	{/block}
+
+	{block content}
+		<p>Lorem ipsum dolor sit amet, consectetuer adipiscing
+		elit. Nunc dapibus tortor vel mi dapibus sollicitudin.</p>
+	{/block}
+{/embed}
+```
+
+The output might look like this:
+
+```latte
+<section class="collapsible my-style">
+	<h4 class="collapsible__title">
+		Hello World
+	</h4>
+
+	<div class="collapsible__content">
+		<p>Lorem ipsum dolor sit amet, consectetuer adipiscing
+		elit. Nunc dapibus tortor vel mi dapibus sollicitudin.</p>
+	</div>
+</section>
+```
+
+Blocks inside embed tags form a separate layer, isolated from the blocks outside the embed. Therefore, they can have the same name as a block outside without colliding, and are not affected by it. Using the [include](#printing-blocks-include) tag inside `{embed}` tags, you can insert blocks created here, blocks from the embedded template (which *are not* [local](#local-blocks)), and also blocks from the main template that *are* local. You can also [import blocks](#horizontal-reuse-import) from other files:
+
+```latte
+{block outer}…{/block}
+{block local hello}…{/block}
+
+{embed 'collapsible.latte', modifierClass: my-style}
+	{import 'blocks.latte'}
+
+	{block inner}…{/block}
+
+	{block title}
+		{include inner} {* works, block is defined inside embed *}
+		{include hello} {* works, block is local in this template *}
+		{include content} {* works, block is defined in embedded template *}
+		{include aBlockDefinedInImportedTemplate} {* works *}
+		{include outer} {* does not work! - block is in outer layer *}
+	{/block}
+{/embed}
+```
+
+Embedded templates do not have access to the variables of the active context, but they do have access to global variables.
+
+Using `{embed}`, you can embed not only templates but also other blocks, so the previous example could be written this way:
+
+```latte
+{define collapsible}
+<section class="collapsible {$modifierClass}">
+	<h4 class="collapsible__title">
+		{block title}{/block}
+	</h4>
+	...
+</section>
+{/define}
+
+
+{embed collapsible, modifierClass: my-style}
+	{block title}
+		Hello World
+	{/block}
+	...
+{/embed}
+```
+
+There is, however, one difference between the two: when you embed a block instead of a file, the blocks from the outer layer remain accessible inside the embed. So unlike with an embedded file, `{include outer}` would work there.
+
+If we pass an expression to `{embed}` and it's not clear whether it's a block name or a file name, add the keyword `block` or `file`:
+
+```latte
+{embed block $name} ... {/embed}
+```
+
+## Use Cases
+
+There are various types of inheritance and code reuse in Latte. Let's summarize the main concepts for better clarity:
+
+### `{include template}`
+
+**Use Case**: Using `header.latte` and `footer.latte` inside `layout.latte`.
+
+`header.latte`
+
+```latte
+<nav>
+   <div>Home</div>
+   <div>About</div>
+</nav>
+```
+
+`footer.latte`
+
+```latte
+<footer>
+   <div>Copyright</div>
+</footer>
+```
+
+`layout.latte`
+
+```latte
+{include 'header.latte'}
+
+<main>{block main}{/block}</main>
+
+{include 'footer.latte'}
+```
+
+### `{layout}`
+
+**Use Case**: Extending `layout.latte` inside `homepage.latte` and `about.latte`.
+
+`layout.latte`
+
+```latte
+{include 'header.latte'}
+
+<main>{block main}{/block}</main>
+
+{include 'footer.latte'}
+```
+
+`homepage.latte`
+
+```latte
+{layout 'layout.latte'}
+
+{block main}
+	<p>Homepage</p>
+{/block}
+```
+
+`about.latte`
+
+```latte
+{layout 'layout.latte'}
+
+{block main}
+	<p>About page</p>
+{/block}
+```
+
+### `{import}`
+
+**Use Case**: Using `sidebar.latte` in `single.product.latte` and `single.service.latte`.
+
+`sidebar.latte`
+
+```latte
+{block sidebar}<aside>This is sidebar</aside>{/block}
+```
+
+`single.product.latte`
+
+```latte
+{layout 'product.layout.latte'}
+
+{import 'sidebar.latte'}
+
+{block main}<main>Product page</main>{/block}
+```
+
+`single.service.latte`
+
+```latte
+{layout 'service.layout.latte'}
+
+{import 'sidebar.latte'}
+
+{block main}<main>Service page</main>{/block}
+```
+
+### `{define}`
+
+**Use Case**: Functions that receive variables and render something.
+
+`form.latte`
+
+```latte
+{define form-input, $name, $value, $type = 'text'}
+	<input type={$type} name={$name} value={$value}>
+{/define}
+```
+
+`profile.service.latte`
+
+```latte
+{import 'form.latte'}
+
+<form action="" method="post">
+	<div>{include form-input, username}</div>
+	<div>{include form-input, password}</div>
+	<div>{include form-input, submit, Submit, submit}</div>
+</form>
+```
+
+### `{embed}`
+
+**Use Case**: Embedding `pagination.latte` into `product.table.latte` and `service.table.latte`.
+
+`pagination.latte`
+
+```latte
+<div id="pagination">
+	<div>{block first}{/block}</div>
+
+	{for $i = $min + 1; $i < $max - 1; $i++}
+		<div>{$i}</div>
+	{/for}
+
+	<div>{block last}{/block}</div>
+</div>
+```
+
+`product.table.latte`
+
+```latte
+{embed 'pagination.latte', min: 1, max: $products->count}
+	{block first}First Product Page{/block}
+	{block last}Last Product Page{/block}
+{/embed}
+```
+
+`service.table.latte`
+
+```latte
+{embed 'pagination.latte', min: 1, max: $services->count}
+	{block first}First Service Page{/block}
+	{block last}Last Service Page{/block}
+{/embed}
+```

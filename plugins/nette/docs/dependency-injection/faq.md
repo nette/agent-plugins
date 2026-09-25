@@ -1,0 +1,99 @@
+# DI Frequently Asked Questions (FAQ)
+
+## Is DI another name for IoC?
+
+*Inversion of Control* (IoC) is a principle describing the flow of control in a program: is your code calling external code, or is external code (like a framework) calling your code? IoC is a broad concept that includes [events](../nette/glossary.md#events), the so-called [Hollywood Principle](../application/components.md#hollywood-style), and other aspects. This concept also includes factories, discussed in [Rule #3: Let the Factory Handle It](introduction.md#rule-3-let-the-factory-handle-it), which represent an inversion of the `new` operator.
+
+*Dependency Injection* (DI) focuses on how objects obtain their dependencies (i.e., other objects they need to work with). It's a design pattern advocating for passing dependencies explicitly to objects rather than having objects create or find them.
+
+Therefore, DI can be considered a specific form of IoC. However, not all forms of IoC promote clean code. For example, anti-patterns include techniques relying on [global state](global-state.md) or the [Service Locator](#what-is-a-service-locator) pattern.
+
+## What is a Service Locator?
+
+It's an alternative approach to Dependency Injection. It involves a central object (the locator) where all available services (dependencies) are registered. When an object needs a dependency, it requests it from the Service Locator.
+
+However, compared to DI, it lacks transparency. Dependencies are hidden within the object's code (calls to the locator) rather than being explicit in its API (constructor or methods), requiring code inspection to understand the connections. Testing is also more complex, as you can't simply pass mock dependencies when instantiating an object; you often need to manipulate the Service Locator itself. Furthermore, the Service Locator introduces an unnecessary dependency: objects become coupled to the locator, unlike with DI, where objects ideally remain unaware of the container.
+
+## When is it better not to use DI?
+
+There are no known significant drawbacks to using the Dependency Injection design pattern correctly. On the contrary, obtaining dependencies from globally accessible locations (like static properties or singletons) leads to [numerous complications](global-state.md), as does using a Service Locator. Therefore, using DI is generally always advisable. This isn't dogma; it's simply that no better alternative for managing dependencies in a clean way has been widely adopted.
+
+However, there are specific, limited situations where accessing objects globally might be acceptable. For example, during debugging, when you need to dump a variable's value, measure execution time, or log a message at a specific point. In these cases, involving temporary actions that will later be removed from the code, using a globally accessible dumper, timer, or logger can be legitimate. These tools are not part of the application's core design.
+
+## Does using DI have its drawbacks?
+
+Does using Dependency Injection introduce disadvantages, like increased coding effort or reduced performance? What do we lose when we start writing code in accordance with DI?
+
+DI itself has negligible impact on runtime performance or memory usage. The performance of the DI container can be a factor, but [Nette DI](nette-container.md) compiles the container into plain PHP code, resulting in virtually zero overhead during application execution.
+
+When writing code following DI principles, you often need to create constructors that accept dependencies. While this might have seemed tedious in the past, modern IDEs and features like PHP 8's [constructor property promotion](https://blog.nette.org/en/php-8-0-complete-overview-of-news#toc-constructor-property-promotion) make it very quick. Factories can often be generated automatically by Nette DI, further reducing boilerplate. On the other hand, you eliminate the need to write singletons and static accessors.
+
+Overall, a well-designed application using DI is typically neither significantly shorter nor longer than one relying on singletons or global access. The code related to dependency creation and wiring is simply moved from individual classes to dedicated locations: the DI container configuration and factories.
+
+## How to rewrite a legacy application to DI?
+
+Migrating from a legacy application to Dependency Injection can be a challenging process, especially for large and complex applications. It is important to approach this process systematically.
+
+- When moving to Dependency Injection, it is important that all team members understand the principles and practices being used.
+- First, analyze the existing application to identify key components and their dependencies. Create a plan for which parts will be refactored and in what order.
+- Implement a DI container or, better yet, use an existing library such as Nette DI.
+- Gradually refactor parts of the application to use Dependency Injection. This may involve modifying constructors or methods to accept dependencies as parameters.
+- Update the code where objects are instantiated to retrieve them from the container or use factories provided by the container.
+
+Remember that transitioning to Dependency Injection is an investment in code quality and long-term application maintainability. While it may be challenging to make these changes, the result should be cleaner, more modular, and easily testable code that is ready for future extensions and maintenance.
+
+## Why is composition preferred over inheritance?
+
+Using [composition](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-composition) is generally preferred over [inheritance](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-inheritance) for code reuse because it leads to looser coupling. With composition, you are less likely to face issues where changing a base class breaks dependent subclasses. A typical example is a situation referred to as [constructor hell](passing-dependencies.md#constructor-hell).
+
+## Can Nette DI Container be used outside of Nette?
+
+Absolutely. The Nette DI Container is part of Nette, but is designed as a standalone library that can be used independently of other parts of the framework. Just install it using Composer, create a configuration file defining your services, and then use a few lines of PHP code to create the DI container. And you can immediately start taking advantage of Dependency Injection in your projects.
+
+The chapter on [Nette DI Container](nette-container.md) describes a specific use case with code examples.
+
+## Why is the configuration in NEON files?
+
+NEON is a simple and easily readable configuration language developed within Nette for setting up applications, services, and their dependencies. Compared to JSON or YAML, it offers much more intuitive and flexible options for this purpose. In NEON, you can naturally describe service definitions and relationships that would be difficult or impossible to express as clearly in JSON or YAML.
+
+## Does parsing NEON files slow down the application?
+
+Although NEON files parse very quickly, their parsing speed is largely irrelevant in production. This is because configuration files are parsed only once when the application first runs (or when they change). After parsing, the DI container code is generated, cached (stored on disk), and this compiled PHP code is executed on every subsequent request, eliminating the need for further parsing.
+
+This is how it works in a production environment. During development, NEON files are parsed every time their content changes, ensuring that the developer always has an up-to-date DI container. As mentioned, the parsing itself is very fast.
+
+## How do I access the parameters from the configuration file in my class?
+
+Keep in mind [Rule #1: Let It Be Passed to You](introduction.md#rule-1-let-it-be-passed-to-you). If a class needs information from the configuration file, don't try to figure out how the class can *fetch* it. Instead, simply request it, for example, via the class constructor. Then, provide this value in the configuration file.
+
+In this example, `%myParameter%` is a placeholder for the value of the `myParameter` parameter, which will be passed to the `MyClass` constructor:
+
+```neon
+# config.neon
+parameters:
+	myParameter: Some value
+
+services:
+	- MyClass(%myParameter%)
+```
+
+If you want to pass multiple parameters or use autowiring, it is useful to [wrap the parameters in an object](../best-practices/passing-settings-to-presenters.md).
+
+## Does Nette support PSR-11 Container interface?
+
+Yes. The class `Nette\Bridges\DIPsr\PsrContainer` exposes the [Nette DI Container](https://api.nette.org/di/master/Nette/DI/Container.html) through the PSR-11 `ContainerInterface`, see [PSR-11 Container](nette-container.md#psr-11container-since-327).
+
+## What do the terms container, compiler, definition, etc. mean?
+
+A short vocabulary of the words that keep coming up around Nette DI, most of them when [writing extensions](extensions.md):
+
+- **Container** – the compiled object (`Nette\DI\Container`) that creates services on demand and holds them at runtime. It is generated once as optimized PHP code.
+- **Compiler** – the machinery that turns configuration files and extensions into that container class.
+- **ContainerBuilder** – the mutable model of the container used during compilation; it holds the service definitions before any real service exists. See [Creating Extensions](extensions.md#containerbuilder).
+- **Service** – an object managed by the container, usually created once and shared (a singleton) – a database connection, a mailer, a logger.
+- **Definition** – the recipe for a service: its type, how to create it, and what to do afterwards. Nette turns definitions into the container's factory methods; several kinds exist (see [definition types](extensions.md#definition-types)).
+- **Type** – the class or interface of a service, used by autowiring to match services to the places that require them.
+- **Autowiring** – automatically passing services to constructors and methods by their type, so you don't wire dependencies by hand.
+- **Tag** – a label attached to a definition (optionally with a value); an extension can then find all services carrying it with `findByTag()`.
+- **Setup** – additional calls performed on a service right after it is created – method calls or property assignments, added with `addSetup()`.
+- **Alias** – an alternative name for an existing service.

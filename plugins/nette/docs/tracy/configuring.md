@@ -1,0 +1,193 @@
+# Tracy Configuration
+
+Contents:
+
+- [Error Logging](#error-logging)
+- [`dump()` Behavior](#dump-behavior)
+- [Others](#others)
+- [Nette Framework](#nette-framework)
+- [DI Services](#di-services)
+
+
+The following examples assume the following class alias is defined:
+
+```php
+use Tracy\Debugger;
+```
+
+## Error Logging
+
+```php
+$logger = Debugger::getLogger();
+
+// email(s) to send error notifications to
+$logger->email = 'dev@example.com';      // (string|string[]) defaults to unset
+
+// email sender
+$logger->fromEmail = 'me@example.com';   // (string) defaults to unset
+
+// routine for sending email
+$logger->mailer = /* ... */;             // (callable) default is sending by mail()
+
+// minimum interval for sending further emails?
+$logger->emailSnooze = /* ... */;        // (string) default is '2 days'
+
+// for which error levels is BlueScreen also logged?
+Debugger::$logSeverity = E_WARNING | E_NOTICE;  // defaults to 0 (no error level)
+```
+
+## `dump()` Behavior
+
+```php
+// maximum string length
+Debugger::$maxLength = 150;              // (int) default according to Tracy version
+
+// maximum nesting depth
+Debugger::$maxDepth = 10;                // (int) default according to Tracy version
+
+// maximum number of array/object items shown
+Debugger::$maxItems = 100;               // (int) default according to Tracy version
+
+// hide values of these keys (since Tracy 2.8)
+Debugger::$keysToHide = ['password', /* ... */];  // (string[]) defaults to []
+
+// visual theme (since Tracy 2.8)
+Debugger::$dumpTheme = 'dark';           // (light|dark) defaults to 'light'
+
+// display location where dump() was called?
+Debugger::$showLocation = /* ... */;     // (bool) default according to Tracy version
+```
+
+## Others
+
+```php
+// in development mode, display errors of type notice or warning as BlueScreen
+Debugger::$strictMode = /* ... */;       // (bool|int) defaults to false, specific error levels can be selected (e.g. E_USER_DEPRECATED | E_DEPRECATED)
+
+// display silenced (@) error messages?
+Debugger::$scream = /* ... */;           // (bool|int) defaults to false, since version 2.9 specific error levels can be selected (e.g. E_USER_DEPRECATED | E_DEPRECATED)
+
+// link format for opening in the editor
+Debugger::$editor = /* ... */;           // (string|null) defaults to 'editor://%action/?file=%file&line=%line&search=%search&replace=%replace'
+
+// path to template with custom page for error 500
+Debugger::$errorTemplate = /* ... */;    // (string) defaults to unset
+
+// show Tracy Bar?
+Debugger::$showBar = /* ... */;          // (bool) defaults to true
+
+// command to open the browser with the logged BlueScreen (e.g. in CLI)
+Debugger::$browser = /* ... */;          // (string) defaults to unset
+
+// array of functions called after a fatal error or uncaught exception
+Debugger::$onFatalError[] = function (Throwable $e) { /* ... */ };
+
+Debugger::$editorMapping = [
+	// original => new
+	'/var/www/html' => '/data/web',
+	'/home/web' => '/srv/html',
+];
+```
+
+## Nette Framework
+
+If you are using Nette Framework, you can configure Tracy and add new panels to the Tracy Bar using the configuration file. In the configuration, you can set parameters and add new panels to the Tracy Bar. These settings are applied only after the DI container is created, so errors occurring before that cannot reflect them.
+
+Error logging configuration:
+
+```neon
+tracy:
+	# email(s) to send error notifications to
+	email: dev@example.com           # (string|string[]) defaults to unset
+
+	# email sender
+	fromEmail: robot@example.com     # (string) defaults to unset
+
+	# email sending snooze time (since Tracy 2.8.8)
+	emailSnooze: ...                 # (string) defaults to '2 days'
+
+	# use Nette mailer for sending emails? (since Tracy 2.5)
+	netteMailer: ...                 # (bool) defaults to true
+
+	# for which error levels is BlueScreen also logged?
+	logSeverity: [E_WARNING, E_NOTICE]  # defaults to 0
+```
+
+Configuration for the `dump()` function:
+
+```neon
+tracy:
+	# maximum string length
+	maxLength: 150                # (int) default according to Tracy version
+
+	# maximum nesting depth
+	maxDepth: 10                  # (int) default according to Tracy version
+
+	# maximum number of array/object items shown
+	maxItems: 100                 # (int) default according to Tracy version
+
+	# hide values of these keys (since Tracy 2.8)
+	keysToHide: [password, pass]  # (string[]) defaults to []
+
+	# visual theme (since Tracy 2.8)
+	dumpTheme: dark               # (light|dark) defaults to 'light'
+
+	# display location where dump() was called?
+	showLocation: ...             # (bool) default according to Tracy version
+```
+
+Tracy extension installation:
+
+```neon
+tracy:
+	# adds panels to Tracy Bar
+	bar:
+		- Nette\Bridges\DITracy\ContainerPanel
+		- IncludePanel
+		- XDebugHelper('myIdeKey')
+		- MyPanel(@MyService)
+
+	# adds panels to BlueScreen
+	blueScreen:
+		- DoctrinePanel::renderException
+```
+
+Other options:
+
+```neon
+tracy:
+	# in development mode, display errors of type notice or warning as BlueScreen
+	strictMode: ...           # defaults to false
+
+	# display silenced (@) error messages?
+	scream: ...               # defaults to false
+
+	# link format for opening in the editor
+	editor: ...               # (string) defaults to 'editor://%action/?file=%file&line=%line&search=%search&replace=%replace'
+
+	# path to template with custom page for error 500
+	errorTemplate: ...        # (string) defaults to unset
+
+	# show Tracy Bar?
+	showBar: ...              # (bool) defaults to true
+
+	# command to open the browser with the logged BlueScreen (e.g. in CLI)
+	browser: ...             # (string) defaults to unset
+
+	editorMapping:
+		# original: new
+		/var/www/html: /data/web
+		/home/web: /srv/html
+```
+
+The values of the `logSeverity`, `strictMode` and `scream` options can be written as an array of error levels (e.g. `[E_WARNING, E_NOTICE]`) or as an expression used in PHP (e.g. `E_ALL & ~E_NOTICE`).
+
+## DI Services
+
+These services are added to the DI container:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `tracy.logger` | [Tracy\ILogger](https://api.nette.org/tracy/master/Tracy/ILogger.html) | logger |
+| `tracy.blueScreen` | [Tracy\BlueScreen](https://api.nette.org/tracy/master/Tracy/BlueScreen.html) | BlueScreen |
+| `tracy.bar` | [Tracy\Bar](https://api.nette.org/tracy/master/Tracy/Bar.html) | Tracy Bar |

@@ -309,10 +309,14 @@ When a test fails, Nette Tester writes the expected and actual output into an `o
 
 **Always look at these files first** when investigating test failures. Comparing `.expected` vs `.actual` shows the exact difference and is much more informative than the short failure message printed by the runner.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Nette Tester](https://tester.nette.org) – complete testing guide
-- [Assertions](https://tester.nette.org/en/assertions) – all Assert methods
-- [Test Annotations](https://tester.nette.org/en/test-annotations) – @testCase, @dataProvider, @skip
+- [Getting Started](../../docs/tester/guide.md) – installation, the first test
+- [Writing Tests](../../docs/tester/writing-tests.md) – test files, `test()`, structure
+- [Assertions](../../docs/tester/assertions.md) – every Assert method
+- [TestCase](../../docs/tester/testcase.md) – test classes
+- [Test Annotations](../../docs/tester/test-annotations.md) – @testCase, @dataProvider, @skip
+- [Helpers](../../docs/tester/helpers.md) – HttpAssert, DomQuery, FileMock, Environment
+- [Running Tests](../../docs/tester/running-tests.md) – command-line options

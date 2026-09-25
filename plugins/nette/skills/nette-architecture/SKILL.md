@@ -4,7 +4,7 @@ description: Invoke before designing presenters, modules, or application structu
 ---
 
 For new projects, see [the project skeleton reference](references/skeleton.md).
-For the `#[Requires]` attribute (HTTP method/AJAX restrictions on actions), see [the reference](references/requires.md).
+For the `#[Requires]` attribute (HTTP method/AJAX restrictions on actions), see [the documentation](../../docs/best-practices/attribute-requires.md).
 
 ## Application Architecture
 
@@ -226,10 +226,18 @@ This separation means business logic is testable without CLI context and reusabl
 
 **Don't create deep hierarchies** – prefer descriptive names over nested structure (OrderFulfillmentService vs Fulfill/Order/Service). Deep nesting increases cognitive load and makes imports longer without adding clarity.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Application](https://doc.nette.org/en/application) – presenters, routing, templates
-- [Components](https://doc.nette.org/en/application/components) – components and signal handling
-- [Directory Structure](https://doc.nette.org/en/application/directory-structure) – recommended layout
+- [How Applications Work](../../docs/application/how-it-works.md) – the request flow from URL to response
+- [Presenters](../../docs/application/presenters.md) – life cycle, parameters, redirects, errors
+- [Directory Structure](../../docs/application/directory-structure.md) – recommended layout and its alternatives
+- [Bootstrapping](../../docs/application/bootstrapping.md) – the Bootstrap class, environments, configuration loading
+- [The #[Requires] Attribute](../../docs/best-practices/attribute-requires.md) – HTTP method, AJAX and forward-only restrictions
+- [Microsites](../../docs/best-practices/microsites.md) – a small site without presenters
+- [Presenter Traits](../../docs/best-practices/presenter-traits.md) – composing presenters from traits
+- [Restoring a Request](../../docs/best-practices/restore-request.md) – returning to an earlier page after login
+- [Command-Line](../../docs/command-line/index.md) – building CLI applications and tasks
+- [Installation](../../docs/nette/installation.md) – installing Nette and the project skeleton
+- [Glossary](../../docs/nette/glossary.md) – terms used throughout the documentation

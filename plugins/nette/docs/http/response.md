@@ -1,0 +1,186 @@
+# HTTP Response
+
+Contents:
+
+- [Nette\Http\Response](#nettehttpresponse)
+  - [`setCode(int $code, ?string $reason=null)`](#setcodeint-code-string-reasonnull)
+  - [`getCode(): int`](#getcode-int)
+  - [`isSent(): bool`](#issent-bool)
+  - [`setHeader(string $name, ?string $value)`](#setheaderstring-name-string-value)
+  - [`addHeader(string $name, string $value)`](#addheaderstring-name-string-value)
+  - [`deleteHeader(string $name)`](#deleteheaderstring-name)
+  - [`getHeader(string $header): ?string`](#getheaderstring-header-string)
+  - [`getHeaders(): array<string, string>`](#getheaders-arraystring-string)
+  - [`setContentType(string $type, ?string $charset=null)`](#setcontenttypestring-type-string-charsetnull)
+  - [`redirect(string $url, int $code=self::S302_Found): void`](#redirectstring-url-int-codeselfs302_found-void)
+  - [`setExpiration(?string $expire)`](#setexpirationstring-expire)
+  - [`sendAsFile(string $fileName)`](#sendasfilestring-filename)
+  - [`setCookie(string $name, string $value, $expire, ?string $path=null, ?string $domain=null, ?bool $secure=null, ?bool $httpOnly=null, SameSite|string $sameSite='Lax', bool $partitioned=false)`](#setcookiestring-name-string-value-expire-string-pathnull-string-domainnull-bool-securenull-bool-httponlynull-samesitestring-samesitelax-bool-partitionedfalse)
+  - [`deleteCookie(string $name, ?string $path=null, ?string $domain=null, ?bool $secure=null): void`](#deletecookiestring-name-string-pathnull-string-domainnull-bool-securenull-void)
+- [Nette\Http\Context](#nettehttpcontext)
+  - [`isModified(string|int|\DateTimeInterface|null $lastModified=null, ?string $etag=null): bool`](#ismodifiedstringintdatetimeinterfacenull-lastmodifiednull-string-etagnull-bool)
+
+
+Nette encapsulates the HTTP response into objects with a clear API.
+
+The HTTP response is represented by the [Nette\Http\Response](https://api.nette.org/http/master/Nette/Http/Response.html) object. If you are working with Nette, this object is automatically created by the framework, and you can have it passed to you using [dependency injection](../dependency-injection/passing-dependencies.md). In presenters, simply call the `$this->getHttpResponse()` method.
+
+→ [Installation and requirements](https://doc.nette.org/en/http#toc-installation)
+
+## Nette\Http\Response
+
+Unlike [Nette\Http\Request](request.md), this object is mutable, so you can use setters to change the state, e.g., to send headers. Remember that all setters **must be called before any actual output is sent.** The `isSent()` method indicates if the output has already been sent. If it returns `true`, any attempt to send a header will throw a `Nette\InvalidStateException`.
+
+### `setCode(int $code, ?string $reason=null)`
+
+Changes the status [response code](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10). For better source code readability, it is recommended to use [predefined constants](https://api.nette.org/http/master/Nette/Http/IResponse.html) instead of actual numbers.
+
+```php
+$httpResponse->setCode(Nette\Http\Response::S404_NotFound);
+```
+
+### `getCode(): int`
+
+Returns the status code of the response.
+
+### `isSent(): bool`
+
+Returns whether headers have already been sent from the server to the browser, meaning it is no longer possible to send headers or change the status code.
+
+### `setHeader(string $name, ?string $value)`
+
+Sends an HTTP header and **overwrites** a previously sent header of the same name. If `$value` is `null`, the header will be removed.
+
+```php
+$httpResponse->setHeader('Pragma', 'no-cache');
+```
+
+### `addHeader(string $name, string $value)`
+
+Sends an HTTP header and **does not overwrite** a previously sent header of the same name.
+
+```php
+$httpResponse->addHeader('Accept', 'application/json');
+$httpResponse->addHeader('Accept', 'application/xml');
+```
+
+### `deleteHeader(string $name)`
+
+Deletes a previously sent HTTP header.
+
+### `getHeader(string $header): ?string`
+
+Returns the sent HTTP header or `null` if it doesn't exist. The parameter is case-insensitive.
+
+```php
+$pragma = $httpResponse->getHeader('Pragma');
+```
+
+### `getHeaders(): array<string, string>`
+
+Returns all sent HTTP headers as an associative array.
+
+```php
+$headers = $httpResponse->getHeaders();
+echo $headers['Pragma'];
+```
+
+### `setContentType(string $type, ?string $charset=null)`
+
+Changes the `Content-Type` header.
+
+```php
+$httpResponse->setContentType('text/plain', 'UTF-8');
+```
+
+### `redirect(string $url, int $code=self::S302_Found): void`
+
+Redirects to another URL. Remember to terminate the script afterwards.
+
+```php
+$httpResponse->redirect('http://example.com');
+exit;
+```
+
+### `setExpiration(?string $expire)`
+
+Sets the expiration of the HTTP document using the `Cache-Control` and `Expires` headers. The parameter is either a time interval (as text) or `null`, which disables caching.
+
+```php
+// browser cache expires in one hour
+$httpResponse->setExpiration('1 hour');
+```
+
+### `sendAsFile(string $fileName)`
+
+The response will be downloaded via a *Save as* dialog box with the specified name. It does not send the file itself.
+
+```php
+$httpResponse->sendAsFile('invoice.pdf');
+```
+
+### `setCookie(string $name, string $value, $expire, ?string $path=null, ?string $domain=null, ?bool $secure=null, ?bool $httpOnly=null, SameSite|string $sameSite='Lax', bool $partitioned=false)`
+
+Sends a cookie. Default parameter values:
+
+|  |  |  |
+| --- | --- | --- |
+| `$path` | `'/'` | cookie is available for all paths within the (sub)domain *(configurable)* |
+| `$domain` | `null` | meaning available for the current (sub)domain, but not its subdomains *(configurable)* |
+| `$secure` | `auto` | `true` if the site is running on HTTPS, otherwise `false` (framework default; the bare class defaults to `false`) *(configurable)* |
+| `$httpOnly` | `true` | cookie is inaccessible to JavaScript |
+| `$sameSite` | `'Lax'` | cookie might not be sent during [cross-origin access](../nette/glossary.md#samesite-cookie) |
+| `$partitioned` | `false` | whether the cookie is partitioned, see below *(since v3.4)* |
+
+You can change the default values of the `$path`, `$domain`, and `$secure` parameters in the [configuration](configuration.md#http-cookie).
+
+The expiration is passed as a number of seconds, as a text interval or date, or as a `DateTimeInterface` object. The value `null` creates a session cookie, which the browser discards when it is closed. Nette sends the expiration in both the `Expires` and `Max-Age` attributes.
+
+```php
+$httpResponse->setCookie('lang', 'en', '100 days');  // expires in 100 days
+$httpResponse->setCookie('lang', 'en', null);        // session cookie
+```
+
+The `$domain` parameter determines which domains can accept the cookie. If not specified, the cookie is accepted by the same (sub)domain that set it, but not its subdomains. If `$domain` is specified, subdomains are also included. Therefore, specifying `$domain` is less restrictive than omitting it. For example, with `$domain = 'nette.org'`, cookies are also available on all subdomains like `doc.nette.org`.
+
+You can pass the `$sameSite` value as a `Nette\Http\SameSite` enum – `SameSite::Lax`, `SameSite::Strict`, or `SameSite::None` (the string values `'Lax'`, `'Strict'`, `'None'` work too). If you set it to `SameSite::None`, the `$secure` attribute is enabled automatically, because browsers reject a `SameSite=None` cookie that is not secure.
+
+(since 3.4.0) Partitioned cookies (CHIPS) give a cookie its own separate storage for each top-level site. So when a third-party service (such as an embedded widget) sets a partitioned cookie, the browser keeps a distinct copy for every site the widget appears on, and these copies cannot be linked together for cross-site tracking. Turn it on by setting `$partitioned` to `true`; this also requires the `$secure` attribute, so it is enabled automatically.
+
+```php
+$httpResponse->setCookie('theme', 'dark', '1 year', sameSite: SameSite::None, partitioned: true);
+```
+
+### `deleteCookie(string $name, ?string $path=null, ?string $domain=null, ?bool $secure=null): void`
+
+Deletes a cookie. The default values of the parameters are:
+
+- `$path` with scope to all directories (`'/'`)
+- `$domain` with scope to the current (sub)domain, but not its subdomains
+- `$secure` depends on the settings in the [configuration](configuration.md#http-cookie)
+
+```php
+$httpResponse->deleteCookie('lang');
+```
+
+## Nette\Http\Context
+
+The [Nette\Http\Context](https://api.nette.org/http/master/Nette/Http/Context.html) object joins the request and the response together and helps with HTTP caching. It is not registered as a service, so you create it yourself. In presenters, it is usually easier to use the [lastModified()](../application/presenters.md#http-caching) method; the context is useful when you send the response yourself, for example from your own response class.
+
+### `isModified(string|int|\DateTimeInterface|null $lastModified=null, ?string $etag=null): bool`
+
+Determines whether the content has changed since the client's last visit. If you pass the time of the last modification, it sends the `Last-Modified` header; if you pass an ETag validator (a short string identifying the current version of the content, e.g., its hash), it sends the `ETag` header. It then compares both against the `If-Modified-Since` and `If-None-Match` headers sent by the browser.
+
+If the browser already holds a matching version, the method sets the code `304 Not Modified` and returns `false` – in that case, do not send the body of the response at all. Otherwise, it returns `true`.
+
+```php
+public function send(Nette\Http\IRequest $request, Nette\Http\IResponse $response): void
+{
+	$context = new Nette\Http\Context($request, $response);
+	if ($context->isModified(filemtime($this->file), md5_file($this->file))) {
+		readfile($this->file);
+	}
+}
+```
+
+Both parameters are optional. If you do not know the modification time of the content, use only the ETag, and vice versa.

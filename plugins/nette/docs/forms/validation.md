@@ -1,0 +1,388 @@
+# Forms Validation
+
+Contents:
+
+- [Required Controls](#required-controls)
+- [Rules](#rules)
+  - [Text inputs](#text-inputs)
+  - [Number of Items](#number-of-items)
+  - [File Upload](#file-upload)
+- [Error Messages](#error-messages)
+- [Conditions](#conditions)
+- [Reference to Another Control](#reference-to-another-control)
+- [Custom Rules and Conditions](#custom-rules-and-conditions)
+- [Event onValidate](#event-onvalidate)
+- [Processing Errors](#processing-errors)
+- [Modifying Input Values](#modifying-input-values)
+- [JavaScript Validation](#javascript-validation)
+- [Dynamic JavaScript](#dynamic-javascript)
+- [Disabling Validation](#disabling-validation)
+
+
+## Required Controls
+
+Controls are marked as required using the `setRequired()` method. Its argument is the text of the [error message](#error-messages) that will be displayed if the user does not fill in the control. If no argument is provided, the default error message is used.
+
+```php
+$form->addText('name', 'Name:')
+	->setRequired('Please fill in your name.');
+```
+
+## Rules
+
+We add validation rules to controls using the `addRule()` method. The first parameter is the rule, the second is the [error message](#error-messages), and the third is the validation rule argument.
+
+```php
+$form->addPassword('password', 'Password:')
+	->addRule($form::MinLength, 'Password must be at least %d characters long', 8);
+```
+
+**Validation rules are checked only if the user has filled in the control.**
+
+Nette comes with several predefined rules whose names are constants of the `Nette\Forms\Form` class. We can apply these rules to all controls:
+
+| constant | description | argument type |
+| --- | --- | --- |
+| `Required` | required control, alias for `setRequired()` | – |
+| `Filled` | required control, alias for `setRequired()` | – |
+| `Blank` | control must not be filled | – |
+| `Equal` | value must be equal to the parameter | `mixed` |
+| `NotEqual` | value must not be equal to the parameter | `mixed` |
+| `IsIn` | value must be one of the items in the array | `array` |
+| `IsNotIn` | value must not be any of the items in the array | `array` |
+| `Valid` | is the control filled correctly? (only in [addConditionOn()](#conditions)) | – |
+
+### Text inputs
+
+For controls `addText()`, `addPassword()`, `addTextArea()`, `addEmail()`, `addInteger()`, `addFloat()`, some of the following rules can also be applied:
+
+|  |  |  |
+| --- | --- | --- |
+| `MinLength` | minimum text length | `int` |
+| `MaxLength` | maximum text length | `int` |
+| `Length` | length in range or exact length | pair `[int, int]` or `int` |
+| `Email` | valid email address | – |
+| `URL` | absolute URL | – |
+| `Pattern` | matches regular expression | `string` |
+| `PatternInsensitive` | like `Pattern`, but case-insensitive | `string` |
+| `Integer` | integer value | – |
+| `Numeric` | non-negative integer (digits only) | – |
+| `Float` | number | – |
+| `Min` | minimum value of a numeric control | `int\|float` |
+| `Max` | maximum value of a numeric control | `int\|float` |
+| `Range` | value in range | pair `[int\|float, int\|float]` |
+
+The validation rules `Integer` and `Float` automatically convert the value to an integer or float, respectively. Furthermore, the `URL` rule also accepts an address without a scheme (e.g., `nette.org`) and completes the scheme (`https://nette.org`). The expression in `Pattern` and `PatternInsensitive` must be valid for the entire value, i.e., as if it were wrapped in `^` and `$` characters.
+
+### Number of Items
+
+For controls `addMultiUpload()`, `addCheckboxList()`, `addMultiSelect()`, you can also use the following rules to limit the number of selected items or uploaded files:
+
+|  |  |  |
+| --- | --- | --- |
+| `MinLength` | minimum count | `int` |
+| `MaxLength` | maximum count | `int` |
+| `Length` | count in range or exact count | pair `[int, int]` or `int` |
+
+### File Upload
+
+For controls `addUpload()`, `addMultiUpload()`, the following rules can also be used:
+
+|  |  |  |
+| --- | --- | --- |
+| `MaxFileSize` | maximum file size in bytes | `int` |
+| `MimeType` | MIME type, wildcards allowed (`'video/*'`) | `string\|string[]` |
+| `Image` | JPEG, PNG, GIF, WebP, AVIF image | – |
+| `Pattern` | file name matches regular expression | `string` |
+| `PatternInsensitive` | like `Pattern`, but case-insensitive | `string` |
+
+`MimeType` and `Image` require the PHP extension `fileinfo`. Whether a file or image is of the required type is detected based on its signature, and **the integrity of the entire file is not checked.** You can determine if an image is corrupted, for example, by trying to [load it](../http/request.md#toimage-netteutilsimage).
+
+## Error Messages
+
+All predefined rules except `Pattern` and `PatternInsensitive` have a default error message, so they can be omitted. However, by providing and formulating all custom messages tailored to your needs, you will make the form more user-friendly.
+
+You can change the default messages in the [configuration](configuration.md), by modifying the texts in the `Nette\Forms\Validator::$messages` array, or by using a [translator](rendering.md#translating).
+
+The following placeholder strings can be used in the text of error messages:
+
+|  |  |
+| --- | --- |
+| `%d` | replaced sequentially by rule arguments |
+| `%n$d` | replaced by the n-th rule argument |
+| `%label` | replaced by the control label (without the colon) |
+| `%name` | replaced by the control name (e.g., `name`) |
+| `%value` | replaced by the value entered by the user |
+
+```php
+$form->addText('name', 'Name:')
+	->setRequired('Please fill in %label');
+
+$form->addInteger('id', 'ID:')
+	->addRule($form::Range, 'at least %d and at most %d', [5, 10]);
+
+$form->addInteger('id', 'ID:')
+	->addRule($form::Range, 'at most %2$d and at least %1$d', [5, 10]);
+```
+
+## Conditions
+
+In addition to rules, conditions can also be added. They are written similarly to rules, but instead of `addRule()`, we use the `addCondition()` method, and naturally, we don't provide an error message (the condition only asks):
+
+```php
+$form->addPassword('password', 'Password:')
+	// if the password length is not greater than 8
+	->addCondition($form::MaxLength, 8)
+		// then it must contain a digit
+		->addRule($form::Pattern, 'Must contain a digit', '.*[0-9].*');
+```
+
+The condition can be linked to a control other than the current one using `addConditionOn()`. The first parameter is a reference to the control. In this example, the email will be required only if the checkbox is checked (i.e., its value is true):
+
+```php
+$form->addCheckbox('newsletters', 'Send me newsletters');
+
+$form->addEmail('email', 'Email:')
+	// if the checkbox is checked
+	->addConditionOn($form['newsletters'], $form::Equal, true)
+		// then require the email
+		->setRequired('Enter your email address');
+```
+
+Conditions can be formed into complex structures using `elseCondition()` and `endCondition()`:
+
+```php
+$form->addText(/* ... */)
+	->addCondition(/* ... */) // if the first condition is met
+		->addConditionOn(/* ... */) // and the second condition on another control is also met
+			->addRule(/* ... */) // require this rule
+		->elseCondition() // if the second condition is not met
+			->addRule(/* ... */) // require these rules
+			->addRule(/* ... */)
+		->endCondition() // we return to the first condition
+		->addRule(/* ... */);
+```
+
+The first argument of `addCondition()` can also be a boolean value. This is useful when the decision is already known while the form is being built – for example, to apply a rule only under certain circumstances:
+
+```php
+$form->addText('nickname')
+	->addCondition($isRequired) // a value known when building the form
+		->setRequired();
+```
+
+In Nette, it is very easy to react to the fulfillment or non-fulfillment of a condition on the JavaScript side using the `toggle()` method, see [Dynamic JavaScript](#dynamic-javascript).
+
+## Reference to Another Control
+
+You can also pass another form control as an argument to a rule or condition. The rule will then use the value entered later by the user in the browser. This can be used, for example, to dynamically validate that the `password` control contains the same string as the `password_confirm` control:
+
+```php
+$form->addPassword('password', 'Password');
+$form->addPassword('password_confirm', 'Confirm Password')
+    ->addRule($form::Equal, 'The passwords do not match', $form['password']);
+```
+
+## Custom Rules and Conditions
+
+Sometimes we encounter situations where the built-in validation rules in Nette are insufficient, and we need to validate user data in our own way. In Nette, this is very simple!
+
+You can pass any callback as the first parameter to the `addRule()` or `addCondition()` methods. The callback accepts the control itself as the first parameter and returns a boolean value indicating whether the validation was successful. When adding a rule using `addRule()`, additional arguments can be provided, which are then passed as the second parameter.
+
+A custom set of validators can thus be created as a class with static methods:
+
+```php
+class MyValidators
+{
+	// tests whether the value is divisible by the argument
+	public static function validateDivisibility(BaseControl $input, $arg): bool
+	{
+		return $input->getValue() % $arg === 0;
+	}
+
+	public static function validateEmailDomain(BaseControl $input, $domain)
+	{
+		// other validators
+	}
+}
+```
+
+Usage is then very straightforward:
+
+```php
+$form->addInteger('num')
+	->addRule(
+		[MyValidators::class, 'validateDivisibility'],
+		'The value must be a multiple of %d',
+		8,
+	);
+```
+
+Custom validation rules can also be added to JavaScript. The condition is that the rule must be a static method. Its name for the JavaScript validator is formed by concatenating the class name without backslashes `\`, an underscore `_`, and the method name. For example, `App\MyValidators::validateDivisibility` is written as `AppMyValidators_validateDivisibility` and added to the `Nette.validators` object:
+
+```js
+Nette.validators['AppMyValidators_validateDivisibility'] = (elem, args, val) => {
+	return val % args === 0;
+};
+```
+
+## Event onValidate
+
+After the form is submitted, validation is performed, checking the individual rules added using `addRule()`, and subsequently, the `onValidate` [event](../nette/glossary.md#events) is triggered. Its handler can be used for additional validation, typically verifying the correct combination of values in multiple form controls.
+
+If an error is detected, it is passed to the form using the `addError()` method. This can be called either on a specific control or directly on the form.
+
+```php
+protected function createComponentSignInForm(): Form
+{
+	$form = new Form;
+	// ...
+	$form->onValidate[] = $this->validateSignInForm(...);
+	return $form;
+}
+
+private function validateSignInForm(Form $form, \stdClass $data): void
+{
+	if ($data->foo > 1 && $data->bar > 5) {
+		$form->addError('This combination is not possible.');
+	}
+}
+```
+
+## Processing Errors
+
+In many cases, we only discover an error when processing a valid form, for example, when writing a new entry to the database and encountering a duplicate key. In such a case, we again pass the error back to the form using the `addError()` method. This can be called either on a specific control or directly on the form:
+
+```php
+try {
+	$data = $form->getValues();
+	$this->user->login($data->username, $data->password);
+	$this->redirect('Home:');
+
+} catch (Nette\Security\AuthenticationException $e) {
+	if ($e->getCode() === Nette\Security\Authenticator::InvalidCredential) {
+		$form->addError('Invalid password.');
+	}
+}
+```
+
+If possible, we recommend adding the error directly to the form control, as it will be displayed next to it when using the default renderer.
+
+```php
+$form['date']->addError('Sorry, this date is already taken.');
+```
+
+You can call `addError()` repeatedly to pass multiple error messages to a form or control. You can retrieve them using `getErrors()`.
+
+Note that `$form->getErrors()` returns a summary of all error messages, including those passed directly to individual controls, not just directly to the form. Error messages passed only to the form can be retrieved via `$form->getOwnErrors()`.
+
+## Modifying Input Values
+
+Using the `addFilter()` method, we can modify the value entered by the user. In this example, we will tolerate and remove spaces in the postal code:
+
+```php
+$form->addText('zip', 'Postal Code:')
+	->addFilter(function ($value) {
+		return str_replace(' ', '', $value); // remove spaces from the postal code
+	})
+	->addRule($form::Pattern, 'Postal code is not five digits', '\d{5}');
+```
+
+The filter is integrated among validation rules and conditions, and thus the order of methods matters, i.e., the filter and rule are called in the same order as the `addFilter()` and `addRule()` methods are listed.
+
+## JavaScript Validation
+
+The language for formulating conditions and rules is very powerful. All constructs work both on the server side and on the client side in JavaScript. They are transferred in HTML attributes `data-nette-rules` as JSON. The validation itself is handled by a script that intercepts the form's `submit` event, iterates through the individual controls, and performs the corresponding validation.
+
+This script is `netteForms.js`, and it is available from several possible sources:
+
+You can embed the script directly into the HTML page from a CDN:
+
+```latte
+<script src="https://unpkg.com/nette-forms@3"></script>
+```
+
+Or copy it locally to the public folder of your project (e.g., from `vendor/nette/forms/src/assets/netteForms.min.js`):
+
+```latte
+<script src="/path/to/netteForms.min.js"></script>
+```
+
+Or install it via [npm](https://www.npmjs.com/package/nette-forms):
+
+```shell
+npm install nette-forms
+```
+
+And then load and run it:
+
+```js
+import netteForms from 'nette-forms';
+netteForms.initOnLoad();
+```
+
+Alternatively, you can load it directly from the `vendor` folder:
+
+```js
+import netteForms from '../path/to/vendor/nette/forms/src/assets/netteForms.js';
+netteForms.initOnLoad();
+```
+
+You can turn client-side validation off entirely by adding the `novalidate` attribute to the form. The `netteForms.js` script then skips validating it on submit, so validation happens only on the server:
+
+```php
+$form->setHtmlAttribute('novalidate');
+```
+
+## Dynamic JavaScript
+
+Want to display the address fields only if the user chooses to have the goods sent by post? No problem. The key is the pair of methods `addCondition()` & `toggle()`:
+
+```php
+$form->addCheckbox('send_it')
+	->addCondition($form::Equal, true)
+		->toggle('#address-container');
+```
+
+This code states that when the condition is met (i.e., when the checkbox is checked), the HTML element `#address-container` will be visible, and vice versa. So, we place the form controls with the recipient's address in a container with this ID, and they will hide or show when the checkbox is clicked. This is handled by the `netteForms.js` script.
+
+Any selector can be passed as an argument to the `toggle()` method. For historical reasons, a string that begins with a letter, digit, or underscore and contains only letters, digits, underscores, hyphens, dots, and colons is treated as an element ID, just as if it were preceded by the `#` character. The second optional parameter allows reversing the behavior; for instance, if we used `toggle('#address-container', false)`, the element would be displayed only if the checkbox was *not* checked.
+
+The default JavaScript implementation changes the `hidden` property of the elements. However, we can easily change the behavior, for example, by adding an animation. Just override the `Nette.toggle` method in JavaScript with a custom solution:
+
+```js
+Nette.toggle = (selector, visible, srcElement, event) => {
+	document.querySelectorAll(selector).forEach((el) => {
+		// hide or show 'el' according to the value of 'visible'
+	});
+};
+```
+
+## Disabling Validation
+
+Sometimes it might be useful to disable validation. If pressing a submit button should not perform validation (suitable for *Cancel* or *Preview* buttons), we disable it using the `$submit->setValidationScope([])` method. If it should perform only partial validation, we can specify which fields or form containers should be validated.
+
+```php
+$form->addText('name')
+	->setRequired();
+
+$details = $form->addContainer('details');
+$details->addInteger('age')
+	->setRequired('age');
+$details->addInteger('age2')
+	->setRequired('age2');
+
+$form->addSubmit('send1'); // Validates the whole form
+$form->addSubmit('send2')
+	->setValidationScope([]); // Validates nothing
+$form->addSubmit('send3')
+	->setValidationScope([$form['name']]); // Validates only the 'name' control
+$form->addSubmit('send4')
+	->setValidationScope([$form['details']['age']]); // Validates only the 'age' control
+$form->addSubmit('send5')
+	->setValidationScope([$form['details']]); // Validates the 'details' container
+```
+
+`setValidationScope` does not affect the [Event onValidate](#event-onvalidate) on the form, which will always be called. The `onValidate` event on a container will only be triggered if that container is marked for partial validation.
+
+Partial validation also affects the values returned by `getValues()`: the result contains only the values of controls that fall within the validation scope. Values of controls outside this scope are omitted.

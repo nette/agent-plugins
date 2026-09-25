@@ -1,0 +1,346 @@
+# HTML Elements
+
+Contents:
+
+- [Creating an HTML Element](#creating-an-html-element)
+- [HTML Attributes](#html-attributes)
+  - [Data Attributes](#data-attributes)
+- [Element Content](#element-content)
+  - [Child Nodes](#child-nodes)
+  - [Creating a Document Fragment](#creating-a-document-fragment)
+- [Generating HTML Output](#generating-html-output)
+- [Conversion HTML ↔ Text](#conversion-html--text)
+- [HtmlStringable](#htmlstringable)
+
+
+The [Nette\Utils\Html](https://api.nette.org/utils/master/Nette/Utils/Html.html) class is a helper for generating HTML code that helps prevent Cross-Site Scripting (XSS) vulnerabilities.
+
+It works by having its objects represent HTML elements; you set their parameters and then render them:
+
+```php
+$el = Html::el('img');  // creates <img> element
+$el->src = 'image.jpg'; // sets src attribute
+echo $el;               // prints '<img src="image.jpg">'
+```
+
+(since 4.1.5) You can fill the body of an element with text and other elements using the `add()` method. Text is escaped automatically, elements are inserted as they are:
+
+```php
+echo Html::el('div')->add(
+	'Hello ',
+	Html::el('b')->setText('world'),
+);
+// '<div>Hello <b>world</b></div>'
+```
+
+Installation:
+
+```shell
+composer require nette/utils
+```
+
+All examples assume the following class alias is defined:
+
+```php
+use Nette\Utils\Html;
+```
+
+## Creating an HTML Element
+
+An element is created using the `Html::el()` method:
+
+```php
+$el = Html::el('img'); // creates <img> element
+```
+
+Besides the name, you can also specify other attributes using HTML syntax:
+
+```php
+$el = Html::el('input type=text class="red important"');
+```
+
+Or pass them as an associative array in the second parameter:
+
+```php
+$el = Html::el('input', [
+	'type' => 'text',
+	'class' => 'important',
+]);
+```
+
+To change and retrieve the element's name:
+
+```php
+$el->setName('img');
+$el->getName(); // 'img'
+$el->isEmpty(); // true, as <img> is a void element
+```
+
+## HTML Attributes
+
+Individual HTML attributes can be set and retrieved in three ways; it's up to you which one you prefer. The first is via properties:
+
+```php
+$el->src = 'image.jpg'; // sets src attribute
+
+echo $el->src; // 'image.jpg'
+
+unset($el->src);  // removes the attribute
+// or $el->src = null;
+```
+
+The second way is by calling methods, which, unlike setting properties, can be chained:
+
+```php
+$el = Html::el('img')->src('image.jpg')->alt('photo');
+// <img src="image.jpg" alt="photo">
+
+$el->alt(null); // removes the attribute
+```
+
+And the third way is the most verbose:
+
+```php
+$el = Html::el('img')
+	->setAttribute('src', 'image.jpg')
+	->setAttribute('alt', 'photo');
+
+echo $el->getAttribute('src'); // 'image.jpg'
+
+$el->removeAttribute('alt');
+```
+
+Attributes can be set in bulk using `addAttributes(array $attrs)` and removed using `removeAttributes(array $attrNames)`.
+
+The value of an attribute doesn't have to be just a string; boolean values can be used for boolean attributes:
+
+```php
+$checkbox = Html::el('input')->type('checkbox');
+$checkbox->checked = true;  // <input type="checkbox" checked>
+$checkbox->checked = false; // <input type="checkbox">
+```
+
+An attribute can also be an array of values, which are output separated by spaces. This is useful for CSS classes, for example:
+
+```php
+$el = Html::el('input');
+$el->class[] = 'active';
+$el->class[] = null; // null is ignored
+$el->class[] = 'top';
+echo $el; // '<input class="active top">'
+```
+
+An alternative is an associative array, where the values indicate whether the key should be included:
+
+```php
+$el = Html::el('input');
+$el->class['active'] = true;
+$el->class['top'] = false;
+echo $el; // '<input class="active">'
+```
+
+CSS styles can be written as associative arrays:
+
+```php
+$el = Html::el('input');
+$el->style['color'] = 'green';
+$el->style['display'] = 'block';
+echo $el; // '<input style="color:green;display:block">'
+```
+
+We've used properties so far, but the same can be achieved using methods:
+
+```php
+$el = Html::el('input');
+$el->style('color', 'green');
+$el->style('display', 'block');
+echo $el; // '<input style="color:green;display:block">'
+```
+
+Or even in the most verbose way:
+
+```php
+$el = Html::el('input');
+$el->appendAttribute('style', 'color', 'green');
+$el->appendAttribute('style', 'display', 'block');
+echo $el; // '<input style="color:green;display:block">'
+```
+
+One final detail: the `href()` method can simplify the composition of URL query parameters:
+
+```php
+echo Html::el('a')->href('index.php', [
+	'id' => 10,
+	'lang' => 'en',
+]);
+// '<a href="index.php?id=10&amp;lang=en"></a>'
+```
+
+### Data Attributes
+
+Data attributes have special support. Since their names contain hyphens, accessing them via properties and methods isn't as elegant, so there's a dedicated `data()` method:
+
+```php
+$el = Html::el('input');
+$el->{'data-max-size'} = '500x300'; // not as elegant
+$el->data('max-size', '500x300'); // is elegant
+echo $el; // '<input data-max-size="500x300">'
+```
+
+If the value of a data attribute is an array, it is automatically serialized to JSON:
+
+```php
+$el = Html::el('input');
+$el->data('items', [1,2,3]);
+echo $el; // '<input data-items="[1,2,3]">'
+```
+
+## Element Content
+
+The inner content of the element is set using the `setHtml()` or `setText()` methods. Use the former only if you are sure that the parameter contains a reliably safe HTML string.
+
+```php
+echo Html::el('span')->setHtml('hello<br>');
+// '<span>hello<br></span>'
+
+echo Html::el('span')->setText('10 < 20');
+// '<span>10 &lt; 20</span>'
+```
+
+Conversely, the inner content can be retrieved using the `getHtml()` or `getText()` methods. The latter removes HTML tags from the content and converts HTML entities back to characters.
+
+```php
+echo $el->getHtml(); // '10 &lt; 20'
+echo $el->getText(); // '10 < 20'
+```
+
+### Child Nodes
+
+The inner content of an element can also be an array of child nodes. Each child can be either a string or another `Html` object. They are added using `addHtml()` or `addText()`:
+
+```php
+$el = Html::el('span')
+	->addHtml('hello<br>')
+	->addText('10 < 20')
+	->addHtml( Html::el('br') );
+// <span>hello<br>10 &lt; 20<br></span>
+```
+
+(since 4.1.5) The `add()` method inserts several children at once. Strings are escaped just like with `addText()`, `Html` objects are inserted as they are, and `null` values are skipped, which is handy for conditional content. Wrap a string that is reliably safe HTML in `Html::html()`:
+
+```php
+$el = Html::el('span')->add(
+	'10 < 20',
+	Html::el('br'),
+	Html::html('hello<br>'),
+	$showNote ? Html::el('small')->setText('note') : null,
+);
+// <span>10 &lt; 20<br>hello<br><small>note</small></span>
+```
+
+Another way to create and insert a new `Html` node:
+
+```php
+$ul = Html::el('ul');
+$ul->create('li', ['class' => 'first'])
+	->setText('first');
+// <ul><li class="first">first</li></ul>
+```
+
+You can work with nodes as if they were array elements. That is, access individual nodes using square brackets, count them using `count()`, and iterate over them:
+
+```php
+$el = Html::el('div');
+$el[] = '<b>hello</b>';
+$el[] = Html::el('span');
+echo $el[1]; // '<span></span>'
+
+foreach ($el as $child) { /* ... */ }
+
+echo count($el); // 2
+```
+
+A new node can be inserted at a specific position using `insert(?int $index, $child, bool $replace = false)`. If `$replace = false`, it inserts the element at position `$index` and shifts the others. If `$index = null`, it appends the element to the end.
+
+```php
+// inserts the element at the first position and shifts the others
+$el->insert(0, Html::el('span'));
+```
+
+All nodes can be retrieved using the `getChildren()` method and removed using the `removeChildren()` method.
+
+### Creating a Document Fragment
+
+(since 4.1.5) If you want to work with a set of nodes and don't care about a wrapping element, you can create a *document fragment*. It renders only its children, without a tag of its own. The `fragment()` method creates it and fills it with children in a single call, following the same rules as `add()`:
+
+```php
+echo Html::fragment(
+	Html::el('strong')->setText('hello'),
+	'10 < 20',
+	Html::el('br'),
+);
+// <strong>hello</strong>10 &lt; 20<br>
+```
+
+(since 4.1.5) A fragment with text-only or HTML-only content is created by the `text()` and `html()` methods:
+
+```php
+echo Html::text('10 < 20');   // '10 &lt; 20'
+echo Html::html('hello<br>'); // 'hello<br>'
+```
+
+If you need to support versions prior to 4.1.5, create a fragment by passing `null` instead of an element name and fill it using `addHtml()` and `addText()`. Instead of `text()` and `html()`, these versions offer the `fromText()` and `fromHtml()` methods, which still work but are deprecated:
+
+```php
+$el = Html::el(null)
+	->addHtml('hello<br>')
+	->addText('10 < 20');
+// hello<br>10 &lt; 20
+
+echo Html::fromText('10 < 20');   // '10 &lt; 20'
+echo Html::fromHtml('hello<br>'); // 'hello<br>'
+```
+
+## Generating HTML Output
+
+The simplest way to output an HTML element is to use `echo` or cast the object to `(string)`. You can also output the opening tag, closing tag, and attributes separately:
+
+```php
+$el = Html::el('div class=header')->setText('hello');
+
+echo $el;               // '<div class="header">hello</div>'
+$s = (string) $el;      // '<div class="header">hello</div>'
+$s = $el->toHtml();     // '<div class="header">hello</div>'
+$s = $el->toText();     // 'hello'
+echo $el->startTag();   // '<div class="header">'
+echo $el->endTag();     // '</div>'
+echo $el->attributes(); // 'class="header"'
+```
+
+The `render(?int $indent = null)` method offers pretty-printing. If you pass an indentation level, the output is nicely indented across multiple lines:
+
+```php
+echo $el->render(0); // returns indented HTML
+```
+
+An important feature is automatic protection against [Cross-Site Scripting (XSS)](../nette/glossary.md#cross-site-scripting-xss). All attribute values or content inserted via `setText()`, `addText()`, `add()` or `fragment()` are reliably escaped:
+
+```php
+echo Html::el('div')
+	->title('" onmouseover="bad()')
+	->setText('<script>bad()</script>');
+
+// <div title='" onmouseover="bad()'>&lt;script&gt;bad()&lt;/script&gt;</div>
+```
+
+## Conversion HTML ↔ Text
+
+You can use the static method `htmlToText()` to convert HTML to text:
+
+```php
+echo Html::htmlToText('<span>One &amp; Two</span>'); // 'One & Two'
+```
+
+## HtmlStringable
+
+The `Nette\Utils\Html` object implements the `Nette\HtmlStringable` interface. Latte and Forms use this interface, for example, to distinguish objects that have a `__toString()` method returning HTML code. This prevents double escaping if, for example, you print the object in a template using `{$el}`.

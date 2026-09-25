@@ -138,9 +138,9 @@ preserves each in an `X-Original-*` header and sets `To` alone to the given addr
 way to run staging. Registered services: `mail.mailer`
 and, with DKIM, `mail.signer`.
 
-### Online Documentation
+### Documentation
 
-For details, see the official documentation:
+The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Mail](https://doc.nette.org/en/mail) – Message API, embedding, mailers, CssInliner, DKIM, configuration
-- [Mail Upgrading](https://doc.nette.org/en/mail/upgrading) – changes between major versions
+- [Mail](../../docs/mail/index.md) – Message API, embedding, mailers, CssInliner, DKIM, configuration
+- [Mail Upgrading](../../docs/mail/upgrading.md) – changes between major versions
