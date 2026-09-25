@@ -53,6 +53,17 @@ codex plugin add php-fixer@nette
 
 Before an interactive editing check, review the installed hooks with `/hooks`. Try a patch changing two PHP files, including one syntax error, then a rename and a style-only change. Confirm the assistant receives every diagnostic.
 
+## Bundled documentation
+
+Skills of the `nette` and `nette-dev` plugins link Markdown pages in the plugin's shared `docs/` directory as `../../docs/<area>/<page>.md`, outside the skill directory. An installed plugin is copied as a whole, so the path resolves in both clients.
+
+Verified on Windows with Claude Code 2.1.282 and Codex CLI 0.154.0:
+
+- `claude plugin validate --strict` accepts a plugin with `docs/` at its root and skills linking into it.
+- Claude Code in the default permission mode asks before reading any file of an installed plugin, because the plugin cache lies outside the project. This holds for a triggered skill's own `references/` exactly as for `docs/`, so linking outside the skill directory adds no prompt. A non-interactive run (`claude -p`) denies such reads.
+- With the rule `Read(~/.claude/plugins/cache/nette/**)` in the permission settings, Claude Code reads the files without asking.
+- Codex reads a file outside the workspace without a prompt under its default sandbox.
+
 ## Limits
 
 - Client discovery and installation checks do not constitute a full model-driven editing session. The adapter's event handling and subprocess feedback are covered by automated tests.
@@ -61,5 +72,6 @@ Before an interactive editing check, review the installed hooks with `/hooks`. T
 - Older Codex releases, Linux/macOS client execution, and hosted environments were not verified here. Hosted installation alone does not provision PHP or project tools.
 - Hooks can run concurrently. Each hook must remain independent; the fixer still checks PHP syntax itself before running ECS.
 - `.nette-claude.json` remains the shared configuration filename for backward compatibility.
+- How far an interactive "allow for this session" answer reaches in Claude Code (the file, its directory, or the whole plugin) was not verified; the `Read(...)` rule above avoids depending on it. Codex's resolution of a skill's relative `../../docs/` link was checked by reading the file directly, not through an installed skill.
 
 References: [OpenAI plugin packaging](https://developers.openai.com/plugins/build/plugins), [Codex hook input, output and trust](https://learn.chatgpt.com/docs/hooks).
