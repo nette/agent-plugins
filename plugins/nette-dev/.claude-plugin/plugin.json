@@ -1,6 +1,6 @@
 {
 	"name": "nette-dev",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Coding standards and conventions for Nette Framework contributors",
 	"author": {"name": "David Grudl"},
 	"repository": "https://github.com/nette/agent-plugins",
