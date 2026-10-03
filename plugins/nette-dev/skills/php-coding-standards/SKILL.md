@@ -33,6 +33,7 @@ Install globally using `/php-fixer:install-php-fixer`. After installation, PHP f
 - Never let a method name be a bare noun - a method is an action: `getProvider()`, not `provider()`. A verb is the usual form; the exceptions are settled conventions, namely static factories (`fromFile()`), conversions (`toArray()`), interface methods (`jsonSerialize()`) and fluent interfaces whose names echo the domain rather than an action, as a query builder echoes SQL clauses
 - PascalCase for classes and class constants/enums
 - camelCase for methods and properties
+- Boolean query methods are `is*`/`has*`/`can*`; a boolean property is named by the state itself (`$active`), never `$isActive`
 - Never use prefixes/suffixes like `Abstract`, `Interface`, or `I` - the type system already distinguishes them
 
 ### Method Order
