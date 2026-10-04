@@ -12,13 +12,26 @@ The Nette repositories are checked by [DressCode](https://github.com/dg/dresscod
 ### General Rules
 - Every PHP file must include `declare(strict_types=1)`
 - Use two empty lines between methods - Nette convention for visual separation in longer classes
-- Document shut-up operator use: `@mkdir($dir); // @ - directory may already exist`
-- Document weak comparison operators: `// == accept null`
+- Every `@`, `==` and `!=` carries a comment saying it is deliberate, see below
 - Multiple exceptions can be written in a single `exceptions.php` file, and multiple enums into `enums.php`
 - Interface methods don't need visibility as they're always public
 - All properties, return values, and parameters must have types
 - Final constants don't need types as they're self-evident
 - Write all code, comments, and variables in English only (even if communicating with the user in Czech)
+
+### Comments for `@`, `==` and `!=`
+
+DressCode reports these operators unless their line ends with a comment in exactly this form:
+
+```php
+@unlink($tmp); // @ file may not exist
+$content = @file_get_contents($file); // @ is escalated to exception
+if ($v != null) { // intentionally !=, skips null and empty string
+```
+
+- `// @ <reason>`: the concrete cause and why it is harmless (a file that may not exist, a disabled function), never a vague `may trigger error`; lower case, no dash, colon or full stop. `is escalated to exception` only where the code really checks the result and throws
+- `// intentionally ==` or `// intentionally !=`, the operator being the one on the line; a reason after a comma only where the intent is not obvious
+- The comment goes on the line holding the operator, one per line
 
 ### Strings
 - Use single quotes - they signal "no interpolation here," making code easier to scan
