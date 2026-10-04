@@ -131,6 +131,13 @@ Coding standards and conventions for contributing to the Nette Framework itself.
 
 Optional plugin that automatically fixes PHP code style after supported edits using [DressCode](https://github.com/dg/dresscode): by the project's `dresscode.neon` when there is one, by the Nette coding standard otherwise.
 
+| Skill | Description |
+|-------|-------------|
+| **php-auto-fixer** | Editing PHP under the fixing hook, and what its reports mean |
+| **dresscode** | Running and configuring DressCode: checks and fixes, risky fixes, suppressions, baseline, CI, upgrading to newer PHP and library versions |
+| **install-php-fixer** | Installs DressCode; run it explicitly |
+| **migrate-to-dresscode** | Moves a project from `nette/coding-standard` of version 1 to DressCode |
+
 Upgrading from version 1, which used `nette/coding-standard`: the fixer keeps formatting with it until DressCode is installed, and the agent offers the migration (the `migrate-to-dresscode` skill). It installs DressCode, into the project when the project uses PHPStan, globally otherwise, and creates `dresscode.neon`.
 
 ## Configuration

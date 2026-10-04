@@ -53,6 +53,15 @@ The `migrate-to-dresscode` skill, which Claude may run on its own once the user 
 
 The global `nette/coding-standard` 3.5 requires `nette/command-line ^1.9.2`, which conflicts with DressCode, so a global `composer require` of DressCode beside it fails (seen in the agent test). A new release of `nette/coding-standard` that allows `nette/command-line` 2 removes the conflict, but the version locked in the user's global installation must be updated first: `require` updates only the new package and its dependencies. The skill therefore runs `composer global update nette/coding-standard` before the installation, only when `composer global show nette/coding-standard` finds it: over a global Composer without `composer.json` the update fails with exit 1, over one without the package it does nothing. Until that release is out, the agent meets the conflict and offers to remove `nette/coding-standard` first.
 
+## The `dresscode` Skill
+
+The hook covers the file just edited; the `dresscode` skill covers DressCode run on purpose: `check` and `fix` over more files, the configuration, risky fixes, suppressions, the baseline, CI, and upgrades to newer PHP and library versions. It lives in this plugin because the plugin is what brings DressCode to an agent, and its description says it is not needed for ordinary edits, so it does not load beside `php-auto-fixer` at every PHP edit.
+
+It bundles no manual. The manual of DressCode is written in Czech and follows the tool's own versions, so the skill teaches the model to ask the installed tool (`explain`, `config`, `catalogue`, `--help`), which answers for exactly that version and that project, and keeps only what the tool cannot say about itself: the model of decisions, standards, sets and target versions, the pitfalls of the configuration, and what the model must not decide alone (a fix over the whole project, risky fixes, suppressing, the baseline, `require.php`, installing packages). The longer material is in its `references/`: `configuration.md` and `upgrading.md`.
+
+Unlike the hook, the skill names DressCode's commands, switches, configuration keys, decisions, presets and messages; after a change of any of those, check it as well.
+
+
 ## What the Hook Relies On in DressCode
 
 Check these after every change of DressCode's command line; `tests/fix-php-style.phpt` runs the real global DressCode and catches most of them:

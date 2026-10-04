@@ -57,6 +57,10 @@ excludePaths:
 
 `vendor`, `node_modules`, `temp`, `tmp`, `log` and hidden directories (`.*`) are excluded by default, even without a configuration file.
 
+## Running DressCode Yourself
+
+To check or fix more than the edited file, change the configuration, decide risky fixes, write a baseline or upgrade the code to a newer PHP or library version, use the `dresscode` skill.
+
 ## Installation
 
 If the fixer is not installed, use the `install-php-fixer` skill explicitly (`/php-fixer:install-php-fixer` in Claude Code, or select the skill in Codex).
