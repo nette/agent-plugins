@@ -9,7 +9,7 @@ This repository contains plugins for the Nette Framework ecosystem, shared by Cl
 - **`plugins/nette/`** - For developers building Nette Framework applications (skills only)
 - **`plugins/nette-lint/`** - Automatic validation hooks for PHP, Latte, NEON and JavaScript/TypeScript
 - **`plugins/nette-dev/`** - For Nette Framework contributors (coding standards and conventions)
-- **`plugins/php-fixer/`** - Optional automatic PHP style fixing using DressCode
+- **`plugins/php-fixer/`** - Optional automatic PHP style fixing using DressCode, and skills for working with DressCode
 
 ## Plugin Structure
 
