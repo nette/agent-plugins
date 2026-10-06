@@ -159,10 +159,17 @@ $cwd = $configDir
 	?? findUpwards($filePath, fn($dir) => file_exists("$dir/.git"))
 	?? dirname($filePath);
 
+// The start of every run compiles all the rules, so the compiled code is kept on disk between runs
+$opcacheDir = sys_get_temp_dir() . '/dresscode-opcache';
+$opcache = extension_loaded('Zend OPcache') && (is_dir($opcacheDir) || @mkdir($opcacheDir, 0777, true)) // @ - the run goes on without it
+	? ' -d opcache.enable_cli=1 -d opcache.file_cache=' . escapeshellarg($opcacheDir) . ' -d opcache.file_cache_only=1'
+	: '';
+
 // The same PHP with the same ini as this hook; the binary alone would load the default one
 $ini = php_ini_loaded_file();
 $command = escapeshellarg(PHP_BINARY)
 	. ($ini === false ? (php_ini_scanned_files() === false ? ' -n' : '') : ' -c ' . escapeshellarg($ini))
+	. $opcache
 	. ' ' . escapeshellarg($dresscode)
 	. ' fix ' . escapeshellarg($filePath)
 	. ' --format bare --no-color'
