@@ -29,6 +29,8 @@ switch (basename($file)) {
 	case 'binary.php':
 		echo "DressCode changed `$file`: \xFF\n";
 		exit(0);
+	case 'ranged.php':
+		exit(0);
 }
 file_put_contents($file, "<?php\n// rewritten\n");
 fwrite(STDERR, "noise outside the report\n");
@@ -110,6 +112,42 @@ test('stderr is passed on when DressCode failed and said nothing on stdout', fun
 	Assert::same(2, $result['exitCode']);
 	Assert::same("DressCode failed on $root/silent.php with exit code 2.\n", $result['stderr']);
 });
+
+test('the lines the edit wrote go to DressCode from the hunks of the client, and none where nothing proves them', function () use ($root, $script) {
+	$lines = function (array $input) use ($root, $script): array {
+		@unlink("$root/vendor/bin/calls.jsonl");
+		$result = runHookScript($script, $input);
+		Assert::same(0, $result['exitCode'], $result['stderr']);
+		$args = json_decode(file("$root/vendor/bin/calls.jsonl")[0], true)[0];
+		$ranges = [];
+		foreach ($args as $i => $arg) {
+			if ($arg === '--lines') {
+				$ranges[] = $args[$i + 1];
+			}
+		}
+		return $ranges;
+	};
+	$file = "$root/ranged.php";
+	file_put_contents($file, "<?php\n\$a;\n\$b;\n\$c;\n\$a;\n");
+	$edit = fn(?array $hunks) => ['tool_input' => ['file_path' => $file]] + ($hunks === null ? [] : ['tool_response' => ['structuredPatch' => $hunks]]);
+
+	// what a hunk adds, and for a change that only took lines away the line now in their place
+	Assert::same(['4-5', '11'], $lines($edit([
+		['oldStart' => 3, 'oldLines' => 3, 'newStart' => 3, 'newLines' => 4, 'lines' => [' a', '-b', '+c', '+d', ' e']],
+		['oldStart' => 9, 'oldLines' => 3, 'newStart' => 10, 'newLines' => 2, 'lines' => [' x', '-y', ' z']],
+	])));
+	Assert::same([], $lines($edit([])), 'a new file is all the agent wrote');
+	Assert::same([], $lines($edit(null)), 'no hunks, no range');
+	Assert::same([], $lines($edit([['newStart' => '3', 'lines' => ['+a']]])), 'a hunk of another shape proves nothing');
+
+	// a hunk of a Codex patch is placed by its lines after the edit, where they stand once
+	$patch = fn(string $hunk) => ['tool_name' => 'apply_patch', 'cwd' => $root, 'tool_input' => [
+		'command' => "*** Begin Patch\n*** Update File: ranged.php\n$hunk\n*** End Patch",
+	]];
+	Assert::same(['3'], $lines($patch("@@\n \$a;\n-\$x;\n+\$b;\n \$c;")));
+	Assert::same([], $lines($patch("@@\n+\$a;")), 'the line it added stands there twice');
+});
+
 
 test('invalid UTF-8 of the output does not lose the message', function () use ($root, $script) {
 	$result = runOn($script, "$root/binary.php");

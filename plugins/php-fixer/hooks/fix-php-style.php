@@ -151,6 +151,135 @@ function runCommand(array $command, string $cwd, int $timeout): array|false|null
 }
 
 
+/**
+ * The lines of the file the edit wrote, as the ranges of DressCode's `--lines`: from the hunks Claude Code sends
+ * with the result of the tool, or from the hunks of a Codex patch found in the file. Null where nothing proves them,
+ * a new file being all the agent's, and then DressCode fixes and lists everything; never from searching the edited text.
+ * @return ?list<string>
+ */
+function findEditedLines(array $input, string $filePath): ?array
+{
+	$hunks = $input['tool_response']['structuredPatch'] ?? null;
+	$patch = $input['tool_input']['command'] ?? null;
+	$lines = match (true) {
+		is_array($hunks) => $hunks ? findHunkLines($hunks) : null,
+		($input['tool_name'] ?? null) === 'apply_patch' && is_string($patch)
+			=> findPatchLines($patch, (string) @file_get_contents($filePath)), // @ - an unreadable file gets no range
+		default => null,
+	};
+	return $lines ? formatRanges($lines) : null;
+}
+
+
+/**
+ * The lines of the edited file the hunks of Claude Code wrote; null for a hunk of another shape.
+ * @return ?list<int>
+ */
+function findHunkLines(array $hunks): ?array
+{
+	$lines = [];
+	foreach ($hunks as $hunk) {
+		if (!is_int($hunk['newStart'] ?? null) || !is_array($hunk['lines'] ?? null)) {
+			return null;
+		}
+		$texts = array_values(array_map(fn($text) => is_string($text) ? $text : '', $hunk['lines']));
+		array_push($lines, ...findChangedLines($texts, $hunk['newStart']));
+	}
+	return $lines;
+}
+
+
+/**
+ * The lines of the edited file the hunks of a Codex patch wrote, each hunk found by its lines after the edit,
+ * its context and what it added, at exactly one place of the file; null where a hunk is not found so or the patch
+ * adds the file.
+ * @return ?list<int>
+ */
+function findPatchLines(string $patch, string $code): ?array
+{
+	$file = preg_split('~\r\n|\r|\n~', $code);
+	$hunks = [];
+	foreach (explode("\n", str_replace("\r\n", "\n", $patch)) as $text) {
+		if (str_starts_with($text, '*** Add File: ')) {
+			return null;
+		} elseif (str_starts_with($text, '@@')) {
+			$hunks[] = [];
+		} elseif ($hunks && !str_starts_with($text, '*** ') && in_array($text[0] ?? ' ', [' ', '+', '-'], true)) {
+			$hunks[array_key_last($hunks)][] = $text === '' ? ' ' : $text;
+		}
+	}
+
+	$lines = [];
+	foreach ($hunks as $hunk) {
+		$after = array_values(array_map(fn($text) => substr($text, 1), array_filter($hunk, fn($text) => $text[0] !== '-')));
+		$places = [];
+		for ($i = 0; $after && $i + count($after) <= count($file); $i++) {
+			if (array_slice($file, $i, count($after)) === $after) {
+				$places[] = $i + 1;
+			}
+		}
+		if (count($places) !== 1) {
+			return null;
+		}
+		array_push($lines, ...findChangedLines($hunk, $places[0]));
+	}
+	return $lines;
+}
+
+
+/**
+ * The lines of the edited file a hunk starting there writes: each line it adds, and for a run of changes that only
+ * takes lines away the line now standing in their place.
+ * @param  list<string>  $hunk  lines of a unified diff, marked by a space, `+` or `-`
+ * @return list<int>
+ */
+function findChangedLines(array $hunk, int $start): array
+{
+	$lines = [];
+	$line = $start;
+	$removedAt = null; // the line a run of changes started on, false once it added one
+	foreach ([...$hunk, ' '] as $text) {
+		$mark = $text[0] ?? ' ';
+		if ($mark === '-') {
+			$removedAt ??= $line;
+			continue;
+		} elseif ($mark === '+') {
+			$lines[] = $line;
+			$removedAt = false;
+		} elseif ($removedAt !== null) {
+			if ($removedAt !== false) {
+				$lines[] = $removedAt;
+			}
+			$removedAt = null;
+		}
+		$line++;
+	}
+	return $lines;
+}
+
+
+/**
+ * The lines as ranges `20-21`, a range of one line as `20`.
+ * @param  list<int>  $lines
+ * @return list<string>
+ */
+function formatRanges(array $lines): array
+{
+	$lines = array_values(array_unique(array_filter($lines, fn($line) => $line > 0)));
+	sort($lines);
+	$ranges = [];
+	foreach ($lines as $line) {
+		$last = array_key_last($ranges);
+		if ($last !== null && $ranges[$last][1] === $line - 1) {
+			$ranges[$last][1] = $line;
+		} else {
+			$ranges[] = [$line, $line];
+		}
+	}
+	return array_map(fn($range) => $range[0] === $range[1] ? "$range[0]" : "$range[0]-$range[1]", $ranges);
+}
+
+
 // Read hook input
 require __DIR__ . '/hook-input.php';
 $filePath = readHookFile(__FILE__, ['php', 'phpt']);
@@ -200,6 +329,14 @@ $opcache = extension_loaded('Zend OPcache') && (is_dir($opcacheDir) || @mkdir($o
 	? ['-d', 'opcache.enable_cli=1', '-d', "opcache.file_cache=$opcacheDir", '-d', 'opcache.file_cache_only=1']
 	: [];
 
+// The file as it was before the edit, whose own style DressCode keeps where it differs from the configuration;
+// a new file has none, and Codex does not send it
+$original = readHookInput()['tool_response']['originalFile'] ?? null;
+$before = is_string($original) ? tempnam(sys_get_temp_dir(), 'php-fixer-before-') : false;
+if ($before !== false && file_put_contents($before, $original) === false) {
+	$before = false;
+}
+
 // The same PHP with the same ini as this hook; the binary alone would load the default one
 $ini = php_ini_loaded_file();
 $command = [
@@ -210,10 +347,19 @@ $command = [
 	'--skip-excluded', // what the project's configuration leaves out stays as it was written
 	'--set', 'mistakes.debugOutput=keep', // dump() and its kin stay while editing
 	...($configDir === null ? ['--use', 'nette'] : []),
+	// what is left is listed for the lines the edit wrote, the rest counted
+	...array_merge(...array_map(fn($range) => ['--lines', $range], findEditedLines(readHookInput(), $filePath) ?? [])),
 ];
 
 $timeout = 50;
-$result = runCommand($command, $cwd, $timeout);
+$result = runCommand([...$command, ...($before === false ? [] : ['--before', $before])], $cwd, $timeout);
+if ($before !== false && is_array($result) && $result[0] === 3 && str_contains($result[2], '--before')) {
+	$result = runCommand($command, $cwd, $timeout); // a DressCode older than the option
+}
+
+if ($before !== false) {
+	@unlink($before); // @ - a file left in the temporary directory does no harm
+}
 if ($result === null) {
 	finish("DressCode could not be started, so $filePath was not checked.");
 } elseif ($result === false) {

@@ -178,6 +178,45 @@ test('what DressCode cannot fix goes to Claude as an error, in its own words', f
 });
 
 
+test('what is left is listed for the lines the edit wrote, the rest counted', function () use ($scriptPath, $root, $dressCode) {
+	skipWithoutDressCode($dressCode);
+	$dir = project($root, 'ranged', [
+		'composer.json' => '{"require": {"php": "^8.3"}}',
+		'src/a.php' => "<?php declare(strict_types=1);\n\nfunction my_func(\$x): void\n{\n\tglobal \$y;\n}\n",
+	]);
+	$result = runHookScript($scriptPath, [
+		'tool_input' => ['file_path' => "$dir/src/a.php"],
+		'tool_response' => ['structuredPatch' => [
+			['oldStart' => 4, 'oldLines' => 2, 'newStart' => 4, 'newLines' => 3, 'lines' => [' {', '+	global $y;', ' }']],
+		]],
+	]);
+	Assert::same(2, $result['exitCode']);
+	Assert::match("Left in `%a%a.php`, at the lines of the file as it is now:\n- line 5: %a%(`mistakes.globalStatement`)%A%\n\n1 further violation is outside the edited lines; it is not listed here.\n%A?%", $result['stderr']);
+	Assert::notContains('naming.function', $result['stderr']);
+});
+
+
+test('what the file broke before the edit stays as the file writes it', function () use ($scriptPath, $root, $dressCode) {
+	skipWithoutDressCode($dressCode);
+	$original = "<?php declare(strict_types=1);\n\nfunction run(): void\n{\n    echo 1;\n}\n";
+	$edited = "<?php declare(strict_types=1);\n\nfunction run(): void\n{\n    echo 1;\n    echo 2;\n}\n";
+	$dir = project($root, 'before', ['composer.json' => '{"require": {"php": "^8.3"}}', 'src/a.php' => $edited]);
+	$result = runHookScript($scriptPath, [
+		'tool_input' => ['file_path' => "$dir/src/a.php"],
+		'tool_response' => [
+			'originalFile' => $original,
+			'structuredPatch' => [
+				['oldStart' => 5, 'oldLines' => 1, 'newStart' => 5, 'newLines' => 2, 'lines' => ['     echo 1;', '+    echo 2;']],
+			],
+		],
+	]);
+	Assert::same(0, $result['exitCode'], $result['stderr']);
+	Assert::same($edited, file_get_contents("$dir/src/a.php")); // the indentation by spaces stays
+	Assert::contains('Before the edit', $result['stdout']);
+	Assert::contains('`indentation.unit`', $result['stdout']);
+});
+
+
 test('a file both rewritten and left with violations is reported as rewritten too', function () use ($scriptPath, $root, $dirty, $dressCode) {
 	skipWithoutDressCode($dressCode);
 	$dir = project($root, 'rewritten-unfixable', ['composer.json' => '{"require": {"php": "^8.3"}}', 'src/a.php' => $dirty]);
