@@ -81,7 +81,7 @@ Beside the standard go the sets, exactly these six:
 | set | decides | for example |
 |---|---|---|
 | `modernizations` | the construct the target PHP has where an older one says the same | `upgrading.syntax.nullsafe`, `upgrading.syntax.match` |
-| `deprecations` | what the target PHP or a library deprecated or removed | `upgrading.php.deprecatedCall`, `upgrading.declarations.deprecatedMember` |
+| `deprecations` | what the target PHP or a library deprecated or removed | `upgrading.api.phpData`, `upgrading.declarations.deprecatedMember` |
 | `cleanup` | code that is there for nothing | `imports.unused`, `hygiene.strlenEmptyTest` |
 | `correctness` | what is most likely a mistake | `mistakes.repeatedAssignment`, `mistakes.unreachableCatch` |
 | `types` | types written where PHP reads them | `types.declaration.parameter`, `types.declaration.return` |
@@ -128,9 +128,9 @@ The style is decisions like any other:
 
 ## Target Versions
 
-The target PHP version is the lowest one `require.php` of `composer.json` allows; a constraint without a lower bound (`*`, `<8.4`) means PHP 8.0, the oldest DressCode supports. Write `targets` only when the code is written for another version or the version cannot be read.
+The target PHP version is the lowest one `require.php` of `composer.json` allows, raised to `config.platform.php` where the project sets it (Composer itself never narrows the constraint); a constraint without a lower bound (`*`, `<8.4`) means PHP 8.0, the oldest DressCode supports. Write `targets` only when the code is written for another version or the version cannot be read. The PHP DressCode runs on never decides.
 
-The version of a package is read the same way, from the constraint of the project when the project requires the package itself, from the installed version otherwise. `targets` may name a package too, which then wins over `composer.json` (used to convert code before an update, see [the upgrading guide](upgrading.md#libraries)). Write every version in quotes, because NEON reads `3.10` as the number 3.1:
+The version of a package is read the same way, from the constraint the project requires it with, never from the installed version: a package the project does not require, or requires without a lower bound, may be any version, so its upgrading data are only reported and a decision needing a version of it does not run. `targets` may name a package too, which then wins over `composer.json` (used to convert code before an update, see [the upgrading guide](upgrading.md#libraries)). Write every version in quotes, because NEON reads `3.10` as the number 3.1:
 
 ```neon
 targets:
@@ -169,7 +169,7 @@ namespaces:
 severity:
 	file.longLines: warning
 	upgrading: warning
-	upgrading.php.deprecatedCall: error
+	upgrading.php.deprecatedArgument: error
 ```
 
 ## Paths
@@ -204,7 +204,7 @@ suppressionComments:
 
 ## Packages and Plugins
 
-A package of rules or presets brings them through a plugin, which it announces in its `composer.json` (`extra.dresscode.plugin`). The plugin runs code at every check, so it loads only where `use` names the package or the plugin class (`use: [nette, dresscode/rules-nette]`); otherwise the run warns that it skipped it. A plugin is the project's: a preset or an override cannot name one. A plugin never decides anything on its own: its decisions live under the section its manifest names (`nette` for `dresscode/rules-nette`), and the project writes them. The `upgrading.neon` data files of a package apply without the plugin, where `upgrading.libraries.packageData` is `yes`, which the sets `deprecations` and `modernizations` set.
+A package of rules or presets brings them through a plugin, which it announces in its `composer.json` (`extra.dresscode.plugin`). The plugin runs code at every check, so it loads only where `use` names the package or the plugin class (`use: [nette, dresscode/rules-nette]`); otherwise the run warns that it skipped it. A plugin is the project's: a preset or an override cannot name one. A plugin never decides anything on its own: its decisions live under the section its manifest names (`nette` for `dresscode/rules-nette`), and the project writes them. The `upgrading.neon` data files of a package apply without the plugin, where `upgrading.api.packageData` is `yes`, which the sets `deprecations` and `modernizations` set; the data of PHP itself, those of the package `php`, apply where `upgrading.api.phpData` is `yes`, which `nette` and `deprecations` set.
 
 ## Other Keys
 
