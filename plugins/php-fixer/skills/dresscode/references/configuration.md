@@ -81,7 +81,7 @@ Beside the standard go the sets, exactly these six:
 | set | decides | for example |
 |---|---|---|
 | `modernizations` | the construct the target PHP has where an older one says the same | `upgrading.syntax.nullsafe`, `upgrading.syntax.match` |
-| `deprecations` | what the target PHP or a library deprecated or removed | `upgrading.api.phpData`, `upgrading.declarations.deprecatedMember` |
+| `deprecations` | what the target PHP or a library deprecated or removed | `upgrading.php.deprecatedApi`, `upgrading.declarations.deprecatedMember` |
 | `cleanup` | code that is there for nothing | `imports.unused`, `hygiene.strlenEmptyTest` |
 | `correctness` | what is most likely a mistake | `mistakes.repeatedAssignment`, `mistakes.unreachableCatch` |
 | `types` | types written where PHP reads them | `types.declaration.parameter`, `types.declaration.return` |
@@ -99,7 +99,7 @@ A decision is written under its section, nested as its path is (`braces: {positi
 - a list of words or shapes for a tolerance, where the decision takes one: each passes and the first is written where none matches (`multiline: {edges: {array: [apart, attached]}}`, `qualification: {function: {optimized: [backslashed, bare]}}`);
 - a count `2`, a range `0-2`, an open count `1+`, or `none` where the decision names it (`file.lineLength: none`);
 - a list of names, or a map of names to values (the maps of `upgrading.api`);
-- `yes` or `no`, which only a parameter takes (`upgrading.api.packageData: yes`);
+- `yes` or `no`, which only a parameter takes (`upgrading.packages: yes`);
 - `keep`, which leaves the thing alone. On a section or a structure (`controlFlow: keep`) it covers every decision under it, and a later layer brings back one key at a time.
 
 A word written on a group applies to every key under it that takes it: `multiline: {trailingComma: required}` sets the trailing comma of every list, `braces: {position: nextLine}` every brace position.
@@ -204,7 +204,7 @@ suppressionComments:
 
 ## Packages and Plugins
 
-A package of rules or presets brings them through a plugin, which it announces in its `composer.json` (`extra.dresscode.plugin`). The plugin runs code at every check, so it loads only where `use` names the package or the plugin class (`use: [nette, dresscode/rules-nette]`); otherwise the run warns that it skipped it. A plugin is the project's: a preset or an override cannot name one. A plugin never decides anything on its own: its decisions live under the section its manifest names (`nette` for `dresscode/rules-nette`), and the project writes them. The `upgrading.neon` data files of a package apply without the plugin, where `upgrading.api.packageData` is `yes`, which the sets `deprecations` and `modernizations` set; the data of PHP itself, those of the package `php`, apply where `upgrading.api.phpData` is `yes`, which `nette` and `deprecations` set.
+A package of rules or presets brings them through a plugin, which it announces in its `composer.json` (`extra.dresscode.plugin`). The plugin runs code at every check, so it loads only where `use` names the package or the plugin class (`use: [nette, dresscode/rules-nette]`); otherwise the run warns that it skipped it. A plugin is the project's: a preset or an override cannot name one. A plugin never decides anything on its own: its decisions live under the section its manifest names (`nette` for `dresscode/rules-nette`), and the project writes them, or the upgrading files of the same package turn them on from a version. The `upgrading.neon` data files of a package apply without the plugin, where `upgrading.packages` is `yes`, which the sets `deprecations` and `modernizations` set; the data of PHP itself, those of the package `php`, apply where `upgrading.php.deprecatedApi` is `forbidden`, which `nette` and `deprecations` set.
 
 ## Other Keys
 
