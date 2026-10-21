@@ -4,6 +4,9 @@ Nette is split into independent packages, each with its own version history. Whe
 
 Always upgrade gradually, one version at a time: not from 3.0 straight to 3.2, but first to 3.1 and then to 3.2.
 
+> [!TIP]
+> When you upgrade from Nette 3.0 on, a large part of the work can be done for you by [DressCode](https://doc.nette.org/en/tools/coding-standard#toc-newer-php-and-nette). With the `dresscode/upgrade-nette` package, it rewrites your code to the new API of the Nette libraries, from renamed classes and constants to changed method calls, and what it cannot rewrite, it reports together with what to write instead. See [Upgrading Nette](https://dresscode.run/en/upgrading-nette).
+
 Before testing, we recommend disabling `E_USER_DEPRECATED` reporting and re-enabling it once everything works:
 
 ```php

@@ -112,6 +112,16 @@ http:
 	proxy: 127.0.0.1       # (string|string[]) defaults to not set
 ```
 
+(since 3.4.1) The proxy tells Nette the real address of the client, the protocol and the host in special HTTP headers. Most proxies use the `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-Port` headers, and those are the only ones Nette trusts by default. If your proxy sends the standardized `Forwarded` header instead, set the `proxyHeaders` option accordingly.
+
+```neon
+http:
+	# which headers the proxy sets: xForwarded, forwarded, both or none
+	proxyHeaders: forwarded  # (string) defaults to xForwarded
+```
+
+Trust only the headers your proxy really sets. A header the proxy merely passes through can be written by the client itself, who could then fake their IP address. With `both`, Nette prefers the `Forwarded` header and falls back to `X-Forwarded-*` when it is missing.
+
 ### Force HTTPS (since 3.3.4)
 
 Unconditionally forces the request scheme to HTTPS. This is useful for HTTPS-only sites running behind a load balancer or reverse proxy that terminates TLS but does not pass the `X-Forwarded-Proto` header, so the standard HTTPS detection (even with [HTTP Proxy](#http-proxy) configured) would not catch it.

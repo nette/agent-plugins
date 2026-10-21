@@ -15,11 +15,14 @@ Contents:
   - [Skipping Children](#skipping-children)
   - [Stopping Traversal](#stopping-traversal)
 - [Useful `NodeHelpers` Class](#useful-nodehelpers-class)
-  - [`find(Node $startNode, callable $filter): array`](#findnode-startnode-callable-filter-array)
-  - [\`findFirst(Node $startNode, callable $filter): ?Node \`](#findfirstnode-startnode-callable-filter-node)
+  - [`find(Node $startNode, string|callable $filter): list<Node>`](#findnode-startnode-stringcallable-filter-listnode)
+  - [`findFirst(Node $startNode, string|callable $filter): ?Node`](#findfirstnode-startnode-stringcallable-filter-node)
   - [`clone(Latte\Compiler\Node $node): Node`](#clonelattecompilernode-node-node)
-  - [`toValue(ExpressionNode $node, bool $constants = false): mixed`](#tovalueexpressionnode-node-bool-constants--false-mixed)
+  - [`toValue(ExpressionNode $node, bool $constants = false): mixed` (deprecated)](#tovalueexpressionnode-node-bool-constants--false-mixed-deprecated)
   - [`toText(?Node $node): ?string`](#totextnode-node-string)
+- [Static Value of an Expression (since 3.1.7)](#static-value-of-an-expression-since-317)
+  - [`hasValue(bool $constants = false): bool`](#hasvaluebool-constants--false-bool)
+  - [`toValue(bool $constants = false): mixed`](#tovaluebool-constants--false-mixed)
 - [Practical Examples](#practical-examples)
   - [Auto-Adding `loading="lazy"` to `<img>`](#auto-adding-loadinglazy-to-img)
   - [Checking Function Calls](#checking-function-calls)
@@ -329,9 +332,11 @@ If your pass only needs to find the *first* occurrence of something (a specific 
 
 While `NodeTraverser` offers fine-grained control, Latte also provides a convenient utility class, [Latte\Compiler\NodeHelpers](https://api.nette.org/latte/master/Latte/Compiler/NodeHelpers.html), which wraps `NodeTraverser` for several common search and analysis tasks, often requiring less boilerplate code.
 
-### `find(Node $startNode, callable $filter): array`
+### `find(Node $startNode, string|callable $filter): list<Node>`
 
-This static method finds **all** nodes within the subtree starting at `$startNode` (inclusive) that satisfy the `$filter` callback. It returns an array of the matching nodes.
+This static method finds **all** nodes within the subtree starting at `$startNode` (inclusive) that satisfy the `$filter`. It returns an array of the matching nodes.
+
+(since 3.1.7) The filter is either a node class or a callback. When you pass a class, static analysis also knows that the array contains only nodes of that class.
 
 **Example:** Find all variable nodes (`VariableNode`) in the entire template.
 
@@ -342,16 +347,15 @@ use Latte\Compiler\Nodes\TemplateNode;
 
 function findAllVariables(TemplateNode $templateNode): array
 {
-	return NodeHelpers::find(
-		$templateNode,
-		fn($node) => $node instanceof VariableNode,
-	);
+	return NodeHelpers::find($templateNode, VariableNode::class);
 }
 ```
 
-### \`findFirst(Node $startNode, callable $filter): ?Node \`
+A callback comes in handy when the condition is more complex, e.g. `fn($node) => $node instanceof VariableNode && $node->name === 'user'`.
 
-Similar to `find`, but stops traversal immediately after finding the **first** node that satisfies the `$filter` callback. It returns the found `Node` object or `null` if no matching node is found. This is essentially a convenient wrapper around `NodeTraverser::StopTraversal`.
+### `findFirst(Node $startNode, string|callable $filter): ?Node`
+
+Similar to `find`, but stops traversal immediately after finding the **first** node that satisfies the `$filter`. It returns the found `Node` object or `null` if no matching node is found. This is essentially a convenient wrapper around `NodeTraverser::StopTraversal`.
 
 **Example:** Find the `{parameters}` node.
 
@@ -364,7 +368,7 @@ function findParametersNodeHelper(TemplateNode $templateNode): ?ParametersNode
 {
 	return NodeHelpers::findFirst(
 		$templateNode->head, // Search only in the head section for efficiency
-		fn($node) => $node instanceof ParametersNode,
+		ParametersNode::class,
 	);
 }
 ```
@@ -379,31 +383,9 @@ use Latte\Compiler\NodeHelpers;
 $copy = NodeHelpers::clone($node);
 ```
 
-### `toValue(ExpressionNode $node, bool $constants = false): mixed`
+### `toValue(ExpressionNode $node, bool $constants = false): mixed` (deprecated)
 
-This static method attempts to evaluate an `ExpressionNode` **at compile time** and return its corresponding PHP value. It works reliably only for simple literal nodes (`StringNode`, `IntegerNode`, `FloatNode`, `BooleanNode`, `NullNode`) and `ArrayNode` instances containing only such evaluable items.
-
-If `$constants` is set to `true`, it will also attempt to resolve `ConstantFetchNode` and `ClassConstantFetchNode` by checking `defined()` and using `constant()`.
-
-If the node contains variables, function calls, or other dynamic elements, it cannot be evaluated at compile time, and the method will throw an `InvalidArgumentException`.
-
-**Use Case:** Getting the static value of a tag argument during compilation to make compile-time decisions.
-
-```php
-use Latte\Compiler\NodeHelpers;
-use Latte\Compiler\Nodes\Php\ExpressionNode;
-
-function getStaticStringArgument(ExpressionNode $argumentNode): ?string
-{
-	try {
-		$value = NodeHelpers::toValue($argumentNode);
-		return is_string($value) ? $value : null;
-	} catch (\InvalidArgumentException $e) {
-		// The argument was not a static literal string
-		return null;
-	}
-}
-```
+Use the method `toValue()` of the expression itself, see [Static Value of an Expression](#static-value-of-an-expression-since-317).
 
 ### `toText(?Node $node): ?string`
 
@@ -434,6 +416,32 @@ function getStaticAttributeValue(AttributeNode $attr): ?string
 ```
 
 `NodeHelpers` can simplify your compiler passes by providing ready-made solutions for common AST traversal and analysis tasks.
+
+## Static Value of an Expression (since 3.1.7)
+
+Sometimes a pass or a tag needs to know the value of an expression already during compilation, for example to decide what code to generate. If the expression is written as a literal, i.e. a string, number, boolean, `null` or an array of them, the expression node itself tells you its value.
+
+### `hasValue(bool $constants = false): bool`
+
+Tells whether the expression is written as a literal whose value `toValue()` can return. If `$constants` is `true`, constants and class constants that are defined count as values too.
+
+### `toValue(bool $constants = false): mixed`
+
+Returns the value of the literal the expression is written as. If the expression contains variables, function calls or other dynamic elements, it has no such value and the method throws an `InvalidArgumentException`, so ask `hasValue()` first.
+
+```php
+use Latte\Compiler\Nodes\Php\ExpressionNode;
+
+function getStaticStringArgument(ExpressionNode $argumentNode): ?string
+{
+	if (!$argumentNode->hasValue()) {
+		return null; // the argument is not written as a literal
+	}
+
+	$value = $argumentNode->toValue();
+	return is_string($value) ? $value : null;
+}
+```
 
 ## Practical Examples
 
@@ -543,7 +551,7 @@ When writing compiler passes, keep these guidelines in mind to create robust, ma
 - **Order Matters:** Be conscious of the order in which passes run. If your pass relies on the AST structure created by another pass (e.g., core Latte passes or another custom pass), or if other passes might depend on your modifications, use the ordering mechanism provided by `Extension::getPasses()` to define dependencies (`before`/`after`). See the documentation for [`Extension::getPasses()`](extending-latte.md#getpasses-array) for details.
 - **Single Responsibility:** Aim for passes that perform a single, well-defined task. For complex transformations, consider splitting the logic into multiple passes – perhaps one for analysis and another for modification based on the analysis results. This improves clarity and testability.
 - **Performance:** Remember that compiler passes add to the template compilation time (though this usually happens only once until the template changes). Avoid computationally expensive operations within your passes if possible. Leverage traversal optimizations like `NodeTraverser::DontTraverseChildren` and `NodeTraverser::StopTraversal` whenever you know you don't need to visit certain parts of the AST.
-- **Use `NodeHelpers`:** For common tasks like finding specific nodes or statically evaluating simple expressions, check if `Latte\Compiler\NodeHelpers` offers a suitable method before writing custom `NodeTraverser` logic. It can save time and reduce boilerplate.
+- **Use `NodeHelpers`:** For common tasks like finding specific nodes or extracting static text, check if `Latte\Compiler\NodeHelpers` offers a suitable method before writing custom `NodeTraverser` logic. It can save time and reduce boilerplate.
 - **Error Handling:** If your pass detects an error or an invalid state in the template AST, throw a `Latte\CompileException` (or `Latte\SecurityViolationException` for security issues) with a clear message and the relevant `Position` object (usually `$node->position`). This provides helpful feedback to the template developer.
 - **Idempotency (If Possible):** Ideally, running your pass multiple times on the same AST should produce the same result as running it once. This isn't always feasible, but it simplifies debugging and reasoning about pass interactions if achieved. For example, ensure your modification pass checks if the modification has already been applied before applying it again.
 

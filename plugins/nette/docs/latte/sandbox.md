@@ -3,7 +3,7 @@
 Contents:
 
 - [Secure Default Policy](#secure-default-policy)
-- [Custom Policy](#custom-policy)
+- [Custom Policy (since 3.1.6)](#custom-policy-since-316)
 - [Activating the Sandbox](#activating-the-sandbox)
 - [Checking the Generated Code](#checking-the-generated-code)
 - [What the Sandbox Doesn't Guard](#what-the-sandbox-doesnt-guard)
@@ -43,7 +43,7 @@ $policy = Latte\Sandbox\SecurityPolicy::createSafePolicy();
 
 This secure baseline means that all standard tags are allowed except for `contentType`, `debugbreak`, `dump`, `extends`, `import`, `include`, `layout`, `php`, `sandbox`, `snippet`, `snippetArea`, `templatePrint`, `varPrint`, `embed`. All standard filters are allowed except for `datastream`, `noescape`, and `nocheck`. Finally, access to the methods and properties of the `$iterator` object is allowed.
 
-## Custom Policy
+## Custom Policy (since 3.1.6)
 
 Instead of `SecurityPolicy`, you can pass your own implementation of the `Latte\Policy` interface to `setPolicy()`. Keep in mind, though, that tags, filters and functions are checked as early as template compilation, and the compiled template is then cached. So that two differently configured instances of your class don't end up sharing one compiled template, add a `getCacheSignature()` method that returns a value describing the rules, for example an array of them:
 

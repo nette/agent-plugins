@@ -108,4 +108,6 @@ try {
 
 The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Command-Line](../../docs/command-line/index.md) – parameters, commands, help, errors, the console
+- [Command-Line](../../docs/command-line/index.md) – overview, a whole script from parsing to running the handler
+- [Arguments, Options and Commands](../../docs/command-line/arguments.md) – parameters, checking and converting values, commands, help, errors
+- [Terminal Output](../../docs/command-line/console.md) – colors, links, the progress line, questions for the user

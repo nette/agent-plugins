@@ -1,5 +1,10 @@
 # Upgrading
 
+## Upgrading to Version 3.4.1
+
+- behind a proxy, the configuration now trusts only the `X-Forwarded-*` headers by default. If your proxy sends the `Forwarded` header, set the [proxyHeaders](configuration.md#http-proxy) option to `forwarded` or `both`.
+- `Request::getRemoteAddress()` returns `null` when the client address passed by the proxy is not a valid IP address
+
 ## Upgrading to Version 3.4
 
 The minimum required PHP version is 8.3.
