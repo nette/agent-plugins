@@ -1,6 +1,7 @@
 {
 	"name": "nette/agent-plugins",
-	"description": "Claude Code and Codex plugins for Nette Framework",
+	"description": "🔌 Nette Agent Plugins: Claude Code and Codex plugins that teach AI agents Nette through skills and its documentation, and check PHP, Latte and NEON files after every edit.",
+	"keywords": ["nette", "claude code", "codex", "ai", "ai agent", "plugins", "skills"],
 	"require-dev": {
 		"nette/tester": "^2.5"
 	},
