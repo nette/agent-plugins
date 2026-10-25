@@ -1,6 +1,6 @@
 {
 	"name": "nette",
-	"version": "1.4.0",
+	"version": "2.0.0",
 	"description": "Conventions and best practices for Nette Framework, Latte templating engine, and NEON configuration format",
 	"author": {"name": "David Grudl"},
 	"repository": "https://github.com/nette/agent-plugins",
