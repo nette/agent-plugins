@@ -1,6 +1,6 @@
 ---
 name: dresscode
-description: "How to run and configure DressCode, the PHP code style checker and fixer that also rewrites code for newer PHP and library versions. Use when running `dresscode` yourself (check, fix, config, explain, catalogue, init, baseline), writing or changing `dresscode.neon` or `dresscode.php`, reading its report (violations, risky fixes, exit codes), changing a decision, silencing a finding or adding a baseline, choosing a standard or a set, setting DressCode up in CI or a Git hook, or upgrading a project to a newer PHP or library version with it. Ordinary PHP edits do not need it; the php-auto-fixer skill covers the hook that fixes them."
+description: "How to run and configure DressCode, the PHP code style checker and fixer that also rewrites code for newer PHP and library versions. Use when running `dresscode` yourself (check, fix, config, explain, catalogue, init, baseline, upgrade), writing or changing `dresscode.neon` or `dresscode.php`, reading its report (violations, risky fixes, exit codes), changing a decision, silencing a finding or adding a baseline, choosing a standard or a set, setting DressCode up in CI or a Git hook, or upgrading a project to a newer PHP or library version with it. Ordinary PHP edits do not need it; the php-auto-fixer skill covers the hook that fixes them."
 ---
 
 # DressCode
