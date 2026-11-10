@@ -326,8 +326,11 @@ if (!is_file($dresscode) && $configDir === null) {
 
 // The start of every run compiles all the rules, so the compiled code is kept on disk between runs
 $opcacheDir = sys_get_temp_dir() . '/dresscode-opcache';
+// PHP hands a value that starts with a letter, as a Windows path does, to the INI parser as it is, where ~ of a short
+// name (C:\Users\LONGNA~1), parentheses or & are a syntax error; hence the quotes
+$opcacheValue = '"' . addcslashes($opcacheDir, '"\\$') . '"';
 $opcache = extension_loaded('Zend OPcache') && (is_dir($opcacheDir) || @mkdir($opcacheDir, 0777, true)) // @ the run goes on without it
-	? ['-d', 'opcache.enable_cli=1', '-d', "opcache.file_cache=$opcacheDir", '-d', 'opcache.file_cache_only=1']
+	? ['-d', 'opcache.enable_cli=1', '-d', "opcache.file_cache=$opcacheValue", '-d', 'opcache.file_cache_only=1']
 	: [];
 
 // The file as it was before the edit, whose own style DressCode keeps where it differs from the configuration;
