@@ -154,6 +154,28 @@ test('a project without a configuration is fixed by the Nette coding standard, a
 });
 
 
+test('a temporary directory whose name is no plain INI value, like a short Windows name, does not stop DressCode', function () use ($scriptPath, $root, $dirtyNette, $dressCode) {
+	skipWithoutDressCode($dressCode);
+	$dir = project($root, 'temporary', ['composer.json' => '{"require": {"php": "^8.3"}}', 'src/a.php' => $dirtyNette]);
+	$temp = "$root/tmp~1 (a & b)";
+	mkdir($temp);
+	$env = ['TMP' => getenv('TMP'), 'TEMP' => getenv('TEMP'), 'TMPDIR' => getenv('TMPDIR')];
+	foreach ($env as $name => $value) {
+		putenv("$name=$temp");
+	}
+	try {
+		$result = runOn($scriptPath, "$dir/src/a.php");
+	} finally {
+		foreach ($env as $name => $value) {
+			putenv($value === false ? $name : "$name=$value");
+		}
+	}
+
+	Assert::same(0, $result['exitCode'], $result['stderr']);
+	Assert::same('', $result['stderr']);
+	Assert::match("<?php declare(strict_types=1);\n%A%", file_get_contents("$dir/src/a.php"));
+});
+
 test('the configuration of the project wins over the Nette coding standard', function () use ($scriptPath, $root, $dirty, $dressCode) {
 	skipWithoutDressCode($dressCode);
 	$dir = project($root, 'configured', [
