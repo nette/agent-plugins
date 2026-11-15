@@ -121,7 +121,7 @@ The provider returns an array/`Traversable` of arrays. String-keyed sets are mer
 - `Assert::notEqual($expected, $actual)`
 - `Assert::true($actual)`, `Assert::false($actual)`, `Assert::null($actual)`, `Assert::notNull($actual)`
 - `Assert::truthy($actual)`, `Assert::falsey($actual)`
-- `Assert::contains($needle, $haystack)` - checks substring or array element; **avoid for testing output** (see warning below)
+- `Assert::contains($needle, $haystack)` - checks substring or array element; **avoid for testing output** (see Weak Tests below)
 - `Assert::notContains($needle, $haystack)`
 - `Assert::hasKey($key, $array)`, `Assert::hasNotKey($key, $array)`
 - `Assert::count($count, $value)`
@@ -132,7 +132,59 @@ The provider returns an array/`Traversable` of arrays. String-keyed sets are mer
 - `Assert::error($fn, $type, $message)` - asserts PHP error/warning/deprecation is generated
 - `Assert::noError($fn)` - asserts no errors or exceptions
 
-**Warning about Assert::contains:** Do not use `Assert::contains()` for testing generated output (HTML, text, etc.). It only checks for a substring - the test will pass even if the output contains errors or is completely broken, as long as the needle appears somewhere. Use `Assert::match()` or `Assert::matchFile()` instead, which verify the entire structure of the output.
+### Weak Tests
+
+A test exists to fail when the code breaks. Before finishing one, ask: **would it fail if the
+code were wrong?** If several plausible breakages would still pass, the test only proves that
+the code runs.
+
+| Weak | Why | Instead |
+|---|---|---|
+| `Assert::contains($needle, $html)`, `match('%A%x%A%')` | pass for any broken output that keeps the needle | `same()` / `match()` / `matchFile()` on the whole output |
+| `Assert::notContains('x', $out)`, `notSame($a->toArray(), $b->toArray())` | countless wrong values differ or lack `x` | the exact value, or the difference on one key |
+| `Assert::truthy($out)`, `type('string', $out)`, `count() > 0` | prove only that something came back | the expected value |
+| `Assert::same($x->a(), $x->b())`, `> 1` | both sides break the same way | the known value |
+| `Assert::exception(fn, Exception::class)`, message `'%a%key%a%'` | a rejection for a wrong reason passes | the concrete class and the whole message, `%a%` only for parts that vary |
+| `Assert::null($x->a ?? null)`, `$x?->parent?->parent` in an argument | `??` and `?->` swallow the error | `Assert::type()` first, then the value |
+| `Assert::noError(fn)` where the result matters | runs, checks nothing | assert the result |
+| `assert()` in a test helper | depends on `zend.assertions`, which is `-1` in a production `php.ini` | `Assert::type()` |
+
+The same weakness has three common sources:
+
+- **The expected value cannot disagree.** It comes from the tested code itself (one method
+  delegates to the other, `$expected = $sut->run($in)`), it is computed by the test's own helper,
+  it repeats the decision of the code (the same version condition), or a repeated call is compared
+  with itself, which shows determinism, not purity (compare `serialize()` of the input before and
+  after instead).
+- **The input never reaches the code under test**: an early return, a syntax without the closing
+  delimiter it needs, a reference the test defines itself, input the operation has nothing to do
+  with, a parameter whose branch is chosen by a threshold the input does not cross (two workers
+  over one file). A data-driven or meta-test (`Assert::same([], $failures)`, assertions in a loop
+  over found items) passes when it finds nothing: assert that it checked something, with a
+  threshold from the measured value.
+- **The test does not check what it claims.** A description promising more than the assertions
+  ("exactly once", "every type" with one type, a method name that no longer exists), a comment
+  "checks" next to a call without an assertion, setup that plays no role, a "does not report /
+  change / call" test without the same input in the form that does, a validator run only over
+  clean data, a missing side effect inferred from a result a fallback would give too (observe the
+  file, the content, the mtime). Comparing only the output misses state the output does not show,
+  such as parent pointers; add a structural check over the same data.
+
+Also wrong in the other direction: an exact number where the contract says only "it changed"
+(a revision), or a number that depends on the environment (files in a directory) instead of being
+derived from the data.
+
+#### Not weak, keep it
+
+- One assertion on a documented default value. A tautology is testing PHP itself (`clone`,
+  `extends`, `readonly`) or the same default in many tests.
+- `Assert::type(X::class, $e)` right after `$e = Assert::exception(…, X::class)`: unlike
+  `type('string', $out)` above, it narrows `X|null` for PHPStan.
+- A test of a foreign library that guards an assumption your code relies on.
+- An order the code creates on purpose (`ksort()` before output).
+- A duplicate case on which the truth of another test's description rests.
+
+To verify that a new check can fail, break the code on purpose and watch it fail; do not judge it.
 
 ### Pattern Matching with Assert::match
 
@@ -308,6 +360,18 @@ When a test fails, Nette Tester writes the expected and actual output into an `o
 - `Foo.actual` - what was actually produced
 
 **Always look at these files first** when investigating test failures. Comparing `.expected` vs `.actual` shows the exact difference and is much more informative than the short failure message printed by the runner.
+
+Accepting a new expected file from `.actual`:
+
+- **The first failing `test()` ends the file** – it rethrows the assertion. Further `matchFile()`
+  calls in that file have not run yet; accept one, run again, repeat.
+- **Clear `output/` before the run**: `.actual` files of earlier runs stay there.
+- **Read the diff before accepting it.** A snapshot regenerated blindly records bugs as expected
+  behavior, and a typo in the source fixture can silently stop exercising the feature at all.
+- `.actual` may differ in line endings and in the final newline from the original (`matchFile`
+  ignores trailing whitespace); diff with `--strip-trailing-cr`.
+- To find an exact expected value, put a placeholder into the assertion and read `.actual`. It
+  shows what the code does, not what it should do: judge it before you accept it.
 
 ### Documentation
 
