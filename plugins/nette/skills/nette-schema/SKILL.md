@@ -1,6 +1,6 @@
 ---
 name: nette-schema
-description: Provides Nette Schema for data validation and normalization. Use when validating configuration, API inputs, or any data structures with Expect class. Covers Expect::structure(), Expect::from(), anyOf, arrayOf, listOf, assert, transform, castTo, otherItems, and Processor. This is about nette/schema – not Nette Forms validation (addRule), not Nette\Utils\Validators, and not JSON Schema.
+description: Provides Nette Schema for data validation and normalization. Use when validating configuration, API inputs, or any data structures with Expect class. Covers Expect::structure(), Expect::from(), anyOf, enum, tuple, arrayOf, listOf, assert, transform, castTo, otherItems, merging layers (processMultiple, mergeMode), exporting a schema to JSON Schema, and Processor. This is about nette/schema – not Nette Forms validation (addRule), not Nette\Utils\Validators, and not validating against a JSON Schema.
 ---
 
 ## Nette Schema
@@ -70,14 +70,18 @@ Expect::arrayOf('string', 'string')
 
 // List (indexed array)
 Expect::listOf('string')
+Expect::listOf('email', wrap: true)  // since 1.4: a single value becomes a one-item list
 
-// Tuple (fixed positions)
-Expect::array([
+// Tuple (fixed positions, since 1.4); Expect::array([...]) is a structure-like array with keys
+Expect::tuple([
 	Expect::int(),
 	Expect::string(),
 	Expect::bool(),
 ])
 ```
+
+On the 1.x line `'?int[]'` means an array of nullable ints; 2.0 reads it as phpDoc does (a
+nullable array). Write `Expect::arrayOf(Expect::int()->nullable())`, which means the same in both.
 
 ### Structures
 
@@ -110,7 +114,12 @@ Expect::anyOf(
 
 // First is default
 Expect::anyOf('small', 'medium', 'large')->firstIsDefault()
+
+// Backed enum (since 1.4): accepts the value or the case, always gives the case
+Expect::enum(Mode::class)->default(Mode::Production)
 ```
+
+`Expect::type(Mode::class)` is different: like any class name, it accepts only the case itself.
 
 ### Constraints
 
@@ -134,7 +143,13 @@ Expect::int()->min(0)->max(100)
 
 // Pattern
 Expect::string()->pattern('\d{5}')  // regex for entire value
+
+// Description, also exported to JSON Schema (since 1.4)
+Expect::int(3306)->description('Port the server listens on')
 ```
+
+Since 1.4 `pattern()` on a number or an array, and `min()`/`max()` on a union such as
+`Expect::type('int|string')`, raise `E_USER_DEPRECATED`; put the limits on each `anyOf()` variant.
 
 ### Assertions
 
@@ -191,6 +206,9 @@ Expect::structure([
 // Creates: new DatabaseConfig(host: ..., port: ...)
 ```
 
+Since 1.4 `null` is never cast to an object or enum, and `castTo('?string')` keeps `null`
+while `castTo('string')` turns it into `''`.
+
 ### Normalization (before)
 
 ```php
@@ -202,6 +220,16 @@ Expect::arrayOf('string')
 // - ['a', 'b', 'c']
 // - 'a b c' (converted to array)
 ```
+
+An element has **one** `before()` handler: a second call replaces the first (and since 1.4
+raises `E_USER_DEPRECATED`, as 2.0 will chain them). Put all normalization into one handler.
+
+### Merging and JSON Schema
+
+`$processor->processMultiple($schema, [$defaults, $local])` merges configuration layers. Since 1.4
+`mergeMode(MergeMode::Replace)` (or `AppendKeys`, `OverwriteKeys`) and `mergeWith()` choose how a
+layer combines with the previous one. `Nette\Schema\JsonSchema::export($schema)` (since 1.4) gives
+a JSON Schema document for editors; defaults, `castTo()` and `transform()` are not exported.
 
 ### Structure Options
 
