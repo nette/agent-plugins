@@ -19,7 +19,7 @@ When your application downloads a URL supplied by a user, an attacker can abuse 
 
 ## What is SSRF?
 
-Imagine a feature where the user enters a URL and your server downloads it – an avatar from a remote address, a webhook target, a link preview. It looks harmless, but the server reaches the address, not the user's browser. And the server can see places the attacker can't: the loopback interface, the private network, cloud services.
+Imagine a feature where the user enters a URL and your server downloads it – an avatar from a remote address, a webhook target, a link preview. It looks harmless, but the server reaches the address, not the user's browser. And the server can see places the attacker can't: the loopback interface, the private network, cloud services.
 
 An attacker therefore submits a URL that points inward instead of to the public internet. Typical targets are:
 
@@ -55,7 +55,7 @@ $validator = new UrlValidator(
 );
 ```
 
-A common pattern is to restrict fetching to a fixed set of partner domains using a host allowlist. The `*.` prefix matches any subdomain depth but not the apex – list both forms if you need it:
+A common pattern is to restrict fetching to a fixed set of partner domains using a host allowlist. The `*.` prefix matches any subdomain depth but not the apex – list both forms if you need it:
 
 ```php
 $validator = new UrlValidator(
@@ -109,11 +109,11 @@ curl_setopt($ch, CURLOPT_RESOLVE, ["$host:443:" . implode(',', $ips)]);
 // ... execute the request
 ```
 
-The method returns an array of IP strings (A records first, then AAAA) that passed the full policy, or an empty array on any failure. For an IP literal in the URL it validates the address directly and performs no DNS lookup.
+The method returns an array of IP strings (A records first, then AAAA) that passed the full policy, or an empty array on any failure. For an IP literal in the URL it validates the address directly and performs no DNS lookup.
 
 ## IPAddress
 
-[Nette\Http\IPAddress](https://api.nette.org/http/master/Nette/Http/IPAddress.html) is an immutable value object for working with IPv4 and IPv6 addresses. `UrlValidator` uses it internally, but it's handy on its own whenever you classify addresses. The constructor throws `Nette\InvalidArgumentException` for an invalid address:
+[Nette\Http\IPAddress](https://api.nette.org/http/master/Nette/Http/IPAddress.html) is an immutable value object for working with IPv4 and IPv6 addresses. `UrlValidator` uses it internally, but it's handy on its own whenever you classify addresses. The constructor throws `Nette\InvalidArgumentException` for an invalid address:
 
 ```php
 use Nette\Http\IPAddress;

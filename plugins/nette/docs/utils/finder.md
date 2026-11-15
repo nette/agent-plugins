@@ -16,7 +16,7 @@ Contents:
 - [Returning Results as an Array](#returning-results-as-an-array)
 
 
-Need to find files matching a certain mask? Finder can help you with that. It's a versatile and fast tool for browsing directory structures.
+Need to find files matching a certain mask? Finder can help you with that. It's a versatile and fast tool for browsing directory structures.
 
 Installation:
 
@@ -32,7 +32,7 @@ use Nette\Utils\Finder;
 
 ## Usage
 
-First, let's see how you can use [Nette\Utils\Finder](https://api.nette.org/utils/master/Nette/Utils/Finder.html) to list the names of files with the extensions `.txt` and `.md` in the current directory:
+First, let's see how you can use [Nette\Utils\Finder](https://api.nette.org/utils/master/Nette/Utils/Finder.html) to list the names of files with the extensions `.txt` and `.md` in the current directory:
 
 ```php
 foreach (Finder::findFiles(['*.txt', '*.md']) as $name => $file) {
@@ -100,7 +100,7 @@ When searching files and directories recursively (depth-first), the parent direc
 
 ## Wildcards
 
-A mask may contain several special characters:
+A mask may contain several special characters:
 
 - `*` – any number of characters, except the `/` separator (it stays within a single directory level)
 - `**` – any number of characters, **including** `/` (it spans directory levels, see below)
@@ -135,7 +135,7 @@ The following table shows what individual masks match, for both files and direct
 Two shortcuts are worth remembering:
 
 - A `**` not immediately followed by `/` behaves as `**/` plus `*`. So `src/**` is a shorthand for `src/**/*`, and `**.php` for `**/*.php`.
-- A trailing slash restricts the mask to directories only. So `find('log/')` returns directories named `log`, but never a file of that name. (`findFiles()` rejects a trailing slash, as searching for a file “directory” makes no sense.)
+- A trailing slash restricts the mask to directories only. So `find('log/')` returns directories named `log`, but never a file of that name. (`findFiles()` rejects a trailing slash, as searching for a file “directory” makes no sense.)
 
 Further usage examples:
 
@@ -181,7 +181,7 @@ Finder::findFiles('*.php')
 	->size('<=', 200);
 ```
 
-The `date()` method filters by the file's last modification date. Values can be absolute dates or relative to the current date and time. For example, this finds files modified within the last two weeks:
+The `date()` method filters by the file's last modification date. Values can be absolute dates or relative to the current date and time. For example, this finds files modified within the last two weeks:
 
 ```php
 Finder::findFiles('*.php')
@@ -202,7 +202,7 @@ Finder::findFiles('*.php')
 
 ## Depth Filtering
 
-When searching recursively, you can set the maximum traversal depth using the `limitDepth()` method. Setting `limitDepth(1)` traverses only the first level of subdirectories, `limitDepth(0)` disables depth traversal entirely, and a value of –1 removes the depth limit.
+When searching recursively, you can set the maximum traversal depth using the `limitDepth()` method. Setting `limitDepth(1)` traverses only the first level of subdirectories, `limitDepth(0)` disables depth traversal entirely, and a value of –1 removes the depth limit.
 
 Finder allows using custom callbacks to decide which directories to enter during traversal. The callback receives a `Nette\Utils\FileInfo` object representing the directory and must return `true` to enter it:
 
@@ -268,7 +268,7 @@ foreach (Finder::findFiles('*.jpg')->from('.') as $file) {
 }
 ```
 
-Furthermore, methods are available for reading and writing the file's content:
+Furthermore, methods are available for reading and writing the file's content:
 
 ```php
 foreach ($finder as $file) {
@@ -280,7 +280,7 @@ foreach ($finder as $file) {
 
 ## Returning Results as an Array
 
-As seen in the examples, Finder implements the `IteratorAggregate` interface, so you can use `foreach` to iterate through the results. It's designed so that results are loaded only during iteration, meaning if you have a large number of files, it doesn't wait for all of them to be read beforehand.
+As seen in the examples, Finder implements the `IteratorAggregate` interface, so you can use `foreach` to iterate through the results. It's designed so that results are loaded only during iteration, meaning if you have a large number of files, it doesn't wait for all of them to be read beforehand.
 
 You can also retrieve the results as an array of `Nette\Utils\FileInfo` objects using the `collect()` method. The array is numerically indexed, not associative.
 

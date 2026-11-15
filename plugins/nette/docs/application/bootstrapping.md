@@ -213,7 +213,7 @@ The name `cli.php` is not a typo; configuration can also be written in a PHP fil
 
 We can also add other configuration files in [the `includes` section](../dependency-injection/configuration.md#including-files).
 
-If items with the same keys appear in configuration files, they will be overwritten, or in the case of [arrays, merged](../dependency-injection/configuration.md#merging). A file included later has higher priority than the previous one. The file in which the `includes` section is listed has higher priority than the files included within it.
+If items with the same keys appear in configuration files, they will be overwritten, or in the case of [arrays, merged](../dependency-injection/configuration.md#merging). A file included later has higher priority than the previous one. The file in which the `includes` section is listed has higher priority than the files included within it.
 
 ### Static Parameters
 

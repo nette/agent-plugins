@@ -15,7 +15,7 @@ Contents:
 
 Nette uses the [Latte](https://latte.nette.org/en) templating system. Latte is used because it is the most secure templating system for PHP, and at the same time, the most intuitive system. You don't need to learn much new; knowledge of PHP and a few tags will suffice.
 
-It's common for a page to be composed of a layout template + the template for the specific action. This is what a layout template might look like; notice the `{block}` blocks and the `{include}` tag:
+It's common for a page to be composed of a layout template + the template for the specific action. This is what a layout template might look like; notice the `{block}` blocks and the `{include}` tag:
 
 ```latte
 <!DOCTYPE html>
@@ -152,7 +152,7 @@ If you use a custom template class, these variables are passed if you create a p
 
 ## Type-Safe Templates
 
-When developing robust applications, it's useful to explicitly define which variables the template expects and their types. This provides type checking in PHP, smart hints in your IDE, and enables static analysis to catch errors.
+When developing robust applications, it's useful to explicitly define which variables the template expects and their types. This provides type checking in PHP, smart hints in your IDE, and enables static analysis to catch errors.
 
 How do you define such a list? Simply as a class with properties representing template variables. Name it similarly to the presenter, just with `Template` at the end:
 
@@ -267,7 +267,7 @@ protected function beforeRender(): void
 
 **Using Attributes**
 
-A more elegant approach is defining filters and functions as methods directly in the presenter or component's [template parameter class](#type-safe-templates), marked with attributes:
+A more elegant approach is defining filters and functions as methods directly in the presenter or component's [template parameter class](#type-safe-templates), marked with attributes:
 
 ```php
 class ArticleTemplate extends Nette\Bridges\ApplicationLatte\Template
@@ -290,7 +290,7 @@ Latte automatically discovers and registers methods marked with these attributes
 
 **Globally Using Extensions**
 
-The previous approaches suit filters and functions needed only in specific presenters or components, not application-wide. For the entire application, creating an [extension](../latte/extending-latte.md#the-robust-way-latte-extension) works best. This class centralizes all Latte extensions for your project. A brief example:
+The previous approaches suit filters and functions needed only in specific presenters or components, not application-wide. For the entire application, creating an [extension](../latte/extending-latte.md#the-robust-way-latte-extension) works best. This class centralizes all Latte extensions for your project. A brief example:
 
 ```php
 namespace App\Presentation\Accessory;
@@ -339,7 +339,7 @@ latte:
 		- App\Presentation\Accessory\LatteExtension
 ```
 
-Extensions offer several advantages: dependency injection support, access to your application's model layer, and centralized management of all extensions. They also support custom tags, providers, compiler passes, and more.
+Extensions offer several advantages: dependency injection support, access to your application's model layer, and centralized management of all extensions. They also support custom tags, providers, compiler passes, and more.
 
 ## Setting Up All Templates
 

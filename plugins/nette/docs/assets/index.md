@@ -54,7 +54,7 @@ With Nette Assets, all this complexity disappears:
 {asset 'css/style.css'}
 ```
 
-That's it! The library automatically:
+That's it! The library automatically:
 
 - Adds version parameters based on file modification time
 - Detects image dimensions and includes them in the HTML
@@ -117,7 +117,7 @@ The library automatically detects file types and creates the appropriate asset 
 
 ### Mappers – Where Files Come From
 
-A **mapper** knows how to find files and create URLs for them. You can have multiple mappers for different purposes – local files, CDN, cloud storage, or build tools (each of them has a name). The built-in `FilesystemMapper` handles local files, while `ViteMapper` integrates with modern build tools.
+A **mapper** knows how to find files and create URLs for them. You can have multiple mappers for different purposes – local files, CDN, cloud storage, or build tools (each of them has a name). The built-in `FilesystemMapper` handles local files, while `ViteMapper` integrates with modern build tools.
 
 Mappers are defined in the [configuration](configuration.md).
 
@@ -232,6 +232,14 @@ When used inside HTML attributes or inside `<style>` and `<script>` elements, it
 <img srcset="{asset 'logo@2x.png'} 2x">
 ```
 
+Inside `<script>`, the URL comes out as a ready-made JavaScript string, quotes included, so don't add your own:
+
+```latte
+<script>
+	const logo = {asset 'logo.png'}; {* const logo = "/assets/logo.png"; *}
+</script>
+```
+
 ### `n:asset`
 
 For full control over HTML attributes:
@@ -267,7 +275,7 @@ Use variables and mappers:
 
 Note that the `<a>` and `<link>` variants work only for renderable assets (an image, a script, and so on), never for a `GenericAsset` such as a PDF.
 
-For images it's enough to set just `width` (or just `height`) and the other dimension is calculated automatically to preserve the aspect ratio:
+For images it's enough to set just `width` (or just `height`) and the other dimension is calculated automatically to preserve the aspect ratio:
 
 ```latte
 {* height is completed from the aspect ratio *}
@@ -321,7 +329,7 @@ Generates appropriate preload links:
 <link rel="preload" href="/assets/hero-image.jpg?v=789" as="image" type="image/jpeg">
 ```
 
-When your response sets a `Content-Security-Policy` header with a `nonce`, Nette automatically adds the matching `nonce` attribute to every generated `<script>`, `<link>`, and `<style>` element, so they aren't blocked by the browser's security policy.
+When your response sets a `Content-Security-Policy` header with a `nonce`, Nette automatically adds the matching `nonce` attribute to every generated `<script>`, `<link>`, and `<style>` element, so they aren't blocked by the browser's security policy.
 
 ## Advanced Features
 

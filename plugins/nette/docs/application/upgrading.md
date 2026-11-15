@@ -28,7 +28,7 @@ The constructor of `Nette\ComponentModel\Component` has not been used for years 
 
 ## Upgrading to Version 2.4
 
-- `Route` and `SimpleRouter` now generate the same HTTP/HTTPS scheme that was used to access the site. A route that requires a specific protocol can be defined with the scheme, e.g. `Route('http://domain.cz/<presenter>')`.
+- `Route` and `SimpleRouter` now generate the same HTTP/HTTPS scheme that was used to access the site. A route that requires a specific protocol can be defined with the scheme, e.g. `Route('http://domain.cz/<presenter>')`.
 - For bool-type parameters of render/action methods (i.e. with a default value of true or false) and for persistent parameters, `false` and `null` are now distinguished. If the parameter is not present in the URL, its value is now `null` (previously `false`).
 - The class returned by `Presenter::getReflection()` is no longer a descendant of `Nette\Reflection\ClassType`, and `getReflection()->getMethod()` is no longer a descendant of `Nette\Reflection\Method`.
 - The `SECURED` flag and `Route::$defaultFlags` are deprecated.

@@ -16,7 +16,7 @@ Colored text, clickable links, a progress line and questions for the user. The `
 
 ## Colorful Output
 
-A [Nette\CommandLine\Console](https://api.nette.org/commandline/master/Nette/CommandLine/Console.html) object writes to one output, the screen by default, and can color the text:
+A [Nette\CommandLine\Console](https://api.nette.org/commandline/master/Nette/CommandLine/Console.html) object writes to one output, the screen by default, and can color the text:
 
 ```php
 use Nette\CommandLine\Console;
@@ -31,11 +31,11 @@ You usually create the console once at the start of the script and pass it to th
 
 Colors are added only by methods, never by markup in the text. Some libraries look for markup like `<info>` in the text, so XML, HTML or user input has to be escaped first or it breaks. Here everything is printed exactly as it is.
 
-Whether the text comes out in color doesn't depend on your code but on where the output goes. In a terminal it's in color. When you redirect the output to a file, pipe it to another program or the script runs in CI, the same code prints plain text, because `color()` and `link()` then add nothing. Just watch out for text from elsewhere that carries its own colors, such as the output of another program. Remove them with `Ansi::strip()` if needed.
+Whether the text comes out in color doesn't depend on your code but on where the output goes. In a terminal it's in color. When you redirect the output to a file, pipe it to another program or the script runs in CI, the same code prints plain text, because `color()` and `link()` then add nothing. Just watch out for text from elsewhere that carries its own colors, such as the output of another program. Remove them with `Ansi::strip()` if needed.
 
 ### Two Outputs
 
-Every program has two outputs: the standard one (`STDOUT`) for results, and the error one (`STDERR`) for messages and errors. The user can redirect each of them somewhere else, for example the results into a file while the errors stay on the screen. That's why each output gets its own console, which finds out by itself whether its output leads to a terminal:
+Every program has two outputs: the standard one (`STDOUT`) for results, and the error one (`STDERR`) for messages and errors. The user can redirect each of them somewhere else, for example the results into a file while the errors stay on the screen. That's why each output gets its own console, which finds out by itself whether its output leads to a terminal:
 
 ```php
 $out = new Console(STDOUT);
@@ -46,7 +46,7 @@ Without a parameter, the console writes to `STDOUT`. When the program reading yo
 
 ### Colors
 
-You give a color as `'foreground'` or `'foreground/background'`, such as `'white/blue'`. The basic names `black`, `gray`, `silver`, `white`, `navy`, `blue`, `green`, `lime`, `teal`, `aqua`, `maroon`, `red`, `purple`, `fuchsia`, `olive` and `yellow` are drawn by the terminal according to its color theme. A color that should look the same everywhere is written in hex, `'#87D7FF'` or the short `'#8DF'`, or as a number 0–255 of the extended palette, such as `'117'`.
+You give a color as `'foreground'` or `'foreground/background'`, such as `'white/blue'`. The basic names `black`, `gray`, `silver`, `white`, `navy`, `blue`, `green`, `lime`, `teal`, `aqua`, `maroon`, `red`, `purple`, `fuchsia`, `olive` and `yellow` are drawn by the terminal according to its color theme. A color that should look the same everywhere is written in hex, `'#87D7FF'` or the short `'#8DF'`, or as a number 0–255 of the extended palette, such as `'117'`.
 
 An unknown color throws an exception even when colors are off, so you catch a typo right away. The color `null` means no color, which comes in handy in conditions: `$console->color($ok ? 'green' : null, $text)`.
 
@@ -90,13 +90,13 @@ $console->isTerminal();     // whether the output leads to a terminal where some
 $console->getWidth();       // width of the terminal in columns, 80 outside a terminal
 ```
 
-`hasColors()` and `isTerminal()` answer two different questions. Use the first to decide whether to color, the second to decide whether to show things that only make sense to a person at the screen, such as a progress line or a question. A user can turn colors off and still sit at a terminal.
+`hasColors()` and `isTerminal()` answer two different questions. Use the first to decide whether to color, the second to decide whether to show things that only make sense to a person at the screen, such as a progress line or a question. A user can turn colors off and still sit at a terminal.
 
 `getWidth()` asks the terminal only once and remembers the result, so only a new console notices that the window was resized. The `COLUMNS` environment variable takes precedence, which comes in handy when you want to see how the output looks in a narrow terminal.
 
 ## Clickable Links
 
-A link is composed just like a color. In a terminal, `link()` turns the text into a link you can click. In a file, a pipe or without colors it prints the text followed by the address in parentheses, so the address doesn't disappear from the log:
+A link is composed just like a color. In a terminal, `link()` turns the text into a link you can click. In a file, a pipe or without colors it prints the text followed by the address in parentheses, so the address doesn't disappear from the log:
 
 ```php
 $console->writeLine('See ' . $console->link('https://nette.org'));
@@ -107,7 +107,7 @@ $console->writeLine($console->link('https://nette.org', 'the manual'));  // outs
 
 ## Progress and Status Lines
 
-During longer work it helps to show what the script is doing and how much is done. That's what `setStatus()` is for. It draws a line at the end of the output, the next printout erases it and is printed above it, and the next `setStatus()` draws the line again. The user thus sees the results piling up and below them one line that keeps changing:
+During longer work it helps to show what the script is doing and how much is done. That's what `setStatus()` is for. It draws a line at the end of the output, the next printout erases it and is printed above it, and the next `setStatus()` draws the line again. The user thus sees the results piling up and below them one line that keeps changing:
 
 ```
 photo.jpg converted
@@ -127,11 +127,11 @@ foreach ($files as $i => $file) {
 $console->clearStatus();
 ```
 
-The status line is only drawn in the terminal, it isn't written to the output. When the output doesn't lead to a terminal, `setStatus()` does nothing at all, so a log file holds only the real lines. There can be several status lines at once, each newline character starts another one. A line that is too long is cut to the width of the terminal, because a wrapped one couldn't be redrawn.
+The status line is only drawn in the terminal, it isn't written to the output. When the output doesn't lead to a terminal, `setStatus()` does nothing at all, so a log file holds only the real lines. There can be several status lines at once, each newline character starts another one. A line that is too long is cut to the width of the terminal, because a wrapped one couldn't be redrawn.
 
 While the status line is visible, the cursor is hidden. It shows up again when you clear the status, when the console is released, and also at the end of the script, even after `exit()`, an uncaught exception or a fatal error. Only Ctrl+C ends PHP immediately, so your application has to handle that one itself.
 
-A status line is erased only by the console that drew it. If you have one console for results and another for errors, draw the status on the one the errors go to. Otherwise a warning printed during the work would land on top of the status line.
+A status line is erased only by the console that drew it. If you have one console for results and another for errors, draw the status on the one the errors go to. Otherwise a warning printed during the work would land on top of the status line.
 
 ## Measuring Text
 
@@ -180,6 +180,6 @@ $answer = $prompt->choose('What now?', [
 What now? [s/R/c]
 ```
 
-When the input ends, for example because the user pressed Ctrl+D, `choose()` returns `null`, never the default. A closed input thus can't quietly answer yes. What that means for the script is your decision, such as `?? 'q'`.
+When the input ends, for example because the user pressed Ctrl+D, `choose()` returns `null`, never the default. A closed input thus can't quietly answer yes. What that means for the script is your decision, such as `?? 'q'`.
 
 The prompt asks only when both the input and the console lead to a terminal, so it never takes an answer from a pipe nobody is sitting at. Otherwise `choose()` throws `LogicException` before it prints or reads anything. So first ask `isInteractive()` and decide what the script does without a person, for example stop with a hint to use a command-line option such as `--overwrite`. Give the prompt the console that draws the status line: the question then erases it, and the next status is drawn on a clean line after the answer.

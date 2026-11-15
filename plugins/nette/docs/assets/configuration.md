@@ -33,7 +33,7 @@ The `versioning` option globally controls whether version parameters are added t
 
 ## Mappers
 
-Mappers can be configured in three ways: simple string notation, detailed array notation, or as a service (using entity notation `ClassName(...)` or `@serviceName()`).
+Mappers can be configured in three ways: simple string notation, detailed array notation, or as a service (using entity notation `ClassName(...)` or a reference `@serviceName`).
 
 The simplest way to define a mapper:
 
@@ -50,6 +50,7 @@ Each mapper creates a `FilesystemMapper` that:
 - Looks for files in `%wwwDir%/<path>`
 - Generates URLs like `%baseUrl%/<path>`
 - Inherits global versioning setting
+- Finds only files inside this directory: a reference like `../secret.txt` throws `Nette\Assets\AssetNotFoundException`
 
 For more control, use the detailed notation:
 
@@ -114,7 +115,7 @@ services:
 
 assets:
 	mapping:
-		cloud: @s3mapper
+		cloud: @s3mapper          # reference to a service (since 1.0.8)
 		database: App\Assets\DatabaseMapper(@database.connection)
 ```
 
@@ -154,7 +155,7 @@ The `devServer` option controls how assets are loaded during development:
 - `false` – Completely disables the dev server integration. Assets are always loaded from the built files.
 - Custom URL (e.g., `https://localhost:5173`) – Manually specify the dev server URL including protocol and port. Useful when the dev server runs on a different host or port. Like auto-detection, it only applies in debug mode; in production the built files are always used.
 
-The `versioning` and `extension` options apply only to files in Vite's public directory that aren't processed by Vite.
+The `versioning` and `extension` options apply only to files in Vite's public directory that aren't processed by Vite.
 
 ## Manual Configuration
 

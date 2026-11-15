@@ -16,7 +16,7 @@ Contents:
 
 ## Content Security Policy
 
-If your site uses Content Security Policy (CSP), you'll need to add `'nonce-<value>'` and `'strict-dynamic'` to the `script-src` directive for Tracy to function correctly. Some third-party plugins might require additional directives. A nonce is not supported in the `style-src` directive; if you use this directive, you must add `'unsafe-inline'`, but this should be avoided in production mode.
+If your site uses Content Security Policy (CSP), you'll need to add `'nonce-<value>'` and `'strict-dynamic'` to the `script-src` directive for Tracy to function correctly. Some third-party plugins might require additional directives. A nonce is not supported in the `style-src` directive; if you use this directive, you must add `'unsafe-inline'`, but this should be avoided in production mode.
 
 Configuration example for [Nette Framework](../nette/configuring.md):
 
@@ -33,9 +33,15 @@ $nonce = base64_encode(random_bytes(20));
 header("Content-Security-Policy: script-src 'nonce-$nonce' 'strict-dynamic';");
 ```
 
+(since 2.13.0) Does your CSP also enforce Trusted Types with `require-trusted-types-for 'script'` and list the allowed policy names in the `trusted-types` directive? Then add `tracy` to that list, next to the names your application uses (`myapp` in the example below). Tracy inserts its own HTML into the page through a policy of this name. Without it, the browser blocks that HTML and the Tracy Bar doesn't appear at all.
+
+```php
+header("Content-Security-Policy: require-trusted-types-for 'script'; trusted-types myapp tracy;");
+```
+
 ## Faster Loading
 
-Basic integration is straightforward. However, if you have slow-loading blocking scripts on your webpage, they can slow down Tracy's loading. The solution is to place `<?php Tracy\Debugger::renderLoader() ?>` in your template before any scripts:
+Basic integration is straightforward. However, if you have slow-loading blocking scripts on your webpage, they can slow down Tracy's loading. The solution is to place `<?php Tracy\Debugger::renderLoader() ?>` in your template before any scripts:
 
 ```latte
 <!DOCTYPE html>
@@ -58,7 +64,7 @@ Have you ever run into *Cannot modify header information – headers already se
 Tracy\OutputDebugger::enable();
 ```
 
-It watches all output and at the end of the page prints a list of every place from which output was sent, together with the file, the line, and a link that opens it in your editor. A byte order mark (BOM) at the start of a file is highlighted too, as it is a common invisible cause of the problem.
+It watches all output and at the end of the page prints a list of every place from which output was sent, together with the file, the line, and a link that opens it in your editor. A byte order mark (BOM) at the start of a file is highlighted too, as it is a common invisible cause of the problem.
 
 ## Debugging AJAX Requests
 
@@ -112,7 +118,7 @@ The `setSessionStorage()` function has existed since version 2.9; before that, T
 
 ## Custom Scrubber
 
-A Scrubber is a filter that prevents sensitive data from leaking from dumps, such as passwords or credentials. The filter is called for each item of the dumped array or object and returns `true` if the value is sensitive. In this case, `*****` is printed instead of the value.
+A Scrubber is a filter that prevents sensitive data from leaking from dumps, such as passwords or credentials. The filter is called for each item of the dumped array or object and returns `true` if the value is sensitive. In this case, `*****` is printed instead of the value.
 
 ```php
 // prevents dumping values of keys and properties like `password`,
@@ -173,7 +179,7 @@ Debugger::log('warning', Debugger::WARNING); // writes: [<TIMESTAMP>] main-chann
 
 ### Sentry Integration
 
-You can forward errors to a service like [Sentry](https://sentry.io) while keeping Tracy's own logging. The idea is to wrap the original logger: the new logger passes the message to Sentry and then delegates to the previous one, so file logs and e-mail notifications keep working.
+You can forward errors to a service like [Sentry](https://sentry.io) while keeping Tracy's own logging. The idea is to wrap the original logger: the new logger passes the message to Sentry and then delegates to the previous one, so file logs and e-mail notifications keep working.
 
 ```php
 use Sentry\Severity;

@@ -9,10 +9,13 @@ Contents:
   - [`-d <key=value>`](#-d-keyvalue)
   - [-s](#-s)
   - [`--stop-on-fail`](#--stop-on-fail)
+  - [`--timeout <seconds>` (since 2.7.0)](#--timeout-seconds-since-270)
   - [`-j <num>`](#-j-num)
-  - [`-o <console|console-lines|tap|junit|log|none>`](#-o-consoleconsole-linestapjunitlognone)
+  - [`-o <console|console-lines|github|tap|junit|log|none>`](#-o-consoleconsole-linesgithubtapjunitlognone)
   - [`-w | --watch <path>`](#-w----watch-path)
+  - [`--slowest [<count>]` (since 2.7.0)](#--slowest-count-since-270)
   - [`-i | --info`](#-i----info)
+  - [`--version` (since 2.7.1)](#--version-since-271)
   - [`--setup <path>`](#--setup-path)
   - [`--temp <path>`](#--temp-path)
   - [`--colors 1|0`](#--colors-10)
@@ -31,7 +34,7 @@ vendor/bin/tester .
 
 The test runner scans the specified directory and all its subdirectories, looking for tests, which are files ending in `*.phpt` or `*Test.php`. It also reads and evaluates their [annotations](test-annotations.md) to determine which tests to run and how.
 
-Each test file runs in its own isolated PHP process, and the runner executes several of them at once – so the unit of parallelism is the file. Code within a single file therefore runs sequentially. A [TestCase](testcase.md) lives in one file, so by default its methods run one after another in a single process; mark it with the [@testCase](test-annotations.md#testcase) annotation to have the runner run each test method as a separate parallel process instead.
+Each test file runs in its own isolated PHP process, and the runner executes several of them at once – so the unit of parallelism is the file. Code within a single file therefore runs sequentially. A [TestCase](testcase.md) lives in one file, so by default its methods run one after another in a single process; mark it with the [@testCase](test-annotations.md#testcase) annotation to have the runner run each test method as a separate parallel process instead.
 
 It then executes the tests. During execution, it prints characters to the terminal to indicate the progress:
 
@@ -44,7 +47,7 @@ The output may look like this:
 ```
  _____ ___  ___ _____ ___  ___
 |_   _/ __)( __/_   _/ __)| _ )
-  |_| \___ /___) |_| \___ |_|_\  v2.6.1
+  |_| \___ /___) |_| \___ |_|_\  v2.7.1
 
 PHP 8.5.2 (cli) | php | 8 threads
 
@@ -55,7 +58,9 @@ OK (35 tests, 1 skipped, 1.7 seconds)
 
 When run again, it first executes the tests that failed in the previous run, so you immediately know if you have fixed the error.
 
-The Tester's exit code is zero if no test fails. Otherwise, it is non-zero.
+The Tester's exit code is zero if no test fails. Otherwise, it is non-zero.
+
+(since 2.7.0) If Tester finds no tests at all, for example because of a typo in the path, it also ends with a non-zero code. A CI build therefore can't pass without having tested anything.
 
 ## Command-Line Options
 
@@ -64,29 +69,32 @@ You can get an overview of command-line options by running Tester without parame
 ```
  _____ ___  ___ _____ ___  ___
 |_   _/ __)( __/_   _/ __)| _ )
-  |_| \___ /___) |_| \___ |_|_\  v2.6.1
+  |_| \___ /___) |_| \___ |_|_\  v2.7.1
 
 Usage:
-    tester [options] [ | ]...
+    tester [options] [<test file> | <directory>]...
 
 Options:
-    -p                     Specify PHP interpreter to run (default: php).
-    -c                     Use custom php.ini, ignore system configuration.
+    -p <path>                    Specify PHP interpreter to run (default: php).
+    -c <path>                    Use custom php.ini, ignore system configuration.
     -C                           With -c, include system configuration as well.
-    -d ...            Define INI entry 'key' with value 'value'.
+    -d <key=value>...            Define INI entry 'key' with value 'value'.
     -s                           Show information about skipped tests.
     --stop-on-fail               Stop execution upon the first failure.
-    -j                      Run  jobs in parallel (default: 8).
-    -o   (e.g. -o junit:output.xml)
+    --timeout <seconds>          Time limit for each test in seconds, can be overridden by @timeout.
+    -j <num>                     Run <num> jobs in parallel (default: 8).
+    -o <console|console-lines|github|tap|junit|log|none>  (e.g. -o junit:output.xml)
                                  Specify one or more output formats with optional file name.
-    -w | --watch           Watch directory.
+    -w | --watch <path>          Watch directory.
+    --slowest [<count>]          Print the 10 (or <count>) slowest tests after the run.
     -i | --info                  Show tests environment info and exit.
-    --setup                Script for runner setup.
-    --temp                 Path to temporary directory. Default by sys_get_temp_dir().
+    --setup <path>               Script for runner setup.
+    --temp <path>                Path to temporary directory. Default by sys_get_temp_dir().
     --colors [1|0]               Enable or disable colors.
-    --coverage             Generate code coverage report to file.
-    --coverage-src         Path to source code.
+    --coverage <path>            Generate code coverage report to file.
+    --coverage-src <path>        Path to source code.
     -h | --help                  This help.
+    --version                    Show version and exit.
 ```
 
 ### `-p <path>`
@@ -121,20 +129,42 @@ Displays information about skipped tests.
 
 Tester stops testing upon the first failing test.
 
+### `--timeout <seconds>` (since 2.7.0)
+
+Sets a time limit in seconds for each test. Without it, a test that hangs, for example while waiting for a server that never responds or in an endless loop, keeps the whole run waiting. On a CI server, that means a job that only ends when the server kills it, and you don't learn which test was to blame.
+
+With a time limit, Tester terminates the test process once its time runs out, reports the test as failed and carries on with the others:
+
+```
+tester --timeout 30 tests
+```
+
+The list of failures then tells you which test hung:
+
+```
+-- FAILED: database.phpt
+   Timed out after 30 s
+```
+
+By default, tests have no time limit. A single test can set its own limit, or switch it off, with the [@timeout](test-annotations.md#timeout-since-270) annotation.
+
 ### `-j <num>`
 
 Specifies the number of parallel processes to run tests in. The default value is 8. To run tests sequentially, use the value 1.
 
-### `-o <console|console-lines|tap|junit|log|none>`
+### `-o <console|console-lines|github|tap|junit|log|none>`
 
 Sets the output format. The default is the console format. You can specify the name of the file into which the output will be written (e.g., `-o junit:output.xml`). The `-o` option can be repeated multiple times to generate multiple formats at once.
 
 - `console`: same as the default format, but the ASCII logo is not printed in this case
 - `console-lines`: similar to console, but the result of each test is listed on a separate line with additional information
+- `github`: annotations for [GitHub Actions](https://docs.github.com/en/actions), thanks to which a failed test shows up in the pull request right next to the line where it failed, together with the error message
 - `tap`: [TAP format](https://en.wikipedia.org/wiki/Test_Anything_Protocol) suitable for machine processing
 - `junit`: JUnit XML format, also suitable for machine processing
 - `log`: Outputs the testing progress. Includes all failed, skipped, and also successful tests
 - `none`: nothing is printed
+
+(since 2.7.0) When Tester runs on GitHub Actions, it adds the `github` format by itself. In a typical workflow you therefore don't have to set anything, and you see failed tests in the pull request right away, while the console output stays as usual. If you choose the format of the standard output yourself with `-o`, for example `-o tap`, Tester leaves it at that and adds no annotations, so the two outputs don't get mixed.
 
 ### `-w | --watch <path>`
 
@@ -144,6 +174,21 @@ Useful when refactoring a library or debugging tests.
 
 ```
 tester --watch src tests
+```
+
+### `--slowest [<count>]` (since 2.7.0)
+
+After the run, prints the slowest tests and how long each of them took. It comes in handy when the test suite gets slower and you want to know which tests to look at first. By default, it lists 10 tests; you can give a different count after the option:
+
+```
+tester --slowest 3 tests
+
+...
+
+Slowest tests:
+· database.phpt in 1.049 s
+· mail.phpt in 0.475 s
+· form.phpt in 0.089 s
 ```
 
 ### `-i | --info`
@@ -172,6 +217,10 @@ Loaded extensions:
 Core, ctype, date, dom, ereg, fileinfo, filter, hash, ...
 ```
 
+### `--version` (since 2.7.1)
+
+Prints only the Tester version, for example `Nette Tester 2.7.1`, and exits. Unlike the banner, this output is easy to process in scripts.
+
 ### `--setup <path>`
 
 Tester loads the specified PHP script at startup. The variable `Tester\Runner\Runner $runner` is available within this script. Assume a file `tests/runner-setup.php` with the following content:
@@ -188,7 +237,7 @@ tester --setup tests/runner-setup.php tests
 
 ### `--temp <path>`
 
-Sets the path to the directory for Tester's temporary files. The default value is returned by `sys_get_temp_dir()`. You will be notified if the default value is not valid.
+Sets the path to the directory for Tester's temporary files. The default value is returned by `sys_get_temp_dir()`. You will be notified if the default value is not valid.
 
 If you are unsure which directory is being used, run Tester with the `--info` parameter.
 

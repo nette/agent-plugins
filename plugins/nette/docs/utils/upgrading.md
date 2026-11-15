@@ -28,7 +28,7 @@ In the previous version, the `exclude()` and `filter()` methods behaved differen
 
 Finder no longer implements the `Countable` interface.
 
-A string starting with a slash in `Finder::findFiles('/f*')` is now considered an absolute path. If you intended a relative path from the current directory, replace it with, for example, `Finder::findFiles('./f*')`.
+A string starting with a slash in `Finder::findFiles('/f*')` is now considered an absolute path. If you intended a relative path from the current directory, replace it with, for example, `Finder::findFiles('./f*')`.
 
 If a directory you are searching in does not exist, `Nette\InvalidStateException` is thrown (instead of the previous `UnexpectedValueException`).
 

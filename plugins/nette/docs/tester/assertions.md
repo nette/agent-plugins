@@ -34,6 +34,14 @@ Assertions are used to confirm that the actual value matches the expected value.
 
 Choose the most suitable assertions. `Assert::same($a, $b)` is better than `Assert::true($a === $b)`, because it displays a meaningful error message upon failure. In the second case, we only get `false should be true` which tells us nothing about the contents of the variables `$a` and `$b`.
 
+(since 2.7.1) When arrays or objects differ deeper than their one-line dump shows, the message adds the path to the first differing item:
+
+```
+Failed: ['status' => 'ok', 'items' => [...]] should be
+    ... ['status' => 'ok', 'items' => [...]]
+    at ['items'][1]: 'peach' should be 'pear'
+```
+
 Most assertions can also have an optional description in the `$description` parameter, which is displayed in the error message if the expectation fails.
 
 Examples assume the following alias is created:
@@ -44,11 +52,11 @@ use Tester\Assert;
 
 ## `Assert::same($expected, $actual, ?string $description=null)`
 
-`$expected` must be identical to `$actual`. It's the same as the PHP operator `===`.
+`$expected` must be identical to `$actual`. It's the same as the PHP operator `===`.
 
 ## `Assert::notSame($expected, $actual, ?string $description=null)`
 
-Opposite of `Assert::same()`, meaning it's the same as the PHP operator `!==`.
+Opposite of `Assert::same()`, meaning it's the same as the PHP operator `!==`.
 
 ## `Assert::equal($expected, $actual, ?string $description=null, bool $matchOrder=false, bool $matchIdentity=false)`
 
@@ -75,7 +83,7 @@ Opposite of `Assert::equal()`.
 
 ## `Assert::contains($needle, string|array $actual, ?string $description=null)`
 
-If `$actual` is a string, it must contain the substring `$needle`. If it is an array, it must contain the element `$needle` (compared strictly).
+If `$actual` is a string, it must contain the substring `$needle`. If it is an array, it must contain the element `$needle` (compared strictly). For generated output prefer `Assert::match()`: a substring proves little about the rest.
 
 ## `Assert::notContains($needle, string|array $actual, ?string $description=null)`
 
@@ -119,7 +127,7 @@ Opposite of `Assert::contains()`.
 
 ## `Assert::count($count, Countable|array $value, ?string $description=null)`
 
-The number of elements in `$value` must be `$count`. It's the same as `count($value) === $count`.
+The number of elements in `$value` must be `$count`. It's the same as `count($value) === $count`.
 
 ## `Assert::type(string|object $type, $value, ?string $description=null)`
 
@@ -244,7 +252,7 @@ This assertion is identical to [Assert::match()](#assertmatchstring-pattern-actu
 
 ## `Assert::fail(string $message, $actual=null, $expected=null)`
 
-This assertion always fails. Sometimes it's just useful. Optionally, we can specify the expected and actual value.
+This assertion always fails. Sometimes it's just useful. Optionally, we can specify the expected and actual value.
 
 ## Expectations
 

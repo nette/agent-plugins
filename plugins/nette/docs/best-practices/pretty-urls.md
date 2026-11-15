@@ -14,7 +14,7 @@ Contents:
 - [Summary](#summary)
 
 
-URLs like `/article/123-how-to-bake-bread` look better than `/article/123` and help both users and search engines understand what's on the page. This guide shows how to generate them entirely in the router – without touching a single template – and how to make sure every visitor lands on the canonical URL.
+URLs like `/article/123-how-to-bake-bread` look better than `/article/123` and help both users and search engines understand what's on the page. This guide shows how to generate them entirely in the router – without touching a single template – and how to make sure every visitor lands on the canonical URL.
 
 ## Why Slugs in URLs
 
@@ -25,7 +25,7 @@ Compare these two addresses:
 /article/123-how-to-bake-bread
 ```
 
-The second one tells the user (and Google) what awaits after the click. It's good for SEO, makes links readable in chat or e-mail, and gives the URL bar some meaning.
+The second one tells the user (and Google) what awaits after the click. It's good for SEO, makes links readable in chat or e-mail, and gives the URL bar some meaning.
 
 The slug isn't a real identifier, though. The page is determined by the ID. The slug is decoration that the application generates from the title. If the title changes, the slug should change too. And if someone hand-edits the URL or follows an old link, the application should still find the right page.
 
@@ -50,9 +50,9 @@ The trick is to mark the slug as **optional** in the mask using square brackets:
 $router->addRoute('article/<id [0-9]+>[-<slug>]', 'Article:detail');
 ```
 
-The mask `[-<slug>]` says: there may be a hyphen and a slug after the ID, but it's not required. The route accepts both `/article/123` and `/article/123-anything`.
+The mask `[-<slug>]` says: there may be a hyphen and a slug after the ID, but it's not required. The route accepts both `/article/123` and `/article/123-anything`.
 
-A note on the parameter `<slug>`: by default it matches any characters **except a slash** – exactly what we want. If you write `<slug .+>`, the parameter will match slashes too, so `/article/123-something/else` would parse as a single slug containing `/`. Stay with the default `<slug>` unless you really need that.
+A note on the parameter `<slug>`: by default it matches any characters **except a slash** – exactly what we want. If you write `<slug .+>`, the parameter will match slashes too, so `/article/123-something/else` would parse as a single slug containing `/`. Stay with the default `<slug>` unless you really need that.
 
 So far the URL is parsed correctly, but generated links won't contain the slug. The next step is to teach the route how to fill the slug in.
 
@@ -88,7 +88,7 @@ You can deploy slugs across a whole application in a single change – just one
 
 One link generates one DB query, but a typical page has many – listings, breadcrumbs, “last viewed”, related articles. The same article ID often appears in several links during a single request, and you don't want to hit the database every time.
 
-A tiny per-request cache solves this. Wrap the DB call in a small service:
+A tiny per-request cache solves this. Wrap the DB call in a small service:
 
 ```php
 final class SlugProvider
@@ -111,7 +111,7 @@ final class SlugProvider
 }
 ```
 
-That's enough – one DB hit per unique ID per request.
+That's enough – one DB hit per unique ID per request.
 
 ## Passing the Title from the Template (Optional Fast Path)
 
@@ -140,7 +140,7 @@ Use this only where it matters (large listings rendered hundreds of times per re
 
 ## Canonization: Redirect to the Right URL
 
-We can now generate `/article/123-how-to-bake-bread`, but the route still accepts `/article/123` and `/article/123-anything-someone-wrote`. That's deliberate – we want short URLs (more on that below) and we want old or hand-typed links to keep working. But we don't want search engines to index the same article under multiple addresses.
+We can now generate `/article/123-how-to-bake-bread`, but the route still accepts `/article/123` and `/article/123-anything-someone-wrote`. That's deliberate – we want short URLs (more on that below) and we want old or hand-typed links to keep working. But we don't want search engines to index the same article under multiple addresses.
 
 The solution is [canonization](../application/presenters.md#canonization): when the user arrives via a non-canonical URL, the application 301-redirects them to the correct one. The `canonicalize()` method handles this:
 
@@ -187,7 +187,7 @@ When a user opens such a URL, `canonicalize()` 301-redirects them to the full ve
 ## Summary
 
 - Mask `<id>[-<slug>]` makes the slug optional. The default `<slug>` doesn't match `/`; use `<slug .+>` only if you really want slashes in the slug.
-- A general `FilterOut` under the `''` key looks the title up by ID – **no template changes anywhere in the application**.
+- A general `FilterOut` under the `''` key looks the title up by ID – **no template changes anywhere in the application**.
 - Wrap the lookup in a tiny per-request cache; one DB query per unique ID is plenty.
 - Optionally, a per-parameter `FilterOut` lets templates pass the title directly and skip the lookup.
 - `$this->canonicalize()` in the action redirects non-canonical URLs to the right one with HTTP 301.

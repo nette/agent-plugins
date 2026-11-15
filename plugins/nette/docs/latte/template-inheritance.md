@@ -26,11 +26,11 @@ Contents:
 
 Template reusability and inheritance mechanisms are here to boost your productivity because each template contains only its unique content, and repeated elements and structures are reused. We introduce three concepts: [layout-inheritance](#layout-inheritance-layout), [horizontal-reuse](#horizontal-reuse-import), and [unit-inheritance](#unit-inheritance-embed).
 
-The concept of Latte template inheritance is similar to PHP class inheritance. You define a **parent template** from which other **child templates** can inherit and can override parts of the parent template. It works great when elements share a common structure. Sound complicated? Don't worry, it's very easy.
+The concept of Latte template inheritance is similar to PHP class inheritance. You define a **parent template** from which other **child templates** can inherit and can override parts of the parent template. It works great when elements share a common structure. Sound complicated? Don't worry, it's very easy.
 
 ## Layout Inheritance `{layout}`
 
-Let's look at layout template inheritance with an example. This is a parent template, let's call it `layout.latte`, which defines the skeleton of an HTML document:
+Let's look at layout template inheritance with an example. This is a parent template, let's call it `layout.latte`, which defines the skeleton of an HTML document:
 
 ```latte
 <!doctype html>
@@ -52,7 +52,7 @@ Let's look at layout template inheritance with an example. This is a parent tem
 
 The `{block}` tags define three blocks that child templates can fill. All the block tag does is tell the template engine that a child template may override these portions by defining its own block with the same name.
 
-A child template might look like this:
+A child template might look like this:
 
 ```latte
 {layout 'layout.latte'}
@@ -165,7 +165,7 @@ Here are some tips for working with layout inheritance:
 
 See also anonymous [`{block}`](tags.md#block)
 
-A block provides a way to change how a certain part of a template is rendered, but it does not interfere in any way with the logic around it. Let's illustrate how a block works, and more importantly, how it doesn't work, with the following example:
+A block provides a way to change how a certain part of a template is rendered, but it does not interfere in any way with the logic around it. Let's illustrate how a block works, and more importantly, how it doesn't work, with the following example:
 
 ```latte
 {foreach $posts as $post}
@@ -263,14 +263,14 @@ You can pass variables to the block like this:
 {include footer, foo: bar, id: 123}
 ```
 
-The block name can be a variable or any PHP expression. In this case, add the keyword `block` before the variable so that Latte knows at compile time that it's a block and not an [included template](tags.md#include-filelatte), whose name could also be in a variable:
+The block name can be a variable or any PHP expression. In this case, add the keyword `block` before the variable so that Latte knows at compile time that it's a block and not an [included template](tags.md#include-filelatte), whose name could also be in a variable:
 
 ```latte
 {var $name = footer}
 {include block $name}
 ```
 
-A block can also be rendered within itself, which is useful, for example, when rendering a tree structure:
+A block can also be rendered within itself, which is useful, for example, when rendering a tree structure:
 
 ```latte
 {define menu, $items}
@@ -392,7 +392,7 @@ Use the `{ifset blockname}` test to check if a block (or multiple blocks) exists
 {/ifset}
 ```
 
-The block name can be a variable or any PHP expression. In this case, add the keyword `block` before the variable to clarify that it's not a check for the existence of [variables](tags.md#ifset-elseifset):
+The block name can be a variable or any PHP expression. In this case, add the keyword `block` before the variable to clarify that it's not a check for the existence of [variables](tags.md#ifset-elseifset):
 
 ```latte
 {ifset block $name}
@@ -420,11 +420,11 @@ Some tips for working with blocks:
 
 ## Horizontal Reuse `{import}`
 
-Horizontal reuse is the third mechanism for reuse and inheritance in Latte. It allows loading blocks from other templates. It's similar to creating a file with helper functions in PHP and then loading it using `require`.
+Horizontal reuse is the third mechanism for reuse and inheritance in Latte. It allows loading blocks from other templates. It's similar to creating a file with helper functions in PHP and then loading it using `require`.
 
-While template layout inheritance is one of Latte's most powerful features, it is limited to simple inheritance – a template can only extend one other template. Horizontal reuse is a way to achieve multiple inheritance.
+While template layout inheritance is one of Latte's most powerful features, it is limited to simple inheritance – a template can only extend one other template. Horizontal reuse is a way to achieve multiple inheritance.
 
-Let's have a file with block definitions:
+Let's have a file with block definitions:
 
 ```latte
 {block sidebar}...{/block}
@@ -477,7 +477,7 @@ Unit inheritance extends the idea of layout inheritance to the level of content 
 
 In unit inheritance, the `{embed}` tag is key. It combines the behavior of `{include}` and `{layout}`. It allows you to embed the content of another template or block and optionally pass variables, just like `{include}`. It also allows you to override any block defined inside the embedded template, like `{layout}`.
 
-For example, let's use an accordion element. Take a look at the element skeleton stored in the `collapsible.latte` template:
+For example, let's use an accordion element. Take a look at the element skeleton stored in the `collapsible.latte` template:
 
 ```latte
 <section class="collapsible {$modifierClass}">
@@ -493,7 +493,7 @@ For example, let's use an accordion element. Take a look at the element skeleto
 
 The `{block}` tags define two blocks that child templates can fill. Yes, just like in the case of the parent template in layout inheritance. You also see the `$modifierClass` variable.
 
-Let's use our element in a template. This is where `{embed}` comes in. It's an extremely powerful tag that allows us to do all these things: embed the element's template content, add variables to it, and add blocks with custom HTML to it:
+Let's use our element in a template. This is where `{embed}` comes in. It's an extremely powerful tag that allows us to do all these things: embed the element's template content, add variables to it, and add blocks with custom HTML to it:
 
 ```latte
 {embed 'collapsible.latte', modifierClass: my-style}
@@ -569,7 +569,7 @@ Using `{embed}`, you can embed not only templates but also other blocks, so the 
 
 There is, however, one difference between the two: when you embed a block instead of a file, the blocks from the outer layer remain accessible inside the embed. So unlike with an embedded file, `{include outer}` would work there.
 
-If we pass an expression to `{embed}` and it's not clear whether it's a block name or a file name, add the keyword `block` or `file`:
+If we pass an expression to `{embed}` and it's not clear whether it's a block name or a file name, add the keyword `block` or `file`:
 
 ```latte
 {embed block $name} ... {/embed}
@@ -577,7 +577,7 @@ If we pass an expression to `{embed}` and it's not clear whether it's a block 
 
 ## Use Cases
 
-There are various types of inheritance and code reuse in Latte. Let's summarize the main concepts for better clarity:
+There are various types of inheritance and code reuse in Latte. Let's summarize the main concepts for better clarity:
 
 ### `{include template}`
 

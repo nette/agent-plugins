@@ -39,7 +39,7 @@ composer require nette/mail
 
 ## Creating Emails
 
-An email is a [Nette\Mail\Message](https://api.nette.org/mail/master/Nette/Mail/Message.html) object. Let's create one like this:
+An email is a [Nette\Mail\Message](https://api.nette.org/mail/master/Nette/Mail/Message.html) object. Let's create one like this:
 
 ```php
 $mail = new Nette\Mail\Message;
@@ -81,6 +81,17 @@ $mail->setHtmlBody(
 ```
 
 The image embedding algorithm searches for these patterns: `<img src=...>`, `<body background=...>`, `url(...)` inside the HTML `style` attribute, and the special syntax `[[...]]`.
+
+The `[[...]]` syntax is for places the algorithm doesn't search on its own, such as the `background` attribute of a table. Put the file name between the double square brackets and Nette replaces the whole thing with a reference to the embedded image:
+
+```php
+$mail->setHtmlBody(
+	'<table background="[[background.gif]]">...</table>',
+	'/path/to/images',
+);
+```
+
+(since 4.2.2) Only an existing image inside the given directory is embedded this way; anything else between `[[` and `]]` stays as plain text. So text from users in the email, such as the content of a message, can't attach a file from your server, not even when someone writes `[[../config/local.neon]]` in it.
 
 Could sending emails be even easier?
 
@@ -175,7 +186,7 @@ Nette automatically embeds all images, sets the subject based on the `<title>` e
 
 ### Usage in Nette Application
 
-If you use emails together with Nette Application, i.e., with presenters, you might want to create links in templates using the `n:href` attribute or the `{link}` tag. Latte doesn't know these by default, but it's very easy to add them. The `Nette\Application\LinkGenerator` object can create links, and you can get it by passing it using [dependency injection](../dependency-injection/passing-dependencies.md):
+If you use emails together with Nette Application, i.e., with presenters, you might want to create links in templates using the `n:href` attribute or the `{link}` tag. Latte doesn't know these by default, but it's very easy to add them. The `Nette\Application\LinkGenerator` object can create links, and you can get it by passing it using [dependency injection](../dependency-injection/passing-dependencies.md):
 
 ```php
 use Nette;
@@ -283,7 +294,7 @@ HTML attributes are generated only from CSS rules processed by `CssInliner`, not
 
 ## Sending Emails
 
-A mailer is a class responsible for sending emails. It implements the [Nette\Mail\Mailer](https://api.nette.org/mail/master/Nette/Mail/Mailer.html) interface, and several pre-made mailers are available, which we will introduce.
+A mailer is a class responsible for sending emails. It implements the [Nette\Mail\Mailer](https://api.nette.org/mail/master/Nette/Mail/Mailer.html) interface, and several pre-made mailers are available, which we will introduce.
 
 The framework automatically adds a `Nette\Mail\Mailer` service to the DI container based on the [configuration](#configuration), and you obtain it using [dependency injection](../dependency-injection/passing-dependencies.md).
 
@@ -298,7 +309,7 @@ $mailer->send($mail);
 
 If you want to set the `returnPath` and your server still overwrites it, use `$mailer->commandArgs = '-fmy@email.com'`.
 
-By default, `SendmailMailer` passes the sender's address to the `mail()` function as the envelope sender (the `-f` argument). You can turn this off with `$mailer->setEnvelopeSender(false)`.
+By default, `SendmailMailer` passes the sender's address to the `mail()` function as the envelope sender (the `-f` argument). You can turn this off with `$mailer->setEnvelopeSender(false)`.
 
 ### SmtpMailer
 
@@ -319,7 +330,7 @@ The following additional parameters can be passed to the constructor:
 - `port` – if not set, the default is used: 465 for `ssl`, 587 for `tls`, otherwise 25
 - `timeout` – timeout for the SMTP connection
 - `persistent` – use a persistent connection
-- `clientHost` – specify the client's host header
+- `clientHost` – specify the client's host header
 - `streamOptions` – allows setting [SSL context options](https://www.php.net/manual/en/context.ssl.php) for the connection
 
 ### OAuth 2.0 Authentication (since 4.2.0)
@@ -357,7 +368,7 @@ $mailer->send($mail);
 
 Other parameters in the constructor are the number of retries (default `3`) and the waiting time between them in milliseconds (default `1000`). If all mailers fail in every attempt, a `Nette\Mail\FallbackMailerException` is thrown, whose `$failures` property holds the collected exceptions.
 
-(since 4.2.0) A mailer whose failure is permanent, such as the SMTP server rejecting the credentials, is dropped from further attempts – retrying cannot change the outcome.
+(since 4.2.0) A mailer whose failure is permanent, such as the SMTP server rejecting the credentials, is dropped from further attempts – retrying cannot change the outcome.
 
 You can add another mailer later with `addMailer()` and register the `$onFailure` event, which is called after each failed attempt:
 
@@ -404,7 +415,7 @@ Internally this is handled by [Nette\Mail\Interceptor](https://api.nette.org/mai
 
 ## DKIM
 
-DKIM (DomainKeys Identified Mail) is a technology for increasing email trustworthiness, which also helps detect spoofed messages. The sent message is signed with the private key of the sender's domain, and this signature is stored in the email header. The recipient's server compares this signature with the public key stored in the domain's DNS records. If the signature matches, it proves that the email actually originated from the sender's domain and that the message was not modified during transmission.
+DKIM (DomainKeys Identified Mail) is a technology for increasing email trustworthiness, which also helps detect spoofed messages. The sent message is signed with the private key of the sender's domain, and this signature is stored in the email header. The recipient's server compares this signature with the public key stored in the domain's DNS records. If the signature matches, it proves that the email actually originated from the sender's domain and that the message was not modified during transmission.
 
 You can set up the mailer to sign emails directly in the [configuration](#configuration). If you do not use dependency injection, it is used as follows:
 

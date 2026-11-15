@@ -201,7 +201,7 @@ $value = & Arrays::getRef($array, ['color', 'favorite']);
 
 ### `grep(array $array, string $pattern, bool $invert=false): array`
 
-Returns only those array items whose value matches the regular expression `$pattern`. If `$invert` is `true`, it returns items that do *not* match. A compilation or runtime error in the expression throws `Nette\RegexpException`.
+Returns only those array items whose value matches the regular expression `$pattern`. If `$invert` is `true`, it returns items that do *not* match. A compilation or runtime error in the expression throws `Nette\RegexpException`.
 
 ```php
 $filteredArray = Arrays::grep($array, '~^\d+$~');
@@ -325,7 +325,7 @@ $array = Arrays::mergeTree($array1, $array2);
 // $array = ['color' => ['favorite' => 'red', 'blue'], 5];
 ```
 
-Values from the second array are always appended to the end of the first. The disappearance of the value `10` from the second array might seem a bit confusing. It's important to realize that this value, as well as the value `5` in the first array, is assigned the same numeric key `0`. Therefore, the resulting array only contains the element from the first array for this key.
+Values from the second array are always appended to the end of the first. The disappearance of the value `10` from the second array might seem a bit confusing. It's important to realize that this value, as well as the value `5` in the first array, is assigned the same numeric key `0`. Therefore, the resulting array only contains the element from the first array for this key.
 
 ### `normalize(array $array, ?string $filling=null): array`
 

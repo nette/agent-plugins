@@ -8,7 +8,7 @@ Installation:
 composer require nette/utils
 ```
 
-Let's create a paginator object and set some basic information:
+Let's create a paginator object and set some basic information:
 
 ```php
 $paginator = new Nette\Utils\Paginator;

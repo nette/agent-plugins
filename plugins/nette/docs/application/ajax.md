@@ -23,7 +23,7 @@ In the era of modern web applications, where functionality is often distributed 
 
 ## AJAX Request
 
-An AJAX request does not fundamentally differ from a classic HTTP request. A presenter is called with specific parameters. It is up to the presenter to decide how to respond to the request – it can return data in JSON format, send a part of HTML code, an XML document, etc.
+An AJAX request does not fundamentally differ from a classic HTTP request. A presenter is called with specific parameters. It is up to the presenter to decide how to respond to the request – it can return data in JSON format, send a part of HTML code, an XML document, etc.
 
 On the browser side, we initiate an AJAX request using the `fetch()` function:
 
@@ -39,7 +39,7 @@ fetch(url, {
 
 On the server side, an AJAX request is recognized by the `$httpRequest->isAjax()` method of the service [encapsulating the HTTP request](../http/request.md). It uses the `X-Requested-With` HTTP header for detection, so it is crucial to send it. Within the presenter, you can use the `$this->isAjax()` method.
 
-If you want to send data in JSON format, use the [`sendJson()`](presenters.md#sending-a-response) method. The method also terminates the presenter's activity.
+If you want to send data in JSON format, use the [`sendJson()`](presenters.md#sending-a-response) method. The method also terminates the presenter's activity.
 
 ```php
 public function actionExport(): void
@@ -206,7 +206,7 @@ OK
 {control productGrid}
 
 will not work:
-{control productGrid $arg, $arg}
+{control productGrid, $arg, $arg}
 {control productGrid:paginator}
 ```
 
@@ -230,7 +230,7 @@ During an AJAX request, the `redirect()` and `redirectUrl()` methods do not send
 
 ## Passing Parameters
 
-When sending parameters to a component via an AJAX request, whether they are signal parameters or persistent parameters, we must specify their global name in the request, which includes the component's name. The `getParameterId()` method returns the full parameter name.
+When sending parameters to a component via an AJAX request, whether they are signal parameters or persistent parameters, we must specify their global name in the request, which includes the component's name. The `getParameterId()` method returns the full parameter name.
 
 ```js
 let url = new URL({link //foo!});

@@ -213,7 +213,7 @@ $table->whereOr([
 
 ### `wherePrimary(mixed $key): static`
 
-Adds a condition for the table's primary key:
+Adds a condition for the table's primary key:
 
 ```php
 // WHERE `id` = 123
@@ -648,9 +648,9 @@ To illustrate working with relationships, we'll use an example book database ([f
 In our example book database, we find several types of relationships (although the model is simplified compared to reality):
 
 - **One-to-many (1:N)** – Each book **has one** author; an author can write **multiple** books.
-- **Zero-to-many (0:N)** – A book **can have** a translator; a translator can translate **multiple** books.
-- **Zero-to-one (0:1)** – A book **can have** a sequel.
-- **Many-to-many (M:N)** – A book **can have several** tags, and a tag can be assigned to **several** books.
+- **Zero-to-many (0:N)** – A book **can have** a translator; a translator can translate **multiple** books.
+- **Zero-to-one (0:1)** – A book **can have** a sequel.
+- **Many-to-many (M:N)** – A book **can have several** tags, and a tag can be assigned to **several** books.
 
 In these relationships, there is always a **parent table** and a **child table**. For example, in the relationship between authors and books, the `author` table is the parent, and the `book` table is the child – you can think of it as a book always “belonging” to an author. This is also reflected in the database structure: the child table `book` contains the foreign key `author_id`, which references the parent table `author`.
 
@@ -722,7 +722,7 @@ The logic for finding the joining column is determined by the implementation of 
 
 ### Accessing the Child Table
 
-Accessing the child table works in the opposite direction. Now we ask *which books did this author write* or *which books did this translator translate*. For this type of query, we use the `related()` method, which returns a `Selection` with related records. Let's look at an example:
+Accessing the child table works in the opposite direction. Now we ask *which books did this author write* or *which books did this translator translate*. For this type of query, we use the `related()` method, which returns a `Selection` with related records. Let's look at an example:
 
 ```php
 $author = $explorer->table('author')->get(1);
@@ -851,7 +851,7 @@ $authors->where(':book:book_tag.tag.name', 'PHP')
 
 The `joinWhere()` method extends the conditions specified when joining tables in SQL after the `ON` keyword.
 
-Let's say we want to find books translated by a specific translator:
+Let's say we want to find books translated by a specific translator:
 
 ```php
 // Finds books translated by a translator named 'David'

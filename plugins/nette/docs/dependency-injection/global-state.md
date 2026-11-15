@@ -28,21 +28,21 @@ In this chapter, we'll explain why this is the case and how to avoid global sta
 
 ## Global Interlinking
 
-In an ideal world, an object should only communicate with objects that were [directly passed to it](passing-dependencies.md). If I create two objects `A` and `B` and never pass a reference between them, then neither `A` nor `B` can access or modify the other's state. This is a highly desirable property of code. It's akin to having a battery and a light bulb; the bulb won't light up until you connect it to the battery with a wire.
+In an ideal world, an object should only communicate with objects that were [directly passed to it](passing-dependencies.md). If I create two objects `A` and `B` and never pass a reference between them, then neither `A` nor `B` can access or modify the other's state. This is a highly desirable property of code. It's akin to having a battery and a light bulb; the bulb won't light up until you connect it to the battery with a wire.
 
 However, this doesn't hold true for global (static) variables or singletons. Object `A` could *wirelessly* access object `C` and modify it without any reference passing, by calling `C::changeSomething()`. If object `B` also taps into the global `C`, then `A` and `B` can influence each other through `C`.
 
-Using global variables introduces a new form of *wireless* coupling, invisible from the outside. It creates a smokescreen, making the code harder to understand and use. To truly grasp the dependencies, developers must read every line of source code, instead of just relying on the class interfaces. Furthermore, this coupling is entirely unnecessary. Global state is used because it's easily accessible from anywhere and allows, for instance, writing to a database through a global (static) method `DB::insert()`. However, as we will demonstrate, the perceived convenience is minimal compared to the severe complications it introduces.
+Using global variables introduces a new form of *wireless* coupling, invisible from the outside. It creates a smokescreen, making the code harder to understand and use. To truly grasp the dependencies, developers must read every line of source code, instead of just relying on the class interfaces. Furthermore, this coupling is entirely unnecessary. Global state is used because it's easily accessible from anywhere and allows, for instance, writing to a database through a global (static) method `DB::insert()`. However, as we will demonstrate, the perceived convenience is minimal compared to the severe complications it introduces.
 
 In terms of behavior, there is no difference between a global and a static variable. They are equally harmful.
 
 ## The Spooky Action at a Distance
 
-“Spooky action at a distance” – that's what Albert Einstein famously called a phenomenon in quantum physics that gave him the creeps. It refers to quantum entanglement, where measuring a property of one particle instantaneously affects another entangled particle, regardless of the distance separating them, even millions of light-years, which seemingly violates the fundamental law of the universe that nothing can travel faster than light.
+“Spooky action at a distance” – that's what Albert Einstein famously called a phenomenon in quantum physics that gave him the creeps. It refers to quantum entanglement, where measuring a property of one particle instantaneously affects another entangled particle, regardless of the distance separating them, even millions of light-years, which seemingly violates the fundamental law of the universe that nothing can travel faster than light.
 
 In the software world, ‘spooky action at a distance’ describes a situation where we execute a process believed to be isolated (since no dependencies were explicitly passed), yet unexpected interactions and state changes occur in distant parts of the system, unbeknownst to us. This can only occur through global state.
 
-Imagine joining a development team on a project with a large, mature codebase. Your new lead asks you to implement a new feature and, like a good developer, you start by writing a test. But because you're new to the project, you do a lot of exploratory ‘what happens if I call this method’ type tests. And you try to write the following test:
+Imagine joining a development team on a project with a large, mature codebase. Your new lead asks you to implement a new feature and, like a good developer, you start by writing a test. But because you're new to the project, you do a lot of exploratory ‘what happens if I call this method’ type tests. And you try to write the following test:
 
 ```php
 function testCreditCardCharge()
@@ -56,11 +56,11 @@ You run the code, perhaps several times, and after a while, you notice bank noti
 
 How on earth could the test cause an actual charge? Operating with a credit card isn't simple. You need to interact with a third-party web service, know its URL, authenticate, and so forth. None of this information is included in the test. Worse still, you don't know where this information resides, making it impossible to mock the external dependencies to prevent the $100 charge on each test run. And as a new developer, how were you supposed to know that what you were about to do would lead to you being $100 poorer?
 
-That's a spooky action at a distance!
+That's a spooky action at a distance!
 
-You're forced to sift through extensive source code and consult senior colleagues to understand the project's interconnections. This difficulty arises because the `CreditCard` class interface doesn't reveal the necessary global state initialization. Even examining the class's source code might not reveal which initialization method to call. At best, you might find the global variable being accessed and attempt to deduce how to initialize it.
+You're forced to sift through extensive source code and consult senior colleagues to understand the project's interconnections. This difficulty arises because the `CreditCard` class interface doesn't reveal the necessary global state initialization. Even examining the class's source code might not reveal which initialization method to call. At best, you might find the global variable being accessed and attempt to deduce how to initialize it.
 
-The classes in such a project are pathological liars. The `CreditCard` class pretends it can be simply instantiated and its `charge()` method called. However, it secretly interacts with another class, `PaymentGateway`, representing the payment gateway. Even the `PaymentGateway` interface might suggest independent initialization, but in reality, it might pull credentials from a configuration file, and so on. The original developers understand that `CreditCard` requires `PaymentGateway`. They wrote the code this way. But for newcomers, it's a complete mystery that hinders their ability to learn and contribute effectively.
+The classes in such a project are pathological liars. The `CreditCard` class pretends it can be simply instantiated and its `charge()` method called. However, it secretly interacts with another class, `PaymentGateway`, representing the payment gateway. Even the `PaymentGateway` interface might suggest independent initialization, but in reality, it might pull credentials from a configuration file, and so on. The original developers understand that `CreditCard` requires `PaymentGateway`. They wrote the code this way. But for newcomers, it's a complete mystery that hinders their ability to learn and contribute effectively.
 
 How to fix the situation? Easy. **Let the API declare dependencies.**
 
@@ -99,7 +99,7 @@ $db = new DB('mysql:', 'user', 'password');
 $gateway = new PaymentGateway($db, /* ... */);
 ```
 
-A similar problem arises when using global access to a database connection:
+A similar problem arises when using global access to a database connection:
 
 ```php
 use Illuminate\Support\Facades\DB;
@@ -113,7 +113,7 @@ class Article
 }
 ```
 
-When calling the `save()` method, it's uncertain whether a database connection has been established or who is responsible for establishing it. If we need to change the database connection dynamically (e.g., for testing), we might resort to adding methods like `DB::reconnect(...)` or `DB::reconnectForTest()`.
+When calling the `save()` method, it's uncertain whether a database connection has been established or who is responsible for establishing it. If we need to change the database connection dynamically (e.g., for testing), we might resort to adding methods like `DB::reconnect(...)` or `DB::reconnectForTest()`.
 
 Consider an example:
 
@@ -146,7 +146,7 @@ class Article
 }
 ```
 
-This doesn't change anything at all. The problem is the global state itself, regardless of which class it's hidden within. In this scenario, just like the previous one, when `$article->save()` is called, we have no certainty about which database the data will be written to. Anyone, anywhere in the application, could have changed the database at any time using `Article::setDb()`. Without our knowledge.
+This doesn't change anything at all. The problem is the global state itself, regardless of which class it's hidden within. In this scenario, just like the previous one, when `$article->save()` is called, we have no certainty about which database the data will be written to. Anyone, anywhere in the application, could have changed the database at any time using `Article::setDb()`. Without our knowledge.
 
 The global state makes our application **extremely fragile**.
 
@@ -195,7 +195,7 @@ class Singleton
 }
 ```
 
-Unfortunately, the singleton introduces global state into the application. And as we have shown above, global state is undesirable. That's why the singleton is considered an antipattern.
+Unfortunately, the singleton introduces global state into the application. And as we have shown above, global state is undesirable. That's why the singleton is considered an antipattern.
 
 Don't use singletons in your code and replace them with other mechanisms. You really don't need singletons. However, if you need to ensure only one instance of a class exists throughout the application, delegate this responsibility to the [DI container](container.md). This creates an application-scoped singleton, commonly referred to as a service. The class itself is then freed from managing its uniqueness (i.e., it won't have a `getInstance()` method or a static instance property) and can focus solely on its responsibilities. Thus, it will stop violating the single responsibility principle.
 
@@ -231,7 +231,7 @@ class Foo
 }
 ```
 
-Instead, we should declare the log file path as a parameter in the `Foo` class's constructor, making it an explicit part of its API:
+Instead, we should declare the log file path as a parameter in the `Foo` class's constructor, making it an explicit part of its API:
 
 ```php
 class Foo
@@ -258,7 +258,7 @@ We want to emphasize that using static methods and global functions is not inher
 
 Using deterministic static methods and functions like `Closure::fromCallable()`, `strlen()`, and many others is perfectly compatible with dependency injection. These functions are predictable because they always return the same result for the same input parameters. They do not use any global state.
 
-However, there are functions in PHP that are not deterministic. These include, for example, the `htmlspecialchars()` function. Its third parameter, `$encoding`, if omitted, defaults to the value of the `default_charset` configuration option (`ini_get('default_charset')`). Therefore, it's recommended to always specify this parameter to prevent potential unpredictable behavior. Nette consistently does this.
+However, there are functions in PHP that are not deterministic. These include, for example, the `htmlspecialchars()` function. Its third parameter, `$encoding`, if omitted, defaults to the value of the `default_charset` configuration option (`ini_get('default_charset')`). Therefore, it's recommended to always specify this parameter to prevent potential unpredictable behavior. Nette consistently does this.
 
 Some functions, like `strtolower()` and `strtoupper()`, exhibited non-deterministic behavior in the recent past, depending on the locale setting (`setlocale()`). This caused many complications, most often when working with the Turkish language. This is because Turkish distinguishes between dotted and dotless ‘I’ in both lowercase and uppercase. Consequently, `strtolower('I')` returned `ı` (dotless lowercase i), and `strtoupper('i')` returned `İ` (dotted uppercase I), leading to numerous mysterious application errors. However, this problem was fixed in PHP version 8.2 and the functions are no longer locale-dependent.
 
@@ -266,9 +266,9 @@ This serves as a good example of how global state (locale setting) troubled thou
 
 ## When Is It Possible to Use Global State?
 
-There are specific, limited situations where using global state might be acceptable. For example, during debugging, when you need to dump a variable's value or measure the execution time of a specific code segment. In these cases, involving temporary actions that will later be removed from the code, using a globally accessible dumper or timer can be legitimate. These tools are not part of the application's core design.
+There are specific, limited situations where using global state might be acceptable. For example, during debugging, when you need to dump a variable's value or measure the execution time of a specific code segment. In these cases, involving temporary actions that will later be removed from the code, using a globally accessible dumper or timer can be legitimate. These tools are not part of the application's core design.
 
-Another example involves PHP's regular expression functions (`preg_*`), which internally cache compiled regular expressions in static memory. When you call functions with the same regular expression multiple times across your code, the expression is compiled only once. This caching improves performance and is entirely invisible to the user, making this use of internal static state generally acceptable.
+Another example involves PHP's regular expression functions (`preg_*`), which internally cache compiled regular expressions in static memory. When you call functions with the same regular expression multiple times across your code, the expression is compiled only once. This caching improves performance and is entirely invisible to the user, making this use of internal static state generally acceptable.
 
 ## Summary
 
@@ -278,10 +278,10 @@ We have discussed why it makes sense to:
 2. Explicitly declare dependencies
 3. And utilize dependency injection
 
-When designing your code, remember that every mutable `static $foo` is a potential source of problems. To create a DI-friendly environment, it's crucial to completely eliminate global state and replace it with dependency injection.
+When designing your code, remember that every mutable `static $foo` is a potential source of problems. To create a DI-friendly environment, it's crucial to completely eliminate global state and replace it with dependency injection.
 
 During this process, you might discover the need to split classes that have multiple responsibilities. Don't hesitate to do so; strive for the Single Responsibility Principle.
 
 Would you rather experience all this than just read about it? The course [Dependency Injection by Example](https://github.com/nette-examples/di-by-example) has a chapter where an innocent-looking test quietly drains an account, and you can run it yourself.
 
-*I would like to thank Miško Hevery, whose articles such as [Flaw: Brittle Global State & Singletons](https://web.archive.org/web/20230321084133/http://misko.hevery.com/code-reviewers-guide/flaw-brittle-global-state-singletons/) form the basis of this chapter.*
+*I would like to thank Miško Hevery, whose articles such as [Flaw: Brittle Global State & Singletons](https://web.archive.org/web/20230321084133/http://misko.hevery.com/code-reviewers-guide/flaw-brittle-global-state-singletons/) form the basis of this chapter.*

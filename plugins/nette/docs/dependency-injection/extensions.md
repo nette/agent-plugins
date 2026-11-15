@@ -24,7 +24,7 @@ Contents:
 
 An extension is a class that hooks into the compilation of the DI container. It can register services programmatically, validate its own configuration section, modify services defined by others, and even alter the generated container code. This page teaches you how to write one, what happens when, and what to watch out for.
 
-Extensions are how packages integrate into Nette the native way: all `nette/*` packages use them, and yours can too. A typical extension does one or more of these things:
+Extensions are how packages integrate into Nette the native way: all `nette/*` packages use them, and yours can too. A typical extension does one or more of these things:
 
 - **integrates a library** – registers its services in the container and exposes a friendly, validated configuration section (that is where the `mail:` or `database:` sections come from)
 - **automates registration** – registers many similar services in a loop or based on a rule, where listing them in `services:` would be tedious
@@ -109,7 +109,7 @@ class BlogExtension extends Nette\DI\CompilerExtension
 
 `getConfigSchema()` describes what the `blog:` section (named after the key under which we registered the extension) may contain, including types and default values – the validated values are then available in `$this->config`. In `loadConfiguration()`, we register the services. Note the names: `$this->prefix('articles')` produces `blog.articles`, so services of different extensions cannot clash.
 
-And the last few lines show why extensions exist at all: the `comments` service is only registered when comments are enabled. A plain configuration file cannot make such decisions.
+And the last few lines show why extensions exist at all: the `comments` service is only registered when comments are enabled. A plain configuration file cannot make such decisions.
 
 Services registered this way behave exactly as if they were written in `services:` – they are created lazily on demand, and autowiring passes them anywhere `Blog\Articles` is type-hinted.
 
@@ -121,7 +121,7 @@ An extension inherits from [Nette\DI\CompilerExtension](https://api.nette.org/di
 
 ### `getConfigSchema(): Nette\Schema\Schema`
 
-Defines the schema of the extension's configuration section. Thanks to it, users get validation and clear error messages for free: a typo or a wrong type in the `blog:` section is reported with an understandable message, without you writing a single check.
+Defines the schema of the extension's configuration section. Thanks to it, users get validation and clear error messages for free: a typo or a wrong type in the `blog:` section is reported with an understandable message, without you writing a single check.
 
 The schema is described using the [Schema](../schema/index.md) library and can express types, default values, allowed values, and much more:
 
@@ -184,7 +184,7 @@ public function loadConfiguration(): void
 
 ### `beforeCompile()`
 
-When this method is called, the builder already holds **all** definitions: yours, those of other extensions, and those from the user's configuration files. Service types have also been resolved, so searching by type is reliable. That makes this phase ideal for inspecting and completing the final service graph.
+When this method is called, the builder already holds **all** definitions: yours, those of other extensions, and those from the user's configuration files. Service types have also been resolved, so searching by type is reliable. That makes this phase ideal for inspecting and completing the final service graph.
 
 Typically, you search services by tag or by type and complete the found definitions:
 
@@ -311,7 +311,7 @@ For searching and walking through the existing definitions, the builder provides
 | `findByTag(string $tag)` | services carrying the tag as `name => tag value` pairs |
 | `addExcludedClasses(array $types)` | excludes classes and interfaces from autowiring |
 
-A handy idiom is using `getByType()` to find out whether a service exists at all – for example, to hook into a logger only when the application has one:
+A handy idiom is using `getByType()` to find out whether a service exists at all – for example, to hook into a logger only when the application has one:
 
 ```php
 if ($builder->getByType(Psr\Log\LoggerInterface::class)) {
@@ -347,7 +347,7 @@ $def->addSetup('setLogger');
 The most common source of confusion: extension code runs when the container is being **compiled**, not when the application handles requests. In practice this means:
 
 - An extension never works with service instances – they don't exist yet. Don't instantiate services with `new`; register a definition and let the container create them.
-- All configuration values are baked into the generated code. A value that can differ between environments (a path, a password from `getenv()`) must be marked as [dynamic](../application/bootstrapping.md#dynamic-parameters), otherwise it gets frozen at compile time.
+- All configuration values are baked into the generated code. A value that can differ between environments (a path, a password from `getenv()`) must be marked as [dynamic](../application/bootstrapping.md#dynamic-parameters), otherwise it gets frozen at compile time.
 - Strings passed to `$this->initialization->addBody()` are not executed now – they are PHP code emitted into the container, executed on every request.
 
 ### File Dependencies
@@ -371,7 +371,7 @@ if (class_exists(Symfony\Component\Console\Command\Command::class)) {
 }
 ```
 
-And values like `%debugMode%` are best passed through the extension's constructor:
+And values like `%debugMode%` are best passed through the extension's constructor:
 
 ```neon
 extensions:
@@ -387,7 +387,7 @@ class BlogExtension extends Nette\DI\CompilerExtension
 }
 ```
 
-A typical use is registering a Tracy panel only in developer mode.
+A typical use is registering a Tracy panel only in developer mode.
 
 ### Complex Arguments
 

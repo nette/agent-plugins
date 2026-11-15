@@ -48,7 +48,7 @@ When all pages (except the homepage) return a 404 error, it seems like a server
 
 ## Changes in Templates or Configuration Are Not Reflected
 
-“I modified the template or configuration, but the website still displays the old version.” This behavior occurs in [production mode](../application/bootstrapping.md#development-vs-production-mode), which, for performance reasons, does not check for file changes and maintains the previously generated cache.
+“I modified the template or configuration, but the website still displays the old version.” This behavior occurs in [production mode](../application/bootstrapping.md#development-vs-production-mode), which, for performance reasons, does not check for file changes and maintains the previously generated cache.
 
 To avoid manually clearing the cache on the production server after every modification, enable development mode for your IP address in the `Bootstrap.php` file:
 
@@ -58,9 +58,9 @@ $this->configurator->setDebugMode('your.ip.address');
 
 ## How to Disable Cache During Development?
 
-Nette is smart, and you don't need to disable caching in it. During development, it automatically updates the cache whenever there's a change in the template or the DI container configuration. Moreover, the development mode is activated by auto-detection, so there's usually no need to configure anything, [or just the IP address](../application/bootstrapping.md#development-vs-production-mode).
+Nette is smart, and you don't need to disable caching in it. During development, it automatically updates the cache whenever there's a change in the template or the DI container configuration. Moreover, the development mode is activated by auto-detection, so there's usually no need to configure anything, [or just the IP address](../application/bootstrapping.md#development-vs-production-mode).
 
-When debugging the router, we recommend disabling the browser cache, where, for example, redirects might be stored: open Developer Tools (Ctrl+Shift+I or Cmd+Option+I) and in the Network panel, check the box to disable the cache.
+When debugging the router, we recommend disabling the browser cache, where, for example, redirects might be stored: open Developer Tools (Ctrl+Shift+I or Cmd+Option+I) and in the Network panel, check the box to disable the cache.
 
 ## Error `#[\ReturnTypeWillChange] attribute should be used`
 
@@ -91,7 +91,7 @@ setsebool -P httpd_can_network_connect_db on
 
 ## How to Change or Remove `www` Directory from URL?
 
-The `www/` directory used in Nette's sample projects represents the public directory or document-root of the project. It is the only directory whose content is accessible to the browser. It contains the `index.php` file, the entry point that starts the Nette web application.
+The `www/` directory used in Nette's sample projects represents the public directory or document-root of the project. It is the only directory whose content is accessible to the browser. It contains the `index.php` file, the entry point that starts the Nette web application.
 
 To run the application on a hosting service, you need to configure the document-root correctly. You have two options:
 
@@ -136,11 +136,11 @@ The `location` block must appear only once for each filesystem path within the `
 
 The simplest way to test if Apache uses or ignores your `.htaccess` file is to intentionally break it. Put the line `Test` at the beginning of the file. Now, if you refresh the page in your browser, you should see an *Internal Server Error*.
 
-If you see this error, that's actually good! It means that Apache is parsing the `.htaccess` file and encountering the error we put there. Remove the `Test` line.
+If you see this error, that's actually good! It means that Apache is parsing the `.htaccess` file and encountering the error we put there. Remove the `Test` line.
 
 If you do not see an *Internal Server Error*, your Apache setup ignores the `.htaccess` file. Generally, Apache ignores it because the configuration directive `AllowOverride All` is missing.
 
-If you are hosting it yourself, it's easy enough to fix. Open your `httpd.conf` or `apache.conf` in a text editor, locate the relevant `<Directory>` section, and add/change this directive:
+If you are hosting it yourself, it's easy enough to fix. Open your `httpd.conf` or `apache.conf` in a text editor, locate the relevant `<Directory>` section, and add/change this directive:
 
 ```apacheconf
 <Directory "/var/www/htdocs"> # path to your document root
@@ -181,7 +181,7 @@ http:
 
 The characters `{` and `}` are used for writing Latte tags. Anything following the `{` character (except space and quotation mark) is considered a tag. If you need to print the character `{` directly (often in JavaScript), you can put a space (or another whitespace character) right after `{`. This prevents it from being interpreted as a tag.
 
-If it's necessary to print these characters in a situation where the text would be interpreted as a tag, you can use special tags to output these characters – `{l}` for `{` and `{r}` for `}`.
+If it's necessary to print these characters in a situation where the text would be interpreted as a tag, you can use special tags to output these characters – `{l}` for `{` and `{r}` for `}`.
 
 ```
 {is a tag}

@@ -145,7 +145,7 @@ The image can be saved to a file:
 $image->save('resampled.jpg');
 ```
 
-You can specify the compression quality in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9):
+You can specify the compression quality in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9):
 
 ```php
 $image->save('resampled.jpg', 80); // JPEG, quality 80%
@@ -190,7 +190,7 @@ Detection without loading the image itself is done by `Image::detectTypeFromFile
 
 ## Resizing
 
-A common operation is resizing an image. The current dimensions are returned by the `getWidth()` and `getHeight()` methods.
+A common operation is resizing an image. The current dimensions are returned by the `getWidth()` and `getHeight()` methods.
 
 The `resize()` method is used for resizing. Example of proportional resizing so that the image does not exceed 500×300 pixels (either the width will be exactly 500px or the height will be exactly 300px; one dimension is calculated to maintain the aspect ratio):
 
@@ -198,7 +198,7 @@ The `resize()` method is used for resizing. Example of proportional resizing so 
 $image->resize(500, 300);
 ```
 
-It's possible to specify only one dimension, and the other will be calculated automatically:
+It's possible to specify only one dimension, and the other will be calculated automatically:
 
 ```php
 $image->resize(500, null); // width 500px, height calculated automatically
@@ -300,7 +300,7 @@ All PHP functions for image manipulation are available to you, see [Overview of 
 $image->filledEllipse($centerX, $centerY, $width, $height, ImageColor::rgb(255, 0, 0));
 ```
 
-Because PHP's native functions for drawing rectangles are somewhat impractical due to coordinate specification, the `Image` class offers replacements: [rectangleWH()](#rectanglewhint-x-int-y-int-width-int-height-imagecolor-color-void) and [filledRectangleWH()](#filledrectanglewhint-x-int-y-int-width-int-height-imagecolor-color-void).
+Because PHP's native functions for drawing rectangles are somewhat impractical due to coordinate specification, the `Image` class offers replacements: [rectangleWH()](#rectanglewhint-x-int-y-int-width-int-height-imagecolor-color-void) and [filledRectangleWH()](#filledrectanglewhint-x-int-y-int-width-int-height-imagecolor-color-void).
 
 ## Merging Multiple Images
 
@@ -404,11 +404,11 @@ Returns the color index of the pixel at the specified location in the image. If 
 
 ### `colorClosest(int $red, int $green, int $blue): int`
 
-Returns the index of the color in the image's palette that is “closest” to the specified RGB value. The “distance” between the desired color and each color in the palette is calculated as if the RGB values represented points in three-dimensional space. ([more](https://www.php.net/manual/en/function.imagecolorclosest))
+Returns the index of the color in the image's palette that is “closest” to the specified RGB value. The “distance” between the desired color and each color in the palette is calculated as if the RGB values represented points in three-dimensional space. ([more](https://www.php.net/manual/en/function.imagecolorclosest))
 
 ### `colorClosestAlpha(int $red, int $green, int $blue, int $alpha): int`
 
-Returns the index of the color in the image's palette that is “closest” to the specified RGB value and `$alpha` level. ([more](https://www.php.net/manual/en/function.imagecolorclosestalpha))
+Returns the index of the color in the image's palette that is “closest” to the specified RGB value and `$alpha` level. ([more](https://www.php.net/manual/en/function.imagecolorclosestalpha))
 
 ### `colorClosestHWB(int $red, int $green, int $blue): int`
 
@@ -420,11 +420,11 @@ Deallocates a color previously allocated with `colorAllocate()` or `colorAllocat
 
 ### `colorExact(int $red, int $green, int $blue): int`
 
-Returns the index of the specified color in the image's palette. ([more](https://www.php.net/manual/en/function.imagecolorexact))
+Returns the index of the specified color in the image's palette. ([more](https://www.php.net/manual/en/function.imagecolorexact))
 
 ### `colorExactAlpha(int $red, int $green, int $blue, int $alpha): int`
 
-Returns the index of the specified color + alpha in the image's palette. ([more](https://www.php.net/manual/en/function.imagecolorexactalpha))
+Returns the index of the specified color + alpha in the image's palette. ([more](https://www.php.net/manual/en/function.imagecolorexactalpha))
 
 ### `colorMatch(Image $image2): void`
 
@@ -624,7 +624,7 @@ Requires the *Bundled GD extension*, so it might not work everywhere.
 
 Saves the image to a file.
 
-Compression quality is in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9). If the type is not clear from the file extension, you can specify it using one of the `ImageType` constants.
+Compression quality is in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9). If the type is not clear from the file extension, you can specify it using one of the `ImageType` constants.
 
 ### `saveAlpha(bool $saveflag): void`
 
@@ -640,7 +640,7 @@ Scales an image using the given interpolation algorithm. ([more](https://www.php
 
 Outputs the image to the browser.
 
-Compression quality is in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9).
+Compression quality is in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9).
 
 ### `setBrush(Image $brush): void`
 
@@ -674,7 +674,7 @@ Sets the thickness of lines drawn when drawing rectangles, polygons, arcs, etc.,
 
 Sets the tile image to be used by all region filling functions (such as `fill()` and `filledPolygon()`) when filling with the special color `IMG_COLOR_TILED`.
 
-A tile is an image used to fill an area with a repeated pattern. Any image can be used as a tile, and by setting the transparent color index of the tile image with `colorTransparent()`, a tile allowing certain parts of the underlying area to shine through can be created. ([more](https://www.php.net/manual/en/function.imagesettile))
+A tile is an image used to fill an area with a repeated pattern. Any image can be used as a tile, and by setting the transparent color index of the tile image with `colorTransparent()`, a tile allowing certain parts of the underlying area to shine through can be created. ([more](https://www.php.net/manual/en/function.imagesettile))
 
 ### `sharpen(): Image`
 
@@ -686,7 +686,7 @@ Requires the *Bundled GD extension*, so it might not work everywhere.
 
 Outputs the image as a string.
 
-Compression quality is in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9).
+Compression quality is in the range 0–100 for JPEG (default 85), WEBP (default 80), and AVIF (default 30), and 0–9 for PNG (default 9).
 
 ### `trueColorToPalette(bool $dither, int $ncolors): void`
 

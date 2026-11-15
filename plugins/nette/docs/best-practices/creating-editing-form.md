@@ -51,7 +51,7 @@ class RecordPresenter extends Nette\Application\UI\Presenter
 
 ## Editing a Record
 
-Now let's look at what a presenter for editing a record would look like:
+Now let's look at what a presenter for editing a record would look like:
 
 ```php
 use Nette\Application\UI\Form;
@@ -103,7 +103,7 @@ class RecordPresenter extends Nette\Application\UI\Presenter
 }
 ```
 
-In the *action* method, invoked at the beginning of the [presenter lifecycle](../application/presenters.md#presenter-life-cycle), we verify the record's existence and the user's permission to edit it.
+In the *action* method, invoked at the beginning of the [presenter lifecycle](../application/presenters.md#presenter-life-cycle), we verify the record's existence and the user's permission to edit it.
 
 We store the record in the `$record` property, making it available in the `createComponentRecordForm()` method for setting default values and in `recordFormSucceeded()` for accessing the ID. An alternative solution is to set the default values directly in `actionEdit()` and retrieve the ID value (part of the URL) using `getParameter('id')`:
 
@@ -134,7 +134,7 @@ However, and this should be **the most important takeaway from the entire code**
 
 ## Same Form for Adding and Editing
 
-Now, let's combine both presenters into one. We could either differentiate the action within the `createComponentRecordForm()` method and configure the form accordingly, or we can delegate this to the action methods directly and eliminate the conditional check:
+Now, let's combine both presenters into one. We could either differentiate the action within the `createComponentRecordForm()` method and configure the form accordingly, or we can delegate this to the action methods directly and eliminate the conditional check:
 
 ```php
 class RecordPresenter extends Nette\Application\UI\Presenter

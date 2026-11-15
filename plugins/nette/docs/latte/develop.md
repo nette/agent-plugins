@@ -71,7 +71,7 @@ The cache is automatically regenerated every time you change the source file. So
 $latte->setAutoRefresh(false);
 ```
 
-When deployed on a production server, the initial cache generation, especially for larger applications, can understandably take a while. Latte has built-in prevention against [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede). This is a situation where the server receives a large number of concurrent requests and because Latte's cache does not yet exist, they would all generate it at the same time. Which spikes CPU. Latte is smart, and when there are multiple concurrent requests, only the first thread generates the cache, the others wait and then use it.
+When deployed on a production server, the initial cache generation, especially for larger applications, can understandably take a while. Latte has built-in prevention against [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede). This is a situation where the server receives a large number of concurrent requests and because Latte's cache does not yet exist, they would all generate it at the same time. Which spikes CPU. Latte is smart, and when there are multiple concurrent requests, only the first thread generates the cache, the others wait and then use it.
 
 You can also pre-generate the cache during deployment (for example, in a deploy script) using the `Engine::warmupCache()` method. It compiles the given template into the cache in advance, so the first visitor doesn't have to wait: `$latte->warmupCache('template.latte')`.
 
@@ -82,7 +82,7 @@ Latte can be customized in several ways, from simple helpers to entirely new lan
 - **[Custom Filters](custom-filters.md):** for formatting or transforming data in the template output (e.g., `{$var|myFilter}`).
 - **[Custom Functions](custom-functions.md):** for custom logic you call within template expressions (e.g., `{myFunction($arg)}`).
 - **[Custom Tags](custom-tags.md):** for entirely new language constructs (`{mytag}...{/mytag}` or `n:mytag`).
-- **[Compiler Passes](compiler-passes.md):** functions that modify the template's AST between parsing and PHP code generation (for example, optimizations or security checks).
+- **[Compiler Passes](compiler-passes.md):** functions that modify the template's AST between parsing and PHP code generation (for example, optimizations or security checks).
 - **[Custom Loaders](loaders.md):** for changing how Latte locates and loads template files.
 
 If you want to reuse your extensions across projects or share them with others, bundle them into a [Latte Extension](extending-latte.md#the-robust-way-latte-extension) class.
@@ -420,7 +420,7 @@ $latte->setExceptionHandler($loggingHandler);
 
 ## Automatic Layout Lookup
 
-Using the tag [`{layout}`](template-inheritance.md#layout-inheritance-layout), the template determines its parent template. It's also possible to have the layout searched automatically, which will simplify writing templates since they won't need to include the `{layout}` tag.
+Using the tag [`{layout}`](template-inheritance.md#layout-inheritance-layout), the template determines its parent template. It's also possible to have the layout searched automatically, which will simplify writing templates since they won't need to include the `{layout}` tag.
 
 This is achieved as follows:
 

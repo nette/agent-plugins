@@ -76,7 +76,7 @@ FileSystem::makeWritable('/path/to/fileOrDir');
 
 ### `open(string $path, string $mode): resource`
 
-Opens a file and returns a resource handle. The `$mode` parameter works the same as the native `fopen()` function. Throws a `Nette\IOException` on error.
+Opens a file and returns a resource handle. The `$mode` parameter works the same as the native [`fopen()`](https://www.php.net/manual/en/function.fopen.php) function. Throws a `Nette\IOException` on error.
 
 ```php
 $res = FileSystem::open('/path/to/file', 'r');
@@ -120,7 +120,7 @@ FileSystem::write('/path/to/file', $content);
 
 ### `writeAtomic(string $file, string $content, ?int $mode=0666): void` (since 4.1.5)
 
-Writes the string `$content` to the file `$file` atomically: the content is first written to a temporary file, which then replaces the target in a single step. A reader accessing the file at the same moment can therefore never see it half-written or truncated. Otherwise it behaves exactly like `write()`. Throws a `Nette\IOException` on error.
+Writes the string `$content` to the file `$file` atomically: the content is first written to a temporary file, which then replaces the target in a single step. A reader accessing the file at the same moment can therefore never see it half-written or truncated. Otherwise it behaves exactly like `write()`. Throws a `Nette\IOException` on error.
 
 ```php
 FileSystem::writeAtomic('/path/to/file', $content);
@@ -160,7 +160,7 @@ FileSystem::joinPaths('/a/', '/../b');       // '/b'
 
 ### `normalizePath(string $path): string`
 
-Normalizes `..`, `.`, and directory separators in the path to the system's standard.
+Normalizes `..`, `.`, and directory separators in the path to the system's standard.
 
 ```php
 FileSystem::normalizePath('/file/.');        // '/file'

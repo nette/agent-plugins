@@ -68,7 +68,7 @@ $el = Html::el('input', [
 ]);
 ```
 
-To change and retrieve the element's name:
+To change and retrieve the element's name:
 
 ```php
 $el->setName('img');
@@ -78,7 +78,7 @@ $el->isEmpty(); // true, as <img> is a void element
 
 ## HTML Attributes
 
-Individual HTML attributes can be set and retrieved in three ways; it's up to you which one you prefer. The first is via properties:
+Individual HTML attributes can be set and retrieved in three ways; it's up to you which one you prefer. The first is via properties:
 
 ```php
 $el->src = 'image.jpg'; // sets src attribute
@@ -178,7 +178,7 @@ echo Html::el('a')->href('index.php', [
 
 ### Data Attributes
 
-Data attributes have special support. Since their names contain hyphens, accessing them via properties and methods isn't as elegant, so there's a dedicated `data()` method:
+Data attributes have special support. Since their names contain hyphens, accessing them via properties and methods isn't as elegant, so there's a dedicated `data()` method:
 
 ```php
 $el = Html::el('input');
@@ -260,7 +260,7 @@ foreach ($el as $child) { /* ... */ }
 echo count($el); // 2
 ```
 
-A new node can be inserted at a specific position using `insert(?int $index, $child, bool $replace = false)`. If `$replace = false`, it inserts the element at position `$index` and shifts the others. If `$index = null`, it appends the element to the end.
+A new node can be inserted at a specific position using `insert(?int $index, $child, bool $replace = false)`. If `$replace = false`, it inserts the element at position `$index` and shifts the others. If `$index = null`, it appends the element to the end.
 
 ```php
 // inserts the element at the first position and shifts the others
@@ -282,7 +282,7 @@ echo Html::fragment(
 // <strong>hello</strong>10 &lt; 20<br>
 ```
 
-(since 4.1.5) A fragment with text-only or HTML-only content is created by the `text()` and `html()` methods:
+(since 4.1.5) A fragment with text-only or HTML-only content is created by the `text()` and `html()` methods:
 
 ```php
 echo Html::text('10 < 20');   // '10 &lt; 20'

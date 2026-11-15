@@ -56,7 +56,7 @@ Nette Database supports the following databases:
 
 ## Two Approaches to Database Work
 
-Nette Database gives you a choice: you can either write SQL queries directly (SQL way), or let them be generated automatically (Explorer). Let's see how both approaches handle the same tasks:
+Nette Database gives you a choice: you can either write SQL queries directly (SQL way), or let them be generated automatically (Explorer). Let's see how both approaches handle the same tasks:
 
 [SQL way](sql-way.md) – SQL Queries
 

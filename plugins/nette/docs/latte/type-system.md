@@ -33,7 +33,7 @@ Then insert the `{templateType}` tag with the full class name (including the nam
 
 From this point on, your IDE can correctly provide autocompletion.
 
-How to save work? What's the easiest way to write a template parameter class or `{varType}` tags? Have them generated! That's what the pair of tags `{templatePrint}` and `{varPrint}` are for. If you place them in a template, instead of the normal rendering, a suggestion for the class code or a list of `{varType}` tags will be displayed. Then, simply select the code with one click and copy it into your project.
+How to save work? What's the easiest way to write a template parameter class or `{varType}` tags? Have them generated! That's what the pair of tags `{templatePrint}` and `{varPrint}` are for. If you place them in a template, instead of the normal rendering, a suggestion for the class code or a list of `{varType}` tags will be displayed. Then, simply select the code with one click and copy it into your project.
 
 ## `{templateType}`
 

@@ -24,7 +24,7 @@ We choose which [secure algorithm](https://www.php.net/manual/en/password.consta
 
 The default is `PASSWORD_DEFAULT`, meaning the choice of algorithm is left up to PHP. The algorithm may change in newer PHP versions if newer, stronger hashing algorithms appear. Therefore, you should be aware that the length of the resulting hash may change, and you should store it in a way that can accommodate enough characters; 255 is the recommended width.
 
-Example of setting the hashing speed for the bcrypt algorithm by changing the cost parameter: (in 2020, the default is 10, hashing a password takes roughly 80ms; for cost 11, it's approx. 160ms; for cost 12, approx. 320ms; the slower, the better the protection, and at costs 10–12 the protection is already considered sufficient)
+Example of setting the hashing speed for the bcrypt algorithm by changing the cost parameter: (in 2020, the default is 10, hashing a password takes roughly 80ms; for cost 11, it's approx. 160ms; for cost 12, approx. 320ms; the slower, the better the protection, and at costs 10–12 the protection is already considered sufficient)
 
 ```php
 // we will hash passwords with 2^12 (2^cost) iterations of the bcrypt algorithm

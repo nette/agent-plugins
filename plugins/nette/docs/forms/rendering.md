@@ -44,7 +44,7 @@ The appearance of the rendered form can be influenced by configuring the [Render
 
 ### `n:name`
 
-Linking the form definition in PHP code with HTML code is extremely easy. Just add the `n:name` attributes. It's that simple!
+Linking the form definition in PHP code with HTML code is extremely easy. Just add the `n:name` attributes. It's that simple!
 
 ```php
 protected function createComponentSignInForm(): Form

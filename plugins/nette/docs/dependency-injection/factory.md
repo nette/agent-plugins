@@ -12,7 +12,7 @@ Contents:
 
 Nette DI can automatically generate factory code based on interfaces, saving you from writing code.
 
-A factory is a class that is responsible for creating objects and passing their dependencies. Please do not confuse this with the *factory method* design pattern, which describes a specific way of using factories and is unrelated to this topic.
+A factory is a class that is responsible for creating objects and passing their dependencies. Please do not confuse this with the *factory method* design pattern, which describes a specific way of using factories and is unrelated to this topic.
 
 We have shown what such a factory looks like in the [introductory chapter](introduction.md#factory):
 
@@ -81,7 +81,7 @@ class UserController
 
 ## Parameterized Factory
 
-The factory method `create` can accept parameters, which it then passes to the constructor. For example, let's add the article author's ID to the `Article` class:
+The factory method `create` can accept parameters, which it then passes to the constructor. For example, let's add the article author's ID to the `Article` class:
 
 ```php
 class Article
@@ -160,7 +160,7 @@ services:
 	- PDO(%dsn%, %user%, %password%)
 ```
 
-Because the accessor returns a `PDO` service, and there's only one such service defined in the configuration, the accessor will return that specific service. If multiple services of that type exist, specify which one the accessor should return by name, e.g., `- PDOAccessor(@db1)`.
+Because the accessor returns a `PDO` service, and there's only one such service defined in the configuration, the accessor will return that specific service. If multiple services of that type exist, specify which one the accessor should return by name, e.g., `- PDOAccessor(@db1)`.
 
 ## Multifactory/Accessor
 
@@ -187,7 +187,7 @@ interface MultiFactoryAlt
 
 Then, `MultiFactory::getDb()` does the same thing as `MultiFactoryAlt::get('db')`. However, this alternative notation has the disadvantage that the supported values for `$name` are not explicitly clear from the interface signature. Additionally, you cannot define different return types for different `$name` values within the interface.
 
-Instead of `get($name)`, the interface can declare `create($name)`, which returns a new instance on every call (whereas `get()` returns a shared one). The interface may contain only one such parameterized method. If the method's return type is nullable (e.g. `?PDO`), it returns `null` for an unknown `$name` instead of throwing an exception.
+Instead of `get($name)`, the interface can declare `create($name)`, which returns a new instance on every call (whereas `get()` returns a shared one). The interface may contain only one such parameterized method. If the method's return type is nullable (e.g. `?PDO`), it returns `null` for an unknown `$name` instead of throwing an exception.
 
 ### Definition with a List
 

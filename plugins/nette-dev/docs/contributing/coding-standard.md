@@ -55,7 +55,7 @@ Nette Coding Standard corresponds to PSR-12 (or PER Coding Style), but specifies
 	}
 ```
 
-The opening curly brace on a separate line is important for visually separating the function/method signature from the body. If the signature is on one line, the separation is clear (image on the left). If it's on multiple lines, in PSR the signature and body blend together (middle), while in the Nette standard they remain separated (right):
+The opening curly brace on a separate line is important for visually separating the function/method signature from the body. If the signature is on one line, the separation is clear (image on the left). If it's on multiple lines, in PSR the signature and body blend together (middle), while in the Nette standard they remain separated (right):
 
 ![](https://files.nette.org/git/contributing/new-line-after.webp)
 
@@ -83,7 +83,7 @@ Documentation block for a class definition:
  */
 ```
 
-A documentation block for a property containing only the `@var` annotation should be on a single line:
+A documentation block for a property containing only the `@var` annotation should be on a single line:
 
 ```php
 /** @var string[] */
@@ -131,11 +131,11 @@ use const PHP_OS_FAMILY;
 Tabs have several advantages over spaces:
 
 - The size of the indentation is customizable in editors and on the [web](https://developer.mozilla.org/en-US/docs/Web/CSS/tab-size)
-- They do not impose the user's indentation size preference on the code, making the code more portable
+- They do not impose the user's indentation size preference on the code, making the code more portable
 - They can be typed with a single keystroke (anywhere, not just in editors that convert tabs to spaces)
 - Indentation is their purpose
 - They respect the needs of visually impaired and blind colleagues
 
 By using tabs in our projects, we allow for width customization, which may seem unnecessary to most people, but is essential for people with visual impairments.
 
-For blind programmers who use braille displays, each space represents a braille cell. So if the default indentation is 4 spaces, a 3rd level indentation wastes 12 valuable braille cells before the code even begins. On a 40-cell display, the most common for laptops, that's more than a quarter of the available cells wasted without providing any information.
+For blind programmers who use braille displays, each space represents a braille cell. So if the default indentation is 4 spaces, a 3rd level indentation wastes 12 valuable braille cells before the code even begins. On a 40-cell display, the most common for laptops, that's more than a quarter of the available cells wasted without providing any information.

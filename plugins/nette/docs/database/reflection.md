@@ -42,7 +42,7 @@ $table = $reflection->getTable('users');
 
 ## Table Information
 
-A table is represented by the [Table](https://api.nette.org/database/master/Nette/Database/Reflection/Table.html) object, which provides the following readonly properties:
+A table is represented by the [Table](https://api.nette.org/database/master/Nette/Database/Reflection/Table.html) object, which provides the following readonly properties:
 
 - `$name: string` – name of the table
 - `$view: bool` – whether it is a view
@@ -58,7 +58,7 @@ A table is represented by the [Table](https://api.nette.org/database/master/Net
 The `columns` property of the table provides an associative array of columns, where the key is the column name and the value is an instance of [Column](https://api.nette.org/database/master/Nette/Database/Reflection/Column.html) with these properties:
 
 - `$name: string` – name of the column
-- `$table: ?Table` – reference to the column's table
+- `$table: ?Table` – reference to the column's table
 - `$nativeType: string` – native database type
 - `$size: ?int` – size/length of the type
 - `$nullable: bool` – whether the column can contain NULL

@@ -7,8 +7,8 @@ Contents:
 - [Rule #1: Let It Be Passed to You](#rule-1-let-it-be-passed-to-you)
 - [From Functions to Classes](#from-functions-to-classes)
 - [Real-Life Examples](#real-life-examples)
-- [But I Don't Care!](#but-idont-care)
-- [Rule #2: Take What's Yours](#rule-2-take-whatsyours)
+- [But I Don't Care!](#but-i-dont-care)
+- [Rule #2: Take What's Yours](#rule-2-take-whats-yours)
 - [New Family Member](#new-family-member)
 - [Houston, We Have a Problem](#houston-we-have-a-problem)
 - [Rule #3: Let the Factory Handle It](#rule-3-let-the-factory-handle-it)
@@ -20,7 +20,7 @@ This chapter introduces the basic programming practices you should follow when w
 
 If you adopt and follow these rules, Nette will support you at every step. It will handle routine tasks for you and provide maximum convenience, allowing you to focus on the logic itself.
 
-The principles we will demonstrate here are quite simple. There's nothing to fear.
+The principles we will demonstrate here are quite simple. There's nothing to fear.
 
 ## Remember Your First Program?
 
@@ -35,11 +35,11 @@ function addition(float $a, float $b): float
 echo addition(23, 1); // prints 24
 ```
 
-A few trivial lines of code, yet they hide so many key concepts. That variables exist. That code is divided into smaller units, such as functions. That we pass input arguments to them and they return results. Only conditions and loops are missing.
+A few trivial lines of code, yet they hide so many key concepts. That variables exist. That code is divided into smaller units, such as functions. That we pass input arguments to them and they return results. Only conditions and loops are missing.
 
 The fact that we pass input data to a function and it returns a result is a perfectly understandable concept, used in other fields as well, like mathematics.
 
-A function has its signature, consisting of its name, a list of parameters and their types, and finally, the return value type. As users, we are interested in the signature; we usually don't need to know anything about the internal implementation.
+A function has its signature, consisting of its name, a list of parameters and their types, and finally, the return value type. As users, we are interested in the signature; we usually don't need to know anything about the internal implementation.
 
 Now imagine the function signature looked like this:
 
@@ -47,13 +47,13 @@ Now imagine the function signature looked like this:
 function addition(float $x): float
 ```
 
-Summation with one parameter? That's strange… How about this?
+Summation with one parameter? That's strange… How about this?
 
 ```php
 function addition(): float
 ```
 
-That's really strange now, isn't it? How is the function used?
+That's really strange now, isn't it? How is the function used?
 
 ```php
 echo addition(); // what will it print?
@@ -101,15 +101,15 @@ The most important rule is: **all the data that functions or classes require mus
 
 Instead of inventing hidden ways for them to obtain the data, simply provide the parameters. You will save time spent inventing hidden pathways that definitely won't improve your code.
 
-If you always follow this rule everywhere, you are on the path towards code without hidden dependencies. Towards code that is understandable not only to the author but also to anyone who reads it later. Where everything is understandable from the signatures of functions and classes, and there's no need to search for hidden details in the implementation.
+If you always follow this rule everywhere, you are on the path towards code without hidden dependencies. Towards code that is understandable not only to the author but also to anyone who reads it later. Where everything is understandable from the signatures of functions and classes, and there's no need to search for hidden details in the implementation.
 
-This technique is professionally called **Dependency Injection**. And the data are called **dependencies.** It's just plain parameter passing, nothing more.
+This technique is professionally called **Dependency Injection**. And the data are called **dependencies.** It's just plain parameter passing, nothing more.
 
 Please do not confuse Dependency Injection, which is a design pattern, with a “Dependency Injection container,” which is a tool, something fundamentally different. We will discuss containers later.
 
 ## From Functions to Classes
 
-And how does this apply to classes? A class is a more complex entity than a simple function, but Rule #1 applies fully here as well. There are just [more ways to pass arguments](passing-dependencies.md). For example, quite similarly to the function case:
+And how does this apply to classes? A class is a more complex entity than a simple function, but Rule #1 applies fully here as well. There are just [more ways to pass arguments](passing-dependencies.md). For example, quite similarly to the function case:
 
 ```php
 class Math
@@ -149,9 +149,9 @@ Both examples are fully compliant with Dependency Injection.
 
 ## Real-Life Examples
 
-In the real world, you won't be writing classes for summing numbers. Let's move on to practical examples.
+In the real world, you won't be writing classes for summing numbers. Let's move on to practical examples.
 
-Let's have an `Article` class representing a blog article:
+Let's have an `Article` class representing a blog article:
 
 ```php
 class Article
@@ -203,7 +203,7 @@ Great, we solved the problem.
 
 Or did we?
 
-Let's recall [Rule #1: Let It Be Passed to You](#rule-1-let-it-be-passed-to-you): all dependencies that the class needs must be passed to it. Because if we break the rule, we've embarked on the path to messy code full of hidden dependencies, lack of clarity, and the result will be an application that is a challenge to maintain and develop.
+Let's recall [Rule #1: Let It Be Passed to You](#rule-1-let-it-be-passed-to-you): all dependencies that the class needs must be passed to it. Because if we break the rule, we've embarked on the path to messy code full of hidden dependencies, lack of clarity, and the result will be an application that is a challenge to maintain and develop.
 
 The user of the `Article` class has no idea where the `save()` method stores the article. In a database table? Which one, the production or test database? And how can it be changed?
 
@@ -246,7 +246,7 @@ class Article
 
 If you are an experienced programmer, you might think that `Article` shouldn't have a `save()` method at all; it should represent purely a data structure, and a separate repository should handle the saving. That makes sense. But that would take us well beyond the scope of the topic, which is Dependency Injection, and the goal of providing simple examples.
 
-If you write a class that requires, for example, a database for its operation, don't invent where to get it from, but have it passed to you. Perhaps as a parameter of the constructor or another method. Acknowledge dependencies. Acknowledge them in your class's API. You will get understandable and predictable code.
+If you write a class that requires, for example, a database for its operation, don't invent where to get it from, but have it passed to you. Perhaps as a parameter of the constructor or another method. Acknowledge dependencies. Acknowledge them in your class's API. You will get understandable and predictable code.
 
 And what about this class, which logs error messages:
 
@@ -277,7 +277,7 @@ $logger->log('Temperature is 10 °C');
 
 Without knowing the implementation, could you answer where the messages are being written? Would it occur to you that the existence of the `LOG_DIR` constant is required for its operation? And could you create a second instance that would write elsewhere? Certainly not.
 
-Let's fix the class:
+Let's fix the class:
 
 ```php
 class Logger
@@ -301,15 +301,15 @@ $logger = new Logger('/path/to/log.txt');
 $logger->log('Temperature is 15 °C');
 ```
 
-## But I Don't Care!
+## But I Don't Care!
 
-*“When I create an Article object and call save(), I don't want to deal with the database; I just want it to be saved in the one I have configured.”*
+*“When I create an Article object and call save(), I don't want to deal with the database; I just want it to be saved in the one I have configured.”*
 
-*“When I use Logger, I just want the message to be written, and I don't want to deal with where. Let the global settings be used.”*
+*“When I use Logger, I just want the message to be written, and I don't want to deal with where. Let the global settings be used.”*
 
 These are valid points.
 
-As an example, let's show a class that distributes newsletters and logs the outcome:
+As an example, let's show a class that distributes newsletters and logs the outcome:
 
 ```php
 class NewsletterDistributor
@@ -372,9 +372,9 @@ class NewsletterDistributor
 }
 ```
 
-Now it's clear from the signature of the `NewsletterDistributor` class that logging is part of its function. And the task of substituting the logger with another, perhaps for testing, is entirely straightforward. Moreover, if the `Logger` class constructor were to change, it would have no impact on our class.
+Now it's clear from the signature of the `NewsletterDistributor` class that logging is part of its function. And the task of substituting the logger with another, perhaps for testing, is entirely straightforward. Moreover, if the `Logger` class constructor were to change, it would have no impact on our class.
 
-## Rule #2: Take What's Yours
+## Rule #2: Take What's Yours
 
 Don't be confused and don't accept the dependencies of your dependencies. Accept only your own dependencies.
 
@@ -384,7 +384,7 @@ Thanks to this, code that uses other objects will be completely independent of c
 
 The development team has decided to create a second logger, one that writes to the database. So, we create a `DatabaseLogger` class. Now we have two classes, `Logger` and `DatabaseLogger`; one writes to a file, the other to the database… doesn't the naming seem somewhat odd? Wouldn't it be better to rename `Logger` to `FileLogger`? Certainly.
 
-But let's do it cleverly. We create an interface using the original name:
+But let's do it cleverly. We create an interface using the original name:
 
 ```php
 interface Logger
@@ -405,7 +405,7 @@ class DatabaseLogger implements Logger
 
 And thanks to this, there will be no need to modify anything in the rest of the code where the logger is utilized. For example, the `NewsletterDistributor` class constructor will still be content with requiring `Logger` as a parameter. And it will be up to us which instance we provide to it.
 
-**That's why we never add the `Interface` suffix or the `I` prefix to interface names.** Otherwise, it wouldn't be possible to extend the code so elegantly.
+**That's why we never add the `Interface` suffix or the `I` prefix to interface names.** Otherwise, it wouldn't be possible to extend the code so elegantly.
 
 ## Houston, We Have a Problem
 
@@ -426,11 +426,11 @@ class EditController extends Controller
 }
 ```
 
-A potential solution seems obvious: let's have the database object passed via the constructor into `EditController` and use `$article = new Article($this->db)`.
+A potential solution seems obvious: let's have the database object passed via the constructor into `EditController` and use `$article = new Article($this->db)`.
 
-Just as in the previous case involving `Logger` and the file path, this is not the correct approach. The database is not a dependency of `EditController`, but rather of `Article`. Passing the database thus violates [Rule #2: Take What's Yours](#rule-2-take-whatsyours). If the `Article` class constructor changes (a new parameter is added), you will need to modify the code in all places where instances are created. Oof.
+Just as in the previous case involving `Logger` and the file path, this is not the correct approach. The database is not a dependency of `EditController`, but rather of `Article`. Passing the database thus violates [Rule #2: Take What's Yours](#rule-2-take-whats-yours). If the `Article` class constructor changes (a new parameter is added), you will need to modify the code in all places where instances are created. Oof.
 
-Houston, what's your suggestion?
+Houston, what's your suggestion?
 
 ## Rule #3: Let the Factory Handle It
 
@@ -444,7 +444,7 @@ Please do not confuse this with the *factory method* design pattern, which descr
 
 ## Factory
 
-A factory is a method or class that creates and configures objects. We will call the class that produces `Article` `ArticleFactory`, and it might look like this:
+A factory is a method or class that creates and configures objects. We will call the class that produces `Article` `ArticleFactory`, and it might look like this:
 
 ```php
 class ArticleFactory
@@ -502,9 +502,9 @@ But we are getting ahead of ourselves, stay tuned :-)
 At the beginning of this chapter, we promised to show a process for designing clean code. Simply ensure that classes:
 
 1. [are passed the dependencies they need](#rule-1-let-it-be-passed-to-you)
-2. [and conversely, are not passed what they don't directly need](#rule-2-take-whatsyours)
+2. [and conversely, are not passed what they don't directly need](#rule-2-take-whats-yours)
 3. [and that objects with dependencies are best created in factories](#rule-3-let-the-factory-handle-it)
 
 It might not seem apparent at first glance, but these three rules have far-reaching consequences. They lead to a radically different perspective on code design. Is it worthwhile? Programmers who have abandoned old habits and started consistently using Dependency Injection consider this step a defining moment in their professional careers. It opened up a world of clear and maintainable applications for them.
 
-But what if the code doesn't consistently use Dependency Injection? What if it's built upon static methods or singletons? Does this lead to problems? [Yes, it does, and very significant ones](global-state.md).
+But what if the code doesn't consistently use Dependency Injection? What if it's built upon static methods or singletons? Does this lead to problems? [Yes, it does, and very significant ones](global-state.md).

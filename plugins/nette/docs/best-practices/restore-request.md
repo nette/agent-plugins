@@ -8,7 +8,7 @@ The request is restored using the `restoreRequest($key)` method, to which you pa
 
 Crucially, `restoreRequest()` verifies that the newly logged-in user is the same user who originally submitted the form. If the user is different, the stored request is not restored, and the method does nothing, enhancing security.
 
-Let's illustrate this with an example. Consider an `AdminPresenter` where data is edited. Its `startup()` method verifies if the user is logged in. If not, the user is redirected to `SignPresenter`. Simultaneously, we store the current request using `storeRequest()` and pass its key (the `$backlink`) to `SignPresenter`.
+Let's illustrate this with an example. Consider an `AdminPresenter` where data is edited. Its `startup()` method verifies if the user is logged in. If not, the user is redirected to `SignPresenter`. Simultaneously, we store the current request using `storeRequest()` and pass its key (the `$backlink`) to `SignPresenter`.
 
 ```php
 class AdminPresenter extends Nette\Application\UI\Presenter

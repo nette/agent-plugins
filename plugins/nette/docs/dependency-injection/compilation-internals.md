@@ -10,7 +10,7 @@ Contents:
 - [Parameters: When %param% Is Expanded](#parameters-when-param-is-expanded)
   - [Static vs. Dynamic Parameters](#static-vs-dynamic-parameters)
 - [References: When @service Becomes a Reference](#references-when-service-becomes-a-reference)
-- [Introspecting ContainerBuilder: When It's Safe](#introspecting-containerbuilder-when-itssafe)
+- [Introspecting ContainerBuilder: When It's Safe](#introspecting-containerbuilder-when-its-safe)
 - [Inside Phase B: resolve and complete](#inside-phase-b-resolve-and-complete)
 - [Phase C: Generating the Code](#phase-c-generating-the-code)
 - [The Timeline in One Picture](#the-timeline-in-one-picture)
@@ -23,7 +23,7 @@ You don't need any of this to write a normal application, or even a normal exten
 
 ## Two Worlds: Compilation vs. Runtime
 
-The most important thing to understand is that a Nette container is **not assembled on every request**. It is built once into an optimized PHP class, that class is stored on disk, and every subsequent request merely `include`s the finished file. All the machinery described below – extensions, resolvers, the code generator – runs **only during (re)compilation**.
+The most important thing to understand is that a Nette container is **not assembled on every request**. It is built once into an optimized PHP class, that class is stored on disk, and every subsequent request merely `include`s the finished file. All the machinery described below – extensions, resolvers, the code generator – runs **only during (re)compilation**.
 
 This splits the world into two representations that never coexist:
 
@@ -52,7 +52,7 @@ public function compile(): string
 
 The whole mental model fits into a single idea – **each phase knows more than the previous one:**
 
-- **Phase A** fills the graph with definitions. Service **types are not yet reliably known**, because a type may come from a factory's return value that nobody has looked at yet.
+- **Phase A** fills the graph with definitions. Service **types are not yet reliably known**, because a type may come from a factory's return value that nobody has looked at yet.
 - **Phase B** first resolves all types (`resolve`), then lets extensions reshape the graph (`beforeCompile`), and finally [autowires](autowiring.md) arguments (`complete`).
 - **Phase C** turns the finished graph into PHP and lets extensions touch the generated code.
 
@@ -68,7 +68,7 @@ In this phase, Nette calls three methods on every extension – `getConfigSchem
 - **`ServicesExtension` goes last.** The user's `services:` section therefore always has the final word and can override anything the extensions set up.
 - **`InjectExtension` is moved to the very end** so that its work sees the setups added by all the other extensions.
 
-The takeaway for you: by the time your extension's `loadConfiguration()` runs, parameters are already expanded, but the user's services are not there yet. That single fact drives most of the timing rules below.
+The takeaway for you: by the time your extension's `loadConfiguration()` runs, parameters are already expanded, but the user's services are not there yet. That single fact drives most of the timing rules below.
 
 ### Turning services: into Definitions
 
@@ -76,11 +76,11 @@ The user's `services:` section is turned into [definition objects](extensions.md
 
 At the end of phase A, all definitions are present – every extension and the user have registered what they wanted – but the picture is not yet sharp:
 
-- **types are not resolved** for definitions whose type comes from a factory's return value,
+- **types are not resolved** for definitions whose type comes from a factory's return value,
 - **arguments are not autowired**,
 - some `@service` references are still plain strings.
 
-This is exactly why searching by type here is unreliable – more on that [below](#introspecting-containerbuilder-when-itssafe).
+This is exactly why searching by type here is unreliable – more on that [below](#introspecting-containerbuilder-when-its-safe).
 
 ## Parameters: When %param% Is Expanded
 
@@ -92,9 +92,9 @@ When a placeholder is the whole string, its value is returned *as is* – inclu
 
 ### Static vs. Dynamic Parameters
 
-Not every value can be baked into the code. A parameter whose value differs per environment – an environment variable, the `baseUrl` derived from the request – must stay **dynamic**. You declare such parameters via `setDynamicParameterNames()` or `Expect::...->dynamic()` in a schema; more in [Dynamic Parameters](../application/bootstrapping.md#dynamic-parameters).
+Not every value can be baked into the code. A parameter whose value differs per environment – an environment variable, the `baseUrl` derived from the request – must stay **dynamic**. You declare such parameters via `setDynamicParameterNames()` or `Expect::...->dynamic()` in a schema; more in [Dynamic Parameters](../application/bootstrapping.md#dynamic-parameters).
 
-A dynamic parameter is not replaced by a value but by an expression that reads it *at runtime*. So `%env.DB_HOST%` does not freeze into a string; it becomes a runtime lookup in the generated container. Everything else is static and gets frozen at compile time – which is the usual source of the surprise “my `getenv()` value is the same in every environment”: the parameter was simply static.
+A dynamic parameter is not replaced by a value but by an expression that reads it *at runtime*. So `%env.DB_HOST%` does not freeze into a string; it becomes a runtime lookup in the generated container. Everything else is static and gets frozen at compile time – which is the usual source of the surprise “my `getenv()` value is the same in every environment”: the parameter was simply static.
 
 The opposite operation is **escaping**: to keep a literal `%` or `@` from being interpreted, it is doubled (`%%`, `@@`). Nette does this automatically for the parameters it injects for you, so their values are never mistaken for placeholders or references.
 
@@ -102,11 +102,11 @@ The opposite operation is **escaping**: to keep a literal `%` or `@` from being 
 
 The second headline question. Translating `@service` happens **in several steps across different phases**, depending on how complex the string is. You rarely need to trace this by hand, but knowing the steps explains why some references resolve earlier than others.
 
-- **Parsing (config load).** A `@service` used *as an entity* – the thing that creates a service, as in `Foo(@bar)` – becomes a reference immediately. A `@service` used *as an argument* stays a plain string for now. A quoted `@` is escaped to `@@`, so it counts as literal text, not a reference.
+- **Parsing (config load).** A `@service` used *as an entity* – the thing that creates a service, as in `Foo(@bar)` – becomes a reference immediately. A `@service` used *as an argument* stays a plain string for now. A quoted `@` is escaped to `@@`, so it counts as literal text, not a reference.
 - **Phase A (`loadConfiguration`).** When definitions are processed, a clean `@name` or `@Type` argument is turned into a `Reference` object. This catches only the simple forms; `@service::CONST` or a `@` inside a larger expression is left for later.
 - **Phase B (`complete`).** The real “smart” translation happens here: `@service` → reference, `@service::CONSTANT` → a literal class constant, `@service::property` → reading that property, `@@x` → the literal text `@x`.
 
-There is a second translation hidden in the word *reference* itself. A `Reference` may point either by **name** or by **type** (`@Namespace\Type`). A type reference is **not yet a service name** – it is resolved to a concrete name by autowiring, and that happens only in the **complete** step, once the autowiring index is built. This is the bridge to the next section: autowiring lookups are deliberately postponed until the index is ready.
+There is a second translation hidden in the word *reference* itself. A `Reference` may point either by **name** or by **type** (`@Namespace\Type`). A type reference is **not yet a service name** – it is resolved to a concrete name by autowiring, and that happens only in the **complete** step, once the autowiring index is built. This is the bridge to the next section: autowiring lookups are deliberately postponed until the index is ready.
 
 | Form | Becomes a reference/expression in | Resolved to a concrete service in |
 | --- | --- | --- |
@@ -115,9 +115,9 @@ There is a second translation hidden in the word *reference* itself. A `Referenc
 | `@foo::CONST`, `@foo::prop` | phase B | complete |
 | type reference `@Type` | phase A/B | complete (autowiring) |
 
-## Introspecting ContainerBuilder: When It's Safe
+## Introspecting ContainerBuilder: When It's Safe
 
-Now the question extension authors ask most: **in which method can I search for services by type?** The answer follows from one simple rule about how the builder tracks its own state.
+Now the question extension authors ask most: **in which method can I search for services by type?** The answer follows from one simple rule about how the builder tracks its own state.
 
 Searching **by type** (`getByType()`, `getDefinitionByType()`, `findByType()`) needs the service graph to be *resolved* – every type known, the autowiring index built. So whenever you call one of these and the graph has changed since the last resolve, the builder **resolves the whole known graph on the spot**. During the resolve itself, any search by type is forbidden and throws `NotAllowedDuringResolvingException`.
 
@@ -129,7 +129,7 @@ Phase by phase:
 - **`beforeCompile()` (phase B) – the right place to introspect.** By now **all** definitions exist (including the user's), **types are resolved**, and the **autowiring index is built**, so `getByType()`, `findByType()`, and `findByTag()` all return **reliable** answers. Arguments are *not* autowired yet – that is the very next step (`complete`), after all `beforeCompile()` calls. When you modify a definition here, the next `getByType()` transparently re-resolves the graph, so you can freely alternate edits and queries.
 - **`afterCompile()` (phase C) – code only.** It works over the generated class, not the builder. The graph is finished; here you shape the resulting PHP.
 
-| I want to… | Phase |
+| I want to… | Phase |
 | --- | --- |
 | register a service | `loadConfiguration()` |
 | search by **tag** and modify definitions | `loadConfiguration()` or `beforeCompile()` |
@@ -150,7 +150,7 @@ foreach ($this->extensions as $extension) {
 $this->builder->complete();    // ONLY NOW are arguments autowired
 ```
 
-**`resolve()`** determines the type of every service – taken from its declared `type`, or deduced from its factory: the return type of a factory method, the class it instantiates, or the service a reference points to – and then builds the autowiring index that maps each type (the class plus its parents and interfaces) to a service name. A service marked `autowired: false` is left out of the index; `autowired: [A, B]` narrows the types under which it is visible. Crucially, resolve settles *types*, not *arguments* – autowiring arguments would need the finished index, which only exists after this pass.
+**`resolve()`** determines the type of every service – taken from its declared `type`, or deduced from its factory: the return type of a factory method, the class it instantiates, or the service a reference points to – and then builds the autowiring index that maps each type (the class plus its parents and interfaces) to a service name. A service marked `autowired: false` is left out of the index; `autowired: [A, B]` narrows the types under which it is visible. Crucially, resolve settles *types*, not *arguments* – autowiring arguments would need the finished index, which only exists after this pass.
 
 **`complete()`** is where autowiring of arguments actually happens. For every definition it fills in the missing constructor and setup arguments by looking their types up in the now-complete index. This is why type references were left unresolved during resolve: the lookup belongs here, once there is a reliable index to look into.
 
@@ -207,4 +207,4 @@ RUNTIME (every request)
 - “A `getenv()` value in a parameter will differ in each environment.” Only if the parameter is dynamic. Otherwise it is baked in at compile time and stays the same everywhere.
 - “A `@Type` reference is already a service name.” It isn't – it is a type reference, resolved to a concrete name by autowiring only in the complete step.
 - “My extension reads a helper file, but changes don't show up.” Register it with `$builder->addDependency($file)`, otherwise the cache doesn't know about it and won't rebuild.
-- “During `resolve()` I can call `getByType()`.” No – it throws `NotAllowedDuringResolvingException`. Searching by type belongs in `beforeCompile()` or later, never in the middle of resolving.
+- “During `resolve()` I can call `getByType()`.” No – it throws `NotAllowedDuringResolvingException`. Searching by type belongs in `beforeCompile()` or later, never in the middle of resolving.

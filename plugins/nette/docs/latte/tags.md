@@ -203,7 +203,7 @@ An overview and description of all the tags available by default in the Latte te
 
 ### `{$var}` `{...}` `{=...}`
 
-In Latte, the `{=...}` tag is used to print any expression to the output. Latte cares about your comfort, so if the expression starts with a variable or a function call, there's no need to write the equals sign. Which in practice means it almost never needs to be written:
+In Latte, the `{=...}` tag is used to print any expression to the output. Latte cares about your comfort, so if the expression starts with a variable or a function call, there's no need to write the equals sign. Which in practice means it almost never needs to be written:
 
 ```latte
 Name: {$name} {$surname}<br>
@@ -220,7 +220,7 @@ Please don't look for any meaning in the previous example, but if you find one, 
 
 ### Output Escaping
 
-What is the most important task of a templating system? To prevent security vulnerabilities. And that's exactly what Latte does whenever you print something. It automatically escapes it:
+What is the most important task of a templating system? To prevent security vulnerabilities. And that's exactly what Latte does whenever you print something. It automatically escapes it:
 
 ```latte
 <p>{='one < two'}</p>   {* prints: '<p>one &lt; two</p>' *}
@@ -239,7 +239,7 @@ And what if you're printing HTML-encoded content from a trusted source? Then you
 
 ### Printing in JavaScript
 
-Thanks to context-aware escaping, it's wonderfully easy to print variables inside JavaScript, and Latte will handle the proper escaping.
+Thanks to context-aware escaping, it's wonderfully easy to print variables inside JavaScript, and Latte will handle the proper escaping.
 
 The variable doesn't have to be a string; any data type is supported, which is then encoded as JSON:
 
@@ -333,7 +333,7 @@ The `n:else` attribute can also be used in conjunction with [`n:ifset`](#ifset-e
 
 ### `{/if $cond}`
 
-You might be surprised that the expression in the `{if}` condition can also be specified in the closing tag. This is useful in situations where we don't yet know its value when opening the condition. Let's call it a deferred decision.
+You might be surprised that the expression in the `{if}` condition can also be specified in the closing tag. This is useful in situations where we don't yet know its value when opening the condition. Let's call it a deferred decision.
 
 For example, we start listing a table with records from the database, and only after completing the output do we realize that there were no records in the database. So, we put the condition in the closing tag `{/if}`, and if there are no records, none of it will be printed:
 
@@ -357,7 +357,7 @@ You can also use `{else}` in the deferred condition, but not `{elseif}`.
 
 See also [`{ifset block}`](template-inheritance.md#checking-block-existence-ifset)
 
-Use the `{ifset $var}` condition to determine if a variable (or multiple variables) exists and has a non-null value. It's actually the same as `if (isset($var))` in PHP. Like any pair tag, it can also be written using an [n:attribute](syntax.md#nattributes), so let's show an example:
+Use the `{ifset $var}` condition to determine if a variable (or multiple variables) exists and has a non-null value. It's actually the same as `if (isset($var))` in PHP. Like any pair tag, it can also be written using an [n:attribute](syntax.md#nattributes), so let's show an example:
 
 ```latte
 <meta name="robots" content={$robots} n:ifset="$robots">
@@ -509,7 +509,7 @@ Latte is smart, and `$iterator->last` works not only for arrays but also when th
 
 ### `{first}` `{last}` `{sep}`
 
-These tags can be used inside the `{foreach}` loop. The content of `{first}` is rendered if it's the first iteration. The content of `{last}` is rendered… can you guess? Yes, if it's the last iteration. These are actually shortcuts for `{if $iterator->first}` and `{if $iterator->last}`.
+These tags can be used inside the `{foreach}` loop. The content of `{first}` is rendered if it's the first iteration. The content of `{last}` is rendered… can you guess? Yes, if it's the last iteration. These are actually shortcuts for `{if $iterator->first}` and `{if $iterator->last}`.
 
 The tags can also be elegantly used as [n:attributes](syntax.md#nattributes):
 
@@ -529,7 +529,7 @@ The content of the `{sep}` tag is rendered if the iteration is not the last, mak
 {foreach $items as $item} {$item} {sep}, {/sep} {/foreach}
 ```
 
-That's quite practical, isn't it?
+That's quite practical, isn't it?
 
 ### `{iterateWhile}`
 
@@ -588,7 +588,7 @@ Or as an [n:attribute](syntax.md#nattributes):
 </span>
 ```
 
-A variant with a condition in the closing tag is also possible, corresponding to the do-while loop in PHP:
+A variant with a condition in the closing tag is also possible, corresponding to the do-while loop in PHP:
 
 ```latte
 {while}
@@ -640,7 +640,7 @@ Ends the rendering of a template or block when a condition is met (i.e., “earl
 
 See also [`{include block}`](template-inheritance.md#printing-blocks-include) and [`{embed}`](template-inheritance.md#unit-inheritance-embed)
 
-The `{include}` tag loads and renders the specified template. In our favorite PHP language, it's something like:
+The `{include}` tag loads and renders the specified template. In our favorite PHP language, it's something like:
 
 ```php
 <?php include 'header.phtml'; ?>
@@ -703,7 +703,7 @@ Blocks without a name provide the ability to apply [filters](syntax.md#filters) 
 
 ### `{try}`
 
-Thanks to this tag, it's extremely easy to create robust templates.
+Thanks to this tag, it's extremely easy to create robust templates.
 
 If an exception occurs during the rendering of the `{try}` block, the entire block is discarded, and rendering continues after it:
 
@@ -739,7 +739,7 @@ The tag can also be written as an [n:attribute](syntax.md#nattributes):
 </ul>
 ```
 
-It's also possible to define a custom [exception handler](develop.md#exception-handler), for example, for logging purposes.
+It's also possible to define a custom [exception handler](develop.md#exception-handler), for example, for logging purposes.
 
 ### `{rollback}`
 
@@ -939,9 +939,9 @@ Throws a `Latte\RuntimeException` exception, whose stack trace follows the spiri
 
 Since Latte 3.1, the standard HTML class attribute has gained the [same functionality](html-attributes.md#classes). So you don't need to use n:class anymore.
 
-Thanks to `n:class`, it's very easy to generate the HTML `class` attribute exactly as needed.
+Thanks to `n:class`, it's very easy to generate the HTML `class` attribute exactly as needed.
 
-Example: I need the active element to have the class `active`:
+Example: I need the active element to have the class `active`:
 
 ```latte
 {foreach $items as $item}
@@ -949,7 +949,7 @@ Example: I need the active element to have the class `active`:
 {/foreach}
 ```
 
-And further, I need the first element to have the classes `first` and `main`:
+And further, I need the first element to have the classes `first` and `main`:
 
 ```latte
 {foreach $items as $item}

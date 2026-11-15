@@ -7,9 +7,9 @@ Contents:
 - [Component Way](#component-way)
 
 
-How to use AJAX to refresh only the parts of a page that actually change, such as individual items in a list, using Latte's dynamic snippets.
+How to use AJAX to refresh only the parts of a page that actually change, such as individual items in a list, using Latte's dynamic snippets.
 
-Quite often during application development, the need arises to perform AJAX operations, for example, on individual rows of a table or list items. As an example, let's consider listing articles where logged-in users can rate each article with ‘like’ or ‘dislike’. The presenter code and corresponding template without AJAX would look something like this (showing the most relevant parts; the code assumes a service exists for handling ratings and retrieving articles – the specific implementation isn't crucial for this guide):
+Quite often during application development, the need arises to perform AJAX operations, for example, on individual rows of a table or list items. As an example, let's consider listing articles where logged-in users can rate each article with ‘like’ or ‘dislike’. The presenter code and corresponding template without AJAX would look something like this (showing the most relevant parts; the code assumes a service exists for handling ratings and retrieving articles – the specific implementation isn't crucial for this guide):
 
 ```php
 public function handleLike(int $articleId): void
@@ -32,22 +32,22 @@ Template:
 	<h2>{$article->title}</h2>
 	<div class="content">{$article->content}</div>
 	{if !$article->liked}
-		<a n:href="like! $article->id" class=ajax>I like it</a>
+		<a n:href="like!, $article->id" class=ajax>I like it</a>
 	{else}
-		<a n:href="unlike! $article->id" class=ajax>I don't like it anymore</a>
+		<a n:href="unlike!, $article->id" class=ajax>I don't like it anymore</a>
 	{/if}
 </article>
 ```
 
 ## Ajaxization
 
-Now, let's add AJAX functionality to this simple application. Changing an article's rating isn't critical enough to warrant a full page redirect, so it should ideally happen via AJAX in the background. We'll use the [handler script from add-ons](../application/ajax.md#naja) with the common convention that AJAX links have the CSS class `ajax`.
+Now, let's add AJAX functionality to this simple application. Changing an article's rating isn't critical enough to warrant a full page redirect, so it should ideally happen via AJAX in the background. We'll use the [handler script from add-ons](../application/ajax.md#naja) with the common convention that AJAX links have the CSS class `ajax`.
 
 But how exactly do we implement this? Nette offers two approaches: dynamic snippets and components. Both have their pros and cons, so we'll demonstrate each one.
 
 ## The Dynamic Snippets Way
 
-In Latte terminology, a dynamic snippet refers to a specific use of the `{snippet}` tag where a variable is used in the snippet's name. Such a snippet cannot be placed just anywhere in the template; it must be wrapped by a static (regular) snippet or be inside a `{snippetArea}`. We could modify our template as follows:
+In Latte terminology, a dynamic snippet refers to a specific use of the `{snippet}` tag where a variable is used in the snippet's name. Such a snippet cannot be placed just anywhere in the template; it must be wrapped by a static (regular) snippet or be inside a `{snippetArea}`. We could modify our template as follows:
 
 ```latte
 {snippet articlesContainer}
@@ -56,16 +56,16 @@ In Latte terminology, a dynamic snippet refers to a specific use of the `{snippe
 		<div class="content">{$article->content}</div>
 		{snippet article-{$article->id}}
 			{if !$article->liked}
-				<a n:href="like! $article->id" class=ajax>I like it</a>
+				<a n:href="like!, $article->id" class=ajax>I like it</a>
 			{else}
-				<a n:href="unlike! $article->id" class=ajax>I don't like it anymore</a>
+				<a n:href="unlike!, $article->id" class=ajax>I don't like it anymore</a>
 			{/if}
 		{/snippet}
 	</article>
 {/snippet}
 ```
 
-Each article now defines a snippet whose name includes the article's ID. All these dynamic snippets are then wrapped together by a static snippet named `articlesContainer`. If we were to omit this outer snippet, Latte would throw an exception.
+Each article now defines a snippet whose name includes the article's ID. All these dynamic snippets are then wrapped together by a static snippet named `articlesContainer`. If we were to omit this outer snippet, Latte would throw an exception.
 
 All that remains is to add the redrawing logic to the presenter – simply redraw the static wrapper.
 
@@ -86,7 +86,7 @@ Modify the corresponding `handleUnlike()` method similarly, and AJAX is function
 
 However, this solution has a drawback. If we examine the AJAX request more closely, we'll find that while the application appears efficient externally (returning only a single snippet for the specific article), it actually renders *all* snippets on the server side. It places the required snippet into the payload and discards the others (meaning it also unnecessarily retrieved and rendered them).
 
-To optimize this, we need to intervene where the `$articles` collection is passed to the template (let's say in the `renderDefault()` method). We'll leverage the fact that signal handling occurs before the `render<Something>` methods:
+To optimize this, we need to intervene where the `$articles` collection is passed to the template (let's say in the `renderDefault()` method). We'll leverage the fact that signal handling occurs before the `render<Something>` methods:
 
 ```php
 public function handleLike(int $articleId): void
@@ -113,7 +113,7 @@ Now, during signal processing, instead of passing the entire collection of artic
 
 ## Component Way
 
-A completely different approach avoids dynamic snippets altogether. The trick involves encapsulating the entire logic within a separate component. Instead of the presenter handling the rating, a dedicated `LikeControl` will manage it. The class will look like this (it would also contain `render`, `handleUnlike`, etc. methods):
+A completely different approach avoids dynamic snippets altogether. The trick involves encapsulating the entire logic within a separate component. Instead of the presenter handling the rating, a dedicated `LikeControl` will manage it. The class will look like this (it would also contain `render`, `handleUnlike`, etc. methods):
 
 ```php
 class LikeControl extends Nette\Application\UI\Control
@@ -135,7 +135,7 @@ class LikeControl extends Nette\Application\UI\Control
 }
 ```
 
-The component's template:
+The component's template:
 
 ```latte
 {snippet}
@@ -147,7 +147,7 @@ The component's template:
 {/snippet}
 ```
 
-Naturally, the view's template will change, and we'll need to add a factory to the presenter. Since we'll create an instance of this component for each article retrieved from the database, we'll use the [Multiplier](../application/multiplier.md) class to manage their creation.
+Naturally, the view's template will change, and we'll need to add a factory to the presenter. Since we'll create an instance of this component for each article retrieved from the database, we'll use the [Multiplier](../application/multiplier.md) class to manage their creation.
 
 ```php
 protected function createComponentLikeControl()
@@ -159,7 +159,7 @@ protected function createComponentLikeControl()
 }
 ```
 
-The view's template shrinks to the bare minimum (and is completely free of snippets!):
+The view's template shrinks to the bare minimum (and is completely free of snippets!):
 
 ```latte
 <article n:foreach="$articles as $article">

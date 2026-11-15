@@ -86,7 +86,7 @@ Should look something like this:
 
 The title should either be the same as the tab title or contain additional information.
 
-Keep in mind that a single extension might be registered multiple times, perhaps with different settings. Therefore, for styling, you cannot use CSS IDs, only classes, preferably in the format `tracy-addons-<ClassName>[-<optional>]`. Add this class to the div along with the `tracy-inner` class. When writing CSS, it's useful to prefix selectors with `#tracy-debug .your-class`, as this gives the rule higher specificity than the reset styles.
+Keep in mind that a single extension might be registered multiple times, perhaps with different settings. Therefore, for styling, you cannot use CSS IDs, only classes, preferably in the format `tracy-addons-<ClassName>[-<optional>]`. Add this class to the div along with the `tracy-inner` class. When writing CSS, it's useful to prefix selectors with `#tracy-debug .your-class`, as this gives the rule higher specificity than the reset styles.
 
 ### Default Styles
 
@@ -128,9 +128,9 @@ class DatabasePanel implements Tracy\IBarPanel
 }
 ```
 
-The returned markdown is included in the bar's markdown summary. When the method is missing or returns `null`, the panel is omitted from the summary.
+The returned markdown is included in the bar's markdown summary. When the method is missing or returns `null`, the panel is omitted from the summary.
 
-See [Tracy's AI agent integration](guide.md#ai-agent-support-since-2120) for the full picture.
+See [Tracy's AI agent integration](guide.md#ai-agent-support-since-2120) for the full picture.
 
 ## Bluescreen Extensions
 

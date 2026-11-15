@@ -31,7 +31,7 @@ use Nette\Utils\Floats;
 
 ## Motivation
 
-Are you wondering why we need a class for comparing floats? After all, you can use the operators `<`, `>`, `===`, and you're done, right? Well, it's not entirely true. What do you think this code will output?
+Are you wondering why we need a class for comparing floats? After all, you can use the operators `<`, `>`, `===`, and you're done, right? Well, it's not entirely true. What do you think this code will output?
 
 ```php
 $a = 0.1 + 0.2;
@@ -43,7 +43,7 @@ If you run the code, some of you might be surprised that the program outputs `no
 
 Mathematical operations with floating-point numbers can lead to precision errors due to the conversion between decimal and binary representations. For example, `0.1 + 0.2` results in something like `0.300000000000000044…`. Therefore, when comparing floats, we need to tolerate a small difference, an epsilon.
 
-And that's exactly what the `Floats` class does. The following comparison will now work as expected:
+And that's exactly what the `Floats` class does. The following comparison will now work as expected:
 
 ```php
 echo Floats::areEqual($a, $b) ? 'same' : 'not same'; // same

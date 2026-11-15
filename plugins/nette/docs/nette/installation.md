@@ -7,7 +7,7 @@ Do you want to harness the benefits of Nette in your existing project, or are yo
 Nette offers a collection of useful and sophisticated packages (libraries) for PHP. To incorporate them into your project, follow these steps:
 
 1. **Set up [Composer](https://doc.nette.org/en/best-practices/composer):** This tool is essential for the easy installation, update, and management of libraries required for your project.
-2. **Choose a [package](https://nette.org/en/packages):** Let's say you need to navigate the file system, which [Finder](../utils/finder.md) from the `nette/utils` package does excellently. You can find the package name in the right column of its documentation.
+2. **Choose a [package](https://nette.org/en/packages):** Let's say you need to navigate the file system, which [Finder](../utils/finder.md) from the `nette/utils` package does excellently. You can find the package name in the right column of its documentation.
 3. **Install the package:** Run this command in the root directory of your project:
 
 ```shell

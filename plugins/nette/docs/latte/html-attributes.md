@@ -41,7 +41,7 @@ If you need this toggling behavior for standard attributes that don't have this 
 
 Some attributes look like flags, but they aren't. `contenteditable`, `draggable`, `spellcheck` and `writingsuggestions` expect the word `true` or `false` as their value, and leaving the attribute out means neither: the element then inherits the setting from its parent, or leaves it to the browser. If you want a paragraph inside an editable area to be read-only, it has to say `contenteditable="false"`; without the attribute, it would stay editable.
 
-That's why Latte prints booleans in these attributes as the words `"true"` and `"false"`, just like in [aria- attributes](#aria-attributes):
+That's why Latte prints booleans in these attributes as the words `"true"` and `"false"`, just like in [aria- attributes](#aria-attributes):
 
 ```latte
 <div contenteditable={$canEdit} draggable={=true} spellcheck={=false}>
@@ -59,7 +59,7 @@ Any other value, such as `plaintext-only`, is printed as it is, and `null` drops
 
 This is one of the most pleasant changes. Previously, if a variable was `null`, it printed as an empty string `""`. This often led to empty attributes in HTML like `class=""` or `title=""`.
 
-In Latte 3.1, a new universal rule applies: **A value of `null` means the attribute does not exist.**
+In Latte 3.1, a new universal rule applies: **A value of `null` means the attribute does not exist.**
 
 ```latte
 <div title="{$title}"></div>
@@ -153,7 +153,7 @@ Just like `class`, `aria-` attributes also accept an array. It is treated as a s
 
 ## Type Checking
 
-Have you ever seen `<input value="Array">` in your generated HTML? It's a classic bug that often goes unnoticed. Latte introduces strict type checking for HTML attributes to make your templates more resilient against such oversights.
+Have you ever seen `<input value="Array">` in your generated HTML? It's a classic bug that often goes unnoticed. Latte introduces strict type checking for HTML attributes to make your templates more resilient against such oversights.
 
 Latte knows which attributes are which and what values they expect:
 

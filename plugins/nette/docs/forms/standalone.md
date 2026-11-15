@@ -25,7 +25,7 @@ Before you start, install the package using [Composer](https://doc.nette.org/en/
 composer require nette/forms
 ```
 
-Let's try writing a simple registration form. Its code will be as follows ([full code](https://gist.github.com/dg/370a7e3094d9ba9a9e913b8e2a2dc851)):
+Let's try writing a simple registration form. Its code will be as follows ([full code](https://gist.github.com/dg/370a7e3094d9ba9a9e913b8e2a2dc851)):
 
 ```php
 use Nette\Forms\Form;
@@ -36,7 +36,7 @@ $form->addPassword('password', 'Password:');
 $form->addSubmit('send', 'Sign up');
 ```
 
-And let's render it very easily:
+And let's render it very easily:
 
 ```php
 $form->render();
@@ -48,7 +48,7 @@ The result in the browser should look like this:
 
 The form is an object of the `Nette\Forms\Form` class (the `Nette\Application\UI\Form` class is used in presenters). We added controls named ‘name’, ‘password’, and a submit button to it.
 
-Now let's bring the form to life. By querying `$form->isSuccess()`, we find out if the form was submitted and if it was filled in validly. If so, we will output the data. After the form definition, add:
+Now let's bring the form to life. By querying `$form->isSuccess()`, we find out if the form was submitted and if it was filled in validly. If so, we will output the data. After the form definition, add:
 
 ```php
 if ($form->isSuccess()) {
@@ -77,7 +77,7 @@ $form->setAction('/submit.php');
 $form->setMethod('GET');
 ```
 
-And that's basically it :-) We have a functional and perfectly [secured](#vulnerability-protection) form.
+And that's basically it :-) We have a functional and perfectly [secured](#vulnerability-protection) form.
 
 Try adding other [form controls](controls.md) as well.
 
@@ -101,7 +101,7 @@ unset($form['name']);
 
 ## Validation Rules
 
-The word *valid* was mentioned, but the form doesn't have any validation rules yet. Let's fix that.
+The word *valid* was mentioned, but the form doesn't have any validation rules yet. Let's fix that.
 
 The name will be required, so we mark it with the `setRequired()` method. Its argument is the text of the error message displayed if the user doesn't fill in the name. If no argument is provided, the default error message is used.
 
@@ -112,7 +112,7 @@ $form->addText('name', 'Name:')
 
 Try submitting the form without filling in the name, and you'll see an error message appear. The browser or server will reject it until you fill in the field.
 
-At the same time, you can't cheat the system by typing only spaces into the input. No way. Nette automatically trims leading and trailing whitespace. Try it. It's something you should always do with every single-line input, but it's often forgotten. Nette does it automatically. (You can try to trick the form by sending a multi-line string as the name. Even here, Nette won't be fooled, and line breaks will be converted to spaces.)
+At the same time, you can't cheat the system by typing only spaces into the input. No way. Nette automatically trims leading and trailing whitespace. Try it. It's something you should always do with every single-line input, but it's often forgotten. Nette does it automatically. (You can try to trick the form by sending a multi-line string as the name. Even here, Nette won't be fooled, and line breaks will be converted to spaces.)
 
 The form is always validated on the server side, but JavaScript validation is also generated. This runs instantly, and the user learns about errors immediately, without needing to submit the form to the server. This is handled by the `netteForms.js` script. Insert it into the page:
 
@@ -130,7 +130,7 @@ If you look at the source code of the page with the form, you might notice that 
 
 We add other validation rules using the `addRule()` method. The first parameter is the rule, the second is again the text of the error message, and an optional validation rule argument can follow. What does that mean?
 
-Let's extend the form with a new optional field “age”, which must be an integer (`addInteger()`) and within an allowed range (`$form::Range`). Here we will use the third parameter of the `addRule()` method to pass the required range to the validator as a pair `[min, max]`:
+Let's extend the form with a new optional field “age”, which must be an integer (`addInteger()`) and within an allowed range (`$form::Range`). Here we will use the third parameter of the `addRule()` method to pass the required range to the validator as a pair `[min, max]`:
 
 ```php
 $form->addInteger('age', 'Age:')
@@ -146,7 +146,7 @@ This creates room for a small refactoring. The numbers are duplicated in the err
 	->addRule($form::Range, 'Age must be between %d and %d years.', [18, 120]);
 ```
 
-Let's return to the `password` control, make it required as well, and also verify the minimum password length (`$form::MinLength`), again using a placeholder in the message:
+Let's return to the `password` control, make it required as well, and also verify the minimum password length (`$form::MinLength`), again using a placeholder in the message:
 
 ```php
 $form->addPassword('password', 'Password:')
@@ -154,7 +154,7 @@ $form->addPassword('password', 'Password:')
 	->addRule($form::MinLength, 'Password must be at least %d characters long', 8);
 ```
 
-Let's add another field `passwordVerify` to the form, where the user enters the password again for verification. Using validation rules, we check if both passwords are the same (`$form::Equal`). As the parameter, we provide a reference to the first password using [square brackets](#access-to-controls):
+Let's add another field `passwordVerify` to the form, where the user enters the password again for verification. Using validation rules, we check if both passwords are the same (`$form::Equal`). As the parameter, we provide a reference to the first password using [square brackets](#access-to-controls):
 
 ```php
 $form->addPassword('passwordVerify', 'Password again:')
@@ -165,7 +165,7 @@ $form->addPassword('passwordVerify', 'Password again:')
 
 Using `setOmitted()`, we marked a control whose value we don't really care about and which exists only for validation purposes. Its value is not passed to `$data`.
 
-With this, we have a fully functional form with validation in both PHP and JavaScript. Nette's validation capabilities are much broader; you can create conditions, show and hide parts of the page based on them, etc. You will learn everything in the chapter on [form validation](validation.md).
+With this, we have a fully functional form with validation in both PHP and JavaScript. Nette's validation capabilities are much broader; you can create conditions, show and hide parts of the page based on them, etc. You will learn everything in the chapter on [form validation](validation.md).
 
 ## Default Values
 
@@ -176,7 +176,7 @@ $form->addEmail('email', 'Email')
 	->setDefaultValue($lastUsedEmail);
 ```
 
-It's often useful to set default values for all controls simultaneously, for example, when the form is used for editing records. We read the record from the database and set its values as defaults:
+It's often useful to set default values for all controls simultaneously, for example, when the form is used for editing records. We read the record from the database and set its values as defaults:
 
 ```php
 // $row = ['name' => 'John', 'age' => '33', /* ... */];
@@ -211,11 +211,11 @@ $latte->addExtension(new Nette\Bridges\FormsLatte\FormsExtension);
 $latte->render('form.latte', ['form' => $form]);
 ```
 
-In the template, you then work with the form through the `$form` variable and tags like `{input}`, `{label}`, or `n:name`. A complete example including the template can be found in the [examples](https://github.com/nette/forms/tree/master/examples) directory (the files `latte.php` and `latte/`). The individual tags are described in the chapter on [rendering](rendering.md).
+In the template, you then work with the form through the `$form` variable and tags like `{input}`, `{label}`, or `n:name`. A complete example including the template can be found in the [examples](https://github.com/nette/forms/tree/master/examples) directory (the files `latte.php` and `latte/`). The individual tags are described in the chapter on [rendering](rendering.md).
 
 ## Mapping to Classes
 
-Let's return to processing form data. The `getValues()` method returned the submitted data as an `ArrayHash` object. Since this is a generic class, like `stdClass`, we lack certain conveniences when working with it, such as property autocompletion in editors or static code analysis. This could be solved by having a specific class for each form, whose properties represent the individual controls. E.g.:
+Let's return to processing form data. The `getValues()` method returned the submitted data as an `ArrayHash` object. Since this is a generic class, like `stdClass`, we lack certain conveniences when working with it, such as property autocompletion in editors or static code analysis. This could be solved by having a specific class for each form, whose properties represent the individual controls. E.g.:
 
 ```php
 class RegistrationFormData
@@ -279,7 +279,7 @@ The mapping then knows from the `$person` property type that it should map the c
 $person->setMappedType(PersonFormData::class);
 ```
 
-(since 3.1.15) You can have a proposal for the form's data class generated using the `Nette\Forms\Blueprint::dataClass($form)` method, which will print it to the browser page. You can then simply click to select and copy the code into your project.
+(since 3.1.15) You can have a proposal for the form's data class generated using the `Nette\Forms\Blueprint::dataClass($form)` method, which will print it to the browser page. You can then simply click to select and copy the code into your project.
 
 ## Multiple Submit Buttons
 
@@ -314,7 +314,7 @@ For example, it filters all control characters from inputs and checks the validi
 
 Nette handles security risks for you that many programmers are unaware even exist.
 
-The mentioned CSRF attack involves an attacker luring a victim to a page that silently executes a request in the victim's browser to the server where the victim is currently logged in. The server believes that the request was made by the victim voluntarily. Therefore, Nette rejects POST forms submitted from a foreign origin; even a different subdomain of the same site counts as foreign. If you need to allow submissions from another origin, disable the protection with:
+The mentioned CSRF attack involves an attacker luring a victim to a page that silently executes a request in the victim's browser to the server where the victim is currently logged in. The server believes that the request was made by the victim voluntarily. Therefore, Nette rejects POST forms submitted from a foreign origin; even a different subdomain of the same site counts as foreign. If you need to allow submissions from another origin, disable the protection with:
 
 ```php
 $form->allowCrossOrigin(); // WARNING! Disables protection completely!

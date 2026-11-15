@@ -51,7 +51,7 @@ Helpers::falseToNull(123);   // 123
 
 ## `getLastError(): string`
 
-Returns the last occurred PHP error or an empty string if no error occurred. Unlike `error_get_last()`, it's not affected by the PHP directive `html_errors` and always returns text, not HTML.
+Returns the last occurred PHP error or an empty string if no error occurred. Unlike `error_get_last()`, it's not affected by the PHP directive `html_errors` and always returns text, not HTML.
 
 ```php
 Helpers::getLastError();

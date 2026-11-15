@@ -44,7 +44,7 @@ web-project/
 └── www/              ← public directory (document-root)
 ```
 
-You can modify this structure freely according to your needs – rename or move folders. Then you just need to adjust the relative paths to directories in `Bootstrap.php` and possibly `composer.json`. Nothing more is needed, no complex reconfiguration, no changes to constants. Nette has smart autodetection and automatically recognizes the application's location, including its base URL.
+You can modify this structure freely according to your needs – rename or move folders. Then you just need to adjust the relative paths to directories in `Bootstrap.php` and possibly `composer.json`. Nothing more is needed, no complex reconfiguration, no changes to constants. Nette has smart autodetection and automatically recognizes the application's location, including its base URL.
 
 ## Code Organization Principles
 
@@ -59,7 +59,7 @@ app/Model/
 
 From this, you only learn that the project uses some services, repositories, and entities. You learn nothing about the actual purpose of the application.
 
-Let's look at a different approach – **organization by domains**:
+Let's look at a different approach – **organization by domains**:
 
 ```
 app/Model/
@@ -69,7 +69,7 @@ app/Model/
 └── Product/
 ```
 
-Here it's different – at first glance, it's clear that this is an e-shop. The directory names themselves reveal what the application can do – it works with payments, orders, and products.
+Here it's different – at first glance, it's clear that this is an e-shop. The directory names themselves reveal what the application can do – it works with payments, orders, and products.
 
 The first approach (organization by class type) brings several problems in practice: code that is logically related is fragmented across different folders, and you have to jump between them. Therefore, we will organize by domains.
 
@@ -81,7 +81,7 @@ It is customary for the directory structure to correspond to the namespaces in t
 
 Notice that we use singular for the main application directories: `app`, `config`, `log`, `temp`, `www`. The same applies inside the application: `Model`, `Core`, `Presentation`. This is because each represents a single cohesive concept.
 
-Similarly, `app/Model/Product` represents everything related to products. We don't call it `Products` because it's not a folder full of products (that would contain files like `nokia.php`, `samsung.php`). It's a namespace containing classes for working with products – `ProductRepository.php`, `ProductService.php`.
+Similarly, `app/Model/Product` represents everything related to products. We don't call it `Products` because it's not a folder full of products (that would contain files like `nokia.php`, `samsung.php`). It's a namespace containing classes for working with products – `ProductRepository.php`, `ProductService.php`.
 
 The folder `app/Tasks` is plural because it contains a set of separate executable scripts – `CleanupTask.php`, `ImportTask.php`. Each of them is an independent unit.
 
@@ -93,7 +93,7 @@ For consistency, we recommend using:
 
 ## Public Directory `www/`
 
-This directory is the only one accessible from the web (the document-root). You might often encounter the name `public/` instead of `www/` – it's just a matter of convention and does not affect the application's functionality. The directory contains:
+This directory is the only one accessible from the web (the document-root). You might often encounter the name `public/` instead of `www/` – it's just a matter of convention and does not affect the application's functionality. The directory contains:
 
 - Application [entry point](bootstrapping.md#indexphp) `index.php`
 - `.htaccess` file with rules for mod_rewrite (for Apache)
@@ -119,7 +119,7 @@ app/
 
 `Bootstrap.php` is the [application startup class](bootstrapping.md) that initializes the environment, loads configuration, and creates the DI container.
 
-Let's now look at the individual subdirectories in more detail.
+Let's now look at the individual subdirectories in more detail.
 
 ## Presenters and Templates
 
@@ -182,7 +182,7 @@ We refer to the `Dashboard` presenter within the `Admin` module in the applicati
 
 ### Flexible Structure Development
 
-One of the great advantages of this structure is how elegantly it adapts to the growing needs of the project. As an example, let's take the part generating XML feeds. Initially, we have a simple form:
+One of the great advantages of this structure is how elegantly it adapts to the growing needs of the project. As an example, let's take the part generating XML feeds. Initially, we have a simple form:
 
 ```
 Export/
@@ -306,7 +306,7 @@ class PricingService
 }
 ```
 
-**Repositories**: handle all communication with the data storage, typically a database. Their task is to load and save entities and implement methods for searching them. A repository shields the rest of the application from the implementation details of the database and provides an object-oriented interface for working with data.
+**Repositories**: handle all communication with the data storage, typically a database. Their task is to load and save entities and implement methods for searching them. A repository shields the rest of the application from the implementation details of the database and provides an object-oriented interface for working with data.
 
 ```php
 class OrderRepository
@@ -390,7 +390,7 @@ An example for better understanding:
 
 ## Command Scripts
 
-Applications often need to perform activities outside of regular HTTP requests – whether it's background data processing, maintenance, or periodic tasks. Simple scripts in the `bin/` directory are used for execution, while the actual implementation logic is placed in `app/Tasks/` (or `app/Commands/`).
+Applications often need to perform activities outside of regular HTTP requests – whether it's background data processing, maintenance, or periodic tasks. Simple scripts in the `bin/` directory are used for execution, while the actual implementation logic is placed in `app/Tasks/` (or `app/Commands/`).
 
 Example:
 
@@ -413,7 +413,7 @@ Tasks are usually run from the command line or via cron: the script in `bin/` cr
 
 ## Other Possible Directories
 
-In addition to the mentioned basic directories, you can add other specialized folders according to project needs. Let's look at the most common ones and their use:
+In addition to the mentioned basic directories, you can add other specialized folders according to project needs. Let's look at the most common ones and their use:
 
 ```
 app/
@@ -462,7 +462,7 @@ application:
 	mapping: App\Presentation\*\**Presenter
 ```
 
-How does mapping work? For a better understanding, let's first imagine an application without modules. We want the presenter classes to fall under the `App\Presentation` namespace, so that the `Home` presenter maps to the `App\Presentation\HomePresenter` class. This is achieved with this configuration:
+How does mapping work? For a better understanding, let's first imagine an application without modules. We want the presenter classes to fall under the `App\Presentation` namespace, so that the `Home` presenter maps to the `App\Presentation\HomePresenter` class. This is achieved with this configuration:
 
 ```neon
 application:
@@ -490,7 +490,7 @@ application:
 
 According to this configuration, the presenter `Front:Home` maps to the class `App\Presentation\Front\Home\HomePresenter`, while the presenter `Api:OAuth` maps to the class `App\Api\OAuthPresenter`.
 
-Since the `Front` and `Admin` modules have a similar mapping pattern, and there will likely be more such modules, it is possible to create a general rule that replaces them. A new asterisk for the module is added to the class mask:
+Since the `Front` and `Admin` modules have a similar mapping pattern, and there will likely be more such modules, it is possible to create a general rule that replaces them. A new asterisk for the module is added to the class mask:
 
 ```neon
 application:

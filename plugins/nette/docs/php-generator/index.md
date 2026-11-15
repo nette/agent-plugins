@@ -48,7 +48,7 @@ For PHP compatibility, see the [compatibility table](#compatibility-table).
 
 ## Classes
 
-Let's start with an example of creating a class using [ClassType](https://api.nette.org/php-generator/master/Nette/PhpGenerator/ClassType.html):
+Let's start with an example of creating a class using [ClassType](https://api.nette.org/php-generator/master/Nette/PhpGenerator/ClassType.html):
 
 ```php
 $class = new Nette\PhpGenerator\ClassType('Demo');
@@ -366,13 +366,13 @@ $method->addParameter('items', []) // $items = []
 	->setReference()           // &$items = []
 	->setType('array');        // array &$items = []
 
-// function count(array &$items = [])
+// final protected function count(array &$items = []): ?int
 ```
 
 To define variadic parameters (also known as the splat operator), use `setVariadic()`:
 
 ```php
-$method = $class->addMethod('count');
+$method = $class->addMethod('sum');
 $method->setVariadic(true);
 $method->addParameter('items');
 ```
@@ -380,7 +380,7 @@ $method->addParameter('items');
 This generates:
 
 ```php
-function count(...$items)
+public function sum(...$items)
 {
 }
 ```
@@ -487,7 +487,7 @@ echo $printer->printClass($class); // same as: echo $class
 
 It can generate code for all other elements, offering methods like `printFunction()`, `printNamespace()`, etc.
 
-There's also the [PsrPrinter](https://api.nette.org/php-generator/master/Nette/PhpGenerator/PsrPrinter.html) class, whose output conforms to the PSR-2 / PSR-12 / PER coding style:
+There's also the [PsrPrinter](https://api.nette.org/php-generator/master/Nette/PhpGenerator/PsrPrinter.html) class, whose output conforms to the PSR-2 / PSR-12 / PER coding style:
 
 ```php
 $printer = new Nette\PhpGenerator\PsrPrinter;
@@ -579,7 +579,7 @@ new Literal('substr(?, ?)', [$a, $b]);
 // generates for example: substr('hello', 5)
 ```
 
-A literal representing the creation of a new object can easily be generated using the `new` method:
+A literal representing the creation of a new object can easily be generated using the `new` method:
 
 ```php
 Literal::new(Demo::class, [$a, 'foo' => $b]);
@@ -637,11 +637,11 @@ Using property hooks (represented by the [PropertyHook](https://api.nette.org/ph
 ```php
 $class = new Nette\PhpGenerator\ClassType('Demo');
 $prop = $class->addProperty('firstName')
-    ->setType('string');
+	->setType('string');
 
 $prop->addHook('set', 'strtolower($value)')
-    ->addParameter('value')
-	    ->setType('string');
+	->addParameter('value')
+		->setType('string');
 
 $prop->addHook('get')
 	->setBody('return ucfirst($this->firstName);');
@@ -654,27 +654,43 @@ This generates:
 ```php
 class Demo
 {
-    public string $firstName {
-        set(string $value) => strtolower($value);
-        get {
-            return ucfirst($this->firstName);
-        }
-    }
+	public string $firstName {
+		set(string $value) => strtolower($value);
+		get {
+			return ucfirst($this->firstName);
+		}
+	}
 }
 ```
 
 Properties and property hooks can be abstract or final:
 
 ```php
+$class = new Nette\PhpGenerator\ClassType('Demo');
+$class->setAbstract();
 $class->addProperty('id')
-    ->setType('int')
-    ->addHook('get')
-        ->setAbstract();
+	->setType('int')
+	->setAbstract()
+	->addHook('get')
+		->setAbstract();
 
 $class->addProperty('role')
-    ->setType('string')
-    ->addHook('set', 'strtolower($value)')
-        ->setFinal();
+	->setType('string')
+	->addHook('set', 'strtolower($value)')
+		->setFinal();
+```
+
+This generates:
+
+```php
+abstract class Demo
+{
+	abstract public int $id { get; }
+
+	public string $role {
+		final set => strtolower($value);
+	}
+}
 ```
 
 ## Asymmetric Visibility
@@ -687,12 +703,12 @@ Visibility can be set either using the `setVisibility()` method with two paramet
 $class = new Nette\PhpGenerator\ClassType('Demo');
 
 $class->addProperty('name')
-    ->setType('string')
-    ->setVisibility('public', 'private'); // public for read, private for write
+	->setType('string')
+	->setVisibility('public', 'private'); // public for read, private for write
 
 $class->addProperty('id')
-    ->setType('int')
-    ->setProtected('set'); // protected for write
+	->setType('int')
+	->setProtected('set'); // protected for write
 
 echo $class;
 ```
@@ -702,9 +718,8 @@ This generates:
 ```php
 class Demo
 {
-    public private(set) string $name;
-
-    protected(set) int $id;
+	public private(set) string $name;
+	protected(set) int $id;
 }
 ```
 
@@ -754,7 +769,7 @@ echo $namespace->resolveName('range', $namespace::NameFunction); // 'iter\range'
 
 ## Class Name Resolution
 
-**When a class is part of a namespace, it's rendered slightly differently:** all types (e.g., type hints, return types, parent class name, implemented interfaces, used traits, and attributes) are automatically *resolved* (unless you disable it, see below). This means you must **use fully qualified class names** in definitions, and they will be replaced with aliases (based on use clauses) or simplified names (if in the same namespace) in the resulting code:
+**When a class is part of a namespace, it's rendered slightly differently:** all types (e.g., type hints, return types, parent class name, implemented interfaces, used traits, and attributes) are automatically *resolved* (unless you disable it, see below). This means you must **use fully qualified class names** in definitions, and they will be replaced with aliases (based on use clauses) or simplified names (if in the same namespace) in the resulting code:
 
 ```php
 $namespace = new Nette\PhpGenerator\PhpNamespace('Foo');
@@ -875,7 +890,7 @@ $closure = Nette\PhpGenerator\Closure::from(
 );
 ```
 
-By default, function and method bodies are empty. If you also want to load them, use this method (requires the `nikic/php-parser` package to be installed):
+By default, function and method bodies are empty. If you also want to load them, use this method (requires the `nikic/php-parser` package, version 5 or newer):
 
 ```php
 $class = Nette\PhpGenerator\ClassType::from(Foo::class, withBodies: true);
@@ -906,11 +921,11 @@ You can also directly load an entire PHP file, which can contain any number of c
 $file = Nette\PhpGenerator\PhpFile::fromCode(file_get_contents('classes.php'));
 ```
 
-The file's initial comment and `strict_types` declaration are also loaded. However, all other global code is ignored.
+The file's initial comment and `strict_types` declaration are also loaded. However, all other global code is ignored.
 
-Requires `nikic/php-parser` to be installed.
+Requires `nikic/php-parser` version 5 or newer.
 
-If you need to manipulate global code in files or individual statements within method bodies, it's better to use the `nikic/php-parser` library directly.
+If you need to manipulate global code in files or individual statements within method bodies, it's better to use the `nikic/php-parser` library directly.
 
 ## Class Manipulator
 

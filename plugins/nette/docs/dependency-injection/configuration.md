@@ -22,13 +22,13 @@ Overview of configuration options for the Nette DI container.
 The Nette DI container is easily controlled using configuration files. These are usually written in the [NEON format](../neon/format.md). We recommend using [editors with support](https://doc.nette.org/en/tools/ide) for this format.
 
 <pre>
-[decorator](#decorator): Decorator<br>
-[di](#di): DI Container<br>
-[extensions](#extensions): Install additional DI extensions<br>
-[includes](#including-files): Including files<br>
-[parameters](#parameters): Parameters<br>
-[search](#search): Automatic service registration<br>
-[services](services.md): Services
+[decorator](#decorator): 	Decorator<br>
+[di](#di): 			DI Container<br>
+[extensions](#extensions): 	Install additional DI extensions<br>
+[includes](#including-files): 	Including files<br>
+[parameters](#parameters): 	Parameters<br>
+[search](#search): 		Automatic service registration<br>
+[services](services.md): 		Services
 </pre>
 
 To write a string containing the character `%`, you must escape it by doubling it to `%%`.
@@ -67,7 +67,7 @@ See [separate chapter](services.md).
 
 ## Decorator
 
-How can you modify multiple services of a certain type at once? For example, how to call a specific method on all presenters that inherit from a particular base class? That's what the decorator is for.
+How can you modify multiple services of a certain type at once? For example, how to call a specific method on all presenters that inherit from a particular base class? That's what the decorator is for.
 
 ```neon
 decorator:
@@ -185,7 +185,7 @@ return [
 ];
 ```
 
-If items with the same keys appear in multiple configuration files, they will be overwritten, or [merged](#merging) in the case of arrays. A file included later has higher priority than the previous one. The file in which the `includes` section is listed has a higher priority than the files included in it.
+If items with the same keys appear in multiple configuration files, they will be overwritten, or [merged](#merging) in the case of arrays. A file included later has higher priority than the previous one. The file in which the `includes` section is listed has a higher priority than the files included in it.
 
 ## Search
 

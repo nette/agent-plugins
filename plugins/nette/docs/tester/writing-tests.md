@@ -6,6 +6,7 @@ Contents:
 - [Helper Functions](#helper-functions)
 - [Annotations and Skipping Tests](#annotations-and-skipping-tests)
 - [Directory Structure](#directory-structure)
+- [Tests That Can Fail](#tests-that-can-fail)
 - [Special Situations](#special-situations)
 
 
@@ -15,7 +16,7 @@ You can even open the test in a browser. But most importantly, by running it, yo
 
 In the introductory chapter, we [showed](guide.md#what-makes-tester-unique) a very trivial test involving array manipulation. Now, we'll create our own class to test, although it will also be simple.
 
-Let's start with a typical directory structure for a library or project. It's important to separate tests from the rest of the code, for example, for deployment purposes, as we don't want to upload tests to the production server. The structure might look like this:
+Let's start with a typical directory structure for a library or project. It's important to separate tests from the rest of the code, for example, for deployment purposes, as we don't want to upload tests to the production server. The structure might look like this:
 
 ```
 ├── src/           # code that we will test
@@ -29,7 +30,7 @@ Let's start with a typical directory structure for a library or project. It's 
 └── composer.json
 ```
 
-Now, let's create the individual files. We'll start with the class being tested, placing it in the file `src/Rectangle.php`:
+Now, let's create the individual files. We'll start with the class being tested, placing it in the file `src/Rectangle.php`:
 
 ```php
 <?php
@@ -110,7 +111,7 @@ in RectangleTest.php(5) Assert::same(123, $rect->getArea());
 FAILURE
 ```
 
-When writing tests, it's good practice to cover all edge cases. For example, inputs like zero, negative numbers, or in other scenarios, empty strings, null, etc. This actually forces you to think and decide how the code should behave in such situations. Tests then solidify this behavior.
+When writing tests, it's good practice to cover all edge cases. For example, inputs like zero, negative numbers, or in other scenarios, empty strings, null, etc. This actually forces you to think and decide how the code should behave in such situations. Tests then solidify this behavior.
 
 In our case, a negative value should throw an exception, which we verify with [Assert::exception()](assertions.md#assertexceptioncallable-callable-string-class-string-messagenull-codenull):
 
@@ -129,14 +130,14 @@ And we add a similar test for height. Finally, we test that `isSquare()` returns
 
 The size of the test file can increase and quickly become cluttered. Therefore, it is practical to group individual tested areas into separate functions.
 
-First, let's look at a simpler yet elegant option using the global `test()` function. Tester doesn't create this function automatically to avoid collisions if you have a function with the same name in your code. It's created by the `setupFunctions()` method, which you should call in your `bootstrap.php` file:
+First, let's look at a simpler yet elegant option using the global `test()` function. Tester doesn't create this function automatically to avoid collisions if you have a function with the same name in your code. It's created by the `setupFunctions()` method, which you should call in your `bootstrap.php` file:
 
 ```php
 Tester\Environment::setup();
 Tester\Environment::setupFunctions();
 ```
 
-Using this function, we can nicely structure the test file into named units. When executed, the labels will be printed sequentially.
+Using this function, we can nicely structure the test file into named units. When executed, the labels will be printed sequentially. The first `test()` that fails ends the whole file, so the units after it are not run.
 
 ```php
 <?php
@@ -236,7 +237,7 @@ The annotations shown indicate that the test should only be run with PHP version
 
 You can find a description of the annotations on the [Test Annotations](test-annotations.md) page.
 
-A test can also be skipped based on a custom condition using `Environment::skip()`. For example, this skips the test on Windows:
+A test can also be skipped based on a custom condition using `Environment::skip()`. For example, this skips the test on Windows:
 
 ```php
 if (defined('PHP_WINDOWS_VERSION_BUILD')) {
@@ -270,9 +271,22 @@ This allows you to run tests from a single namespace, i.e., a subdirectory:
 tester tests/NamespaceOne
 ```
 
+## Tests That Can Fail
+
+A test is useful only if it fails when the code breaks. When you finish one, ask yourself: would it fail if the method returned something wrong? A test that passes for a broken result proves only that the code runs. The expected value must not come from the tested code itself. And a test claiming that something does not happen needs, next to it, the case where it does.
+
+The most common cause is an assertion that is too lenient. `Assert::contains()` and `Assert::notContains()` on generated output pass for countless wrong outputs, as long as one string is or is not in them. Prefer comparing the whole result with `Assert::same()`, or with a pattern in `Assert::match()` and `Assert::matchFile()` that leaves out only the parts that really vary:
+
+```php
+Assert::contains('<strong>', $html);                    # weak: passes for broken markup too
+Assert::same('<p><strong>bold</strong></p>', $html);    # fails on any deviation
+```
+
+The test description is part of the test. If it claims something the assertions do not check, it misleads whoever later changes the code. And when the expected output is stored in a file, read it before you accept it: an expected file accepted unread records a bug as expected behavior.
+
 ## Special Situations
 
-A test that does not call any assertion method is considered suspicious and will be evaluated as an error:
+A test that does not call any assertion method is considered suspicious and will be evaluated as an error:
 
 ```
 Error: This test forgets to execute an assertion.

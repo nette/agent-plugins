@@ -14,9 +14,9 @@ Nette offers several ways to reuse the same form in multiple places without dupl
 
 ## Form Factory
 
-A fundamental approach to reusing a component in multiple locations is to create a method or class that generates this component. This method is then called from various places in the application. Such a method or class is called a *factory*. Please don't confuse this with the *factory method* design pattern, which describes a specific way of using factories and isn't directly related to this topic.
+A fundamental approach to reusing a component in multiple locations is to create a method or class that generates this component. This method is then called from various places in the application. Such a method or class is called a *factory*. Please don't confuse this with the *factory method* design pattern, which describes a specific way of using factories and isn't directly related to this topic.
 
-As an example, let's create a factory that builds an editing form:
+As an example, let's create a factory that builds an editing form:
 
 ```php
 use Nette\Application\UI\Form;
@@ -111,7 +111,7 @@ class FormFactory
 }
 ```
 
-Since the `createForm()` method is also called by other methods creating specific forms, setting the translator here is sufficient. And we're done. There's no need to modify any presenter or component code, which is excellent.
+Since the `createForm()` method is also called by other methods creating specific forms, setting the translator here is sufficient. And we're done. There's no need to modify any presenter or component code, which is excellent.
 
 ## More Factory Classes
 
@@ -152,7 +152,7 @@ class EditFormFactory
 }
 ```
 
-It's crucial that the relationship between the `FormFactory` and `EditFormFactory` classes is realized through [composition](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-composition), not [object inheritance](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-inheritance):
+It's crucial that the relationship between the `FormFactory` and `EditFormFactory` classes is realized through [composition](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-composition), not [object inheritance](https://doc.nette.org/en/nette/introduction-to-object-oriented-programming#toc-inheritance):
 
 ```php
 // ⛔ NO! INHERITANCE DOESN'T BELONG HERE
@@ -169,9 +169,9 @@ class EditFormFactory extends FormFactory
 }
 ```
 
-Using inheritance here would be entirely counterproductive. You'd encounter problems very quickly. For instance, if you wanted to add parameters to the `create()` method, PHP would report an error because its signature would differ from the parent's. Or when passing dependencies to the `EditFormFactory` class via the constructor. This would lead to what's known as [constructor hell](../dependency-injection/passing-dependencies.md#constructor-hell).
+Using inheritance here would be entirely counterproductive. You'd encounter problems very quickly. For instance, if you wanted to add parameters to the `create()` method, PHP would report an error because its signature would differ from the parent's. Or when passing dependencies to the `EditFormFactory` class via the constructor. This would lead to what's known as [constructor hell](../dependency-injection/passing-dependencies.md#constructor-hell).
 
-Generally, it's better to prefer [composition over inheritance](../dependency-injection/faq.md#why-is-composition-preferred-over-inheritance).
+Generally, it's better to prefer [composition over inheritance](../dependency-injection/faq.md#why-is-composition-preferred-over-inheritance).
 
 ## Form Handling
 
@@ -254,11 +254,11 @@ class EditForm extends Form
 
 Instead of assembling the form within the constructor, use a factory.
 
-It's important to recognize that the `Form` class is primarily a tool for building forms, i.e., a *form builder*. The assembled form can be considered its product. However, a product is not a specific type of builder; there's no *is a* relationship between them, which is the foundation of inheritance.
+It's important to recognize that the `Form` class is primarily a tool for building forms, i.e., a *form builder*. The assembled form can be considered its product. However, a product is not a specific type of builder; there's no *is a* relationship between them, which is the foundation of inheritance.
 
 ## Form Component
 
-A completely different approach involves creating a [component](../application/components.md) that encapsulates the form. This opens up new possibilities, such as rendering the form in a specific way, as the component includes its own template. Alternatively, signals can be used for AJAX communication and dynamically loading information into the form, for example, for suggestions, etc.
+A completely different approach involves creating a [component](../application/components.md) that encapsulates the form. This opens up new possibilities, such as rendering the form in a specific way, as the component includes its own template. Alternatively, signals can be used for AJAX communication and dynamically loading information into the form, for example, for suggestions, etc.
 
 ```php
 use Nette\Application\UI\Form;
@@ -300,7 +300,7 @@ class EditControl extends Nette\Application\UI\Control
 }
 ```
 
-Next, let's create a factory that will produce this component. It's sufficient to [define its interface](../application/components.md#components-with-dependencies):
+Next, let's create a factory that will produce this component. It's sufficient to [define its interface](../application/components.md#components-with-dependencies):
 
 ```php
 interface EditControlFactory

@@ -12,7 +12,7 @@ Contents:
 - [Upgrading from 1.x](#upgrading-from-1x)
 
 
-Are you writing a PHP script that runs from the command line? Whether it's a little helper for one afternoon or a tool with a whole set of commands, this library does all the tedious work around it for you:
+Are you writing a PHP script that runs from the command line? Whether it's a little helper for one afternoon or a tool with a whole set of commands, this library does all the tedious work around it for you:
 
 - Reads options and arguments and checks their values
 - Builds the help and clear error messages
@@ -30,14 +30,14 @@ It requires PHP version 8.2 and supports PHP up to 8.6.
 
 ## First Script
 
-It's best shown with an example. Say you have a pile of images and want to convert them to another format. Let's write a script `convert.php` for it, to be called like this:
+It's best shown with an example. Say you have a pile of images and want to convert them to another format. Let's write a script `convert.php` for it, to be called like this:
 
 ```shell
 php convert.php photo.jpg logo.png --format png
 php convert.php photo.jpg --dry-run
 ```
 
-The command line is made of three kinds of items. **Arguments** are plain values without a dash, here the file names. An **option** has a name and a value: `--format png` says which format to convert to, and can be shortened to `-f png`. A **flag** is just a switch with no value: `--dry-run` (`-n` for short) makes the script only print what it would do, without touching a single file.
+The command line is made of three kinds of items. **Arguments** are plain values without a dash, here the file names. An **option** has a name and a value: `--format png` says which format to convert to, and can be shortened to `-f png`. A **flag** is just a switch with no value: `--dry-run` (`-n` for short) makes the script only print what it would do, without touching a single file.
 
 How much code does it take to make all of this work? Surprisingly little. You write the conversion itself as an ordinary method, and the attributes on its parameters tell how each value is given on the command line:
 
@@ -66,7 +66,7 @@ final class ImageConverter
 
 Notice that you never touch `$argv` or parse anything. The parameter `$format` becomes the option `--format`, `$dryRun` the flag `--dry-run`, and the default value of a parameter applies when the user leaves the option out. The texts in the attributes describe the items and show up in the help. `repeatable: true` says there may be more files, so the method gets them as an array. `enum` lists the allowed values, so the script refuses `--format gif` before the method is even called.
 
-All that's left is to run the method. Below the class, in the same file `convert.php`, add:
+All that's left is to run the method. Below the class, in the same file `convert.php`, add:
 
 ```php
 require __DIR__ . '/vendor/autoload.php';
@@ -79,7 +79,7 @@ $args = $parser->parse($program);
 exit($args->run());
 ```
 
-Writing `$converter->convert(...)` doesn't call the method, it passes it on. `Command::from()` reads from it what the script accepts. `Parser` then reads the command line and checks the values. Finally `run()` calls your method with the right values. Whatever the method returns becomes the exit code of the script. That's how the shell, CI or another script learns how things went: 0 means success, anything else a problem.
+Writing `$converter->convert(...)` doesn't call the method, it passes it on. `Command::from()` reads from it what the script accepts. `Parser` then reads the command line and checks the values. Finally `run()` calls your method with the right values. Whatever the method returns becomes the exit code of the script. That's how the shell, CI or another script learns how things went: 0 means success, anything else a problem.
 
 And since people at the command line have their habits, the script copes with all the usual spellings: `--format png`, `--format=png` and `-f png` mean the same, single-letter options can be stuck together (`-nf png` is `-n -f png`), and options may stand anywhere between the files.
 
@@ -112,7 +112,7 @@ try {
 }
 ```
 
-The flag `--help` is standalone, so it works even when the user hasn't given the required files. The parser checks nothing else in that case. `HelpRenderer` builds the help from the descriptions in the attributes and prints it for `$args->command`, the command the user selected; in a script without commands, that's the whole program. Now try running `php convert.php --help`:
+The flag `--help` is standalone, so it works even when the user hasn't given the required files. The parser checks nothing else in that case. `HelpRenderer` builds the help from the descriptions in the attributes and prints it for `$args->command`, the command the user selected; in a script without commands, that's the whole program. Now try running `php convert.php --help`:
 
 ![Help of the script in a terminal](https://files.nette.org/git/command-line/2.x/help.webp)
 
@@ -134,7 +134,7 @@ This block that runs the program is the same in every script, so you write it on
 
 ## Without Attributes
 
-Attributes are the most comfortable way: each option is described right next to the parameter that receives it, the method gets the values straight in its parameters, and there's no separate definition to keep in sync with the code. Underneath them, though, lies a plain API you can use directly. It comes in handy for a quick script without a class, or when you put the options together at runtime:
+Attributes are the most comfortable way: each option is described right next to the parameter that receives it, the method gets the values straight in its parameters, and there's no separate definition to keep in sync with the code. Underneath them, though, lies a plain API you can use directly. It comes in handy for a quick script without a class, or when you put the options together at runtime:
 
 ```php
 use Nette\CommandLine\Command;
@@ -176,7 +176,7 @@ The rest of the script, the parser, the help and the errors, is the same as in `
 
 ## Terminal Output
 
-A script doesn't only read, it also writes. That's what the `Console` class is for, and it follows where the output goes. In a terminal it writes in color, and when you redirect the output to a file or the script runs in CI, it leaves the colors out by itself, so the log stays clean. The same with progress: in a terminal it shows on a line that keeps being rewritten, and it never gets into the log at all.
+A script doesn't only read, it also writes. That's what the `Console` class is for, and it follows where the output goes. In a terminal it writes in color, and when you redirect the output to a file or the script runs in CI, it leaves the colors out by itself, so the log stays clean. The same with progress: in a terminal it shows on a line that keeps being rewritten, and it never gets into the log at all.
 
 You create the console once and hand it to the class that needs it, for example in the constructor:
 

@@ -1,6 +1,6 @@
 # How to Write Microsites
 
-Imagine needing to quickly create a small website for your company's upcoming event. It needs to be simple, fast, and without unnecessary complications. You might think a robust framework isn't necessary for such a small project. But what if using the Nette Framework could actually simplify and accelerate this process?
+Imagine needing to quickly create a small website for your company's upcoming event. It needs to be simple, fast, and without unnecessary complications. You might think a robust framework isn't necessary for such a small project. But what if using the Nette Framework could actually simplify and accelerate this process?
 
 Even when creating simple websites, you don't want to sacrifice convenience. You don't want to reinvent what has already been solved. Feel free to be lazy and let yourself be pampered. The Nette Framework is also excellent for use as a micro-framework.
 
@@ -57,4 +57,4 @@ The PHP code in `index.php` first [sets up the environment](../bootstrap/index.m
 - You can also easily have completed forms [sent via email](../mail/index.md).
 - Sometimes, [caching](../caching/index.md) might be useful, for example, when downloading and displaying feeds.
 
-In today's fast-paced world, where speed and efficiency are crucial, having tools that enable you to achieve results without unnecessary delays is vital. The Nette Framework offers precisely that – rapid development, security, and a wide array of tools like Tracy and Latte that streamline the process. Just install a few Nette packages, and building such a microsite becomes incredibly easy. And you can be confident there are no hidden security vulnerabilities.
+In today's fast-paced world, where speed and efficiency are crucial, having tools that enable you to achieve results without unnecessary delays is vital. The Nette Framework offers precisely that – rapid development, security, and a wide array of tools like Tracy and Latte that streamline the process. Just install a few Nette packages, and building such a microsite becomes incredibly easy. And you can be confident there are no hidden security vulnerabilities.

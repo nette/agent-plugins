@@ -54,15 +54,15 @@ Custom tags provide the highest level of control over template syntax and render
 
 ## Understanding the Compilation Process
 
-To effectively create custom tags, it's helpful to explain how Latte processes templates. Understanding this process clarifies why tags are structured the way they are and how they fit into the bigger picture.
+To effectively create custom tags, it's helpful to explain how Latte processes templates. Understanding this process clarifies why tags are structured the way they are and how they fit into the bigger picture.
 
 Template compilation in Latte, simplified, involves these key steps:
 
 1. **Lexing:** The lexer reads the template source code (`.latte` file) and breaks it down into a sequence of small, distinct pieces called **tokens** (e.g., `{`, `foreach`, `$variable`, `}`, HTML text, etc.).
-2. **Parsing:** The parser takes this stream of tokens and constructs a meaningful tree structure representing the template's logic and content. This tree is called the **Abstract Syntax Tree (AST)**.
+2. **Parsing:** The parser takes this stream of tokens and constructs a meaningful tree structure representing the template's logic and content. This tree is called the **Abstract Syntax Tree (AST)**.
 3. **Compiler Passes:** Before generating PHP code, Latte runs [compiler passes](compiler-passes.md). These are functions that traverse the entire AST and can modify it or gather information. This step is crucial for features like security ([Sandbox](sandbox.md)) or optimizations.
 4. **Code Generation:** Finally, the compiler walks through the (potentially modified) AST and generates the corresponding PHP class code. This PHP code is what actually renders the template when executed.
-5. **Caching:** The generated PHP code is cached on disk, making subsequent renders very fast as steps 1–4 are skipped.
+5. **Caching:** The generated PHP code is cached on disk, making subsequent renders very fast as steps 1–4 are skipped.
 
 Actually, the compilation is a bit more complicated. Latte **has two** lexers and parsers: one for the HTML template and one for the PHP-like code inside the tags. Also, the parsing doesn't run after tokenization, but the lexer and parser run in parallel in two “threads” and coordinate. Take it from me, David Grudl – programming this felt like rocket science :-)
 
@@ -78,7 +78,7 @@ $code = $latte->generate($ast, $file);
 
 ## The Anatomy of a Tag
 
-Creating a fully functional custom tag in Latte involves several interconnected parts. Before diving into the implementation, let's understand the core concepts and terminology, drawing an analogy to HTML and the Document Object Model (DOM).
+Creating a fully functional custom tag in Latte involves several interconnected parts. Before diving into the implementation, let's understand the core concepts and terminology, drawing an analogy to HTML and the Document Object Model (DOM).
 
 ### Tags vs. Nodes (Analogy with HTML)
 
@@ -88,7 +88,7 @@ Latte works similarly:
 
 - In a `.latte` template file, you write **Latte tags**, like `{foreach ...}` and `{/foreach}`. This is the syntax you, as a template author, interact with.
 - When Latte **parses** the template, it builds an **Abstract Syntax Tree (AST)**. This tree is composed of **Nodes**. Each Latte tag, HTML element, piece of text, or expression within the template becomes one or more nodes in this tree.
-- The base class for all nodes in the AST is `Latte\Compiler\Node`. Just like the DOM has different node types (Element, Text, Comment), Latte's AST has various node types. You'll encounter `Latte\Compiler\Nodes\TextNode` for static text, `Latte\Compiler\Nodes\Html\ElementNode` for HTML elements, `Latte\Compiler\Nodes\Php\ExpressionNode` for expressions inside tags, and crucially for custom tags, nodes inheriting from `Latte\Compiler\Nodes\StatementNode`.
+- The base class for all nodes in the AST is `Latte\Compiler\Node`. Just like the DOM has different node types (Element, Text, Comment), Latte's AST has various node types. You'll encounter `Latte\Compiler\Nodes\TextNode` for static text, `Latte\Compiler\Nodes\Html\ElementNode` for HTML elements, `Latte\Compiler\Nodes\Php\ExpressionNode` for expressions inside tags, and crucially for custom tags, nodes inheriting from `Latte\Compiler\Nodes\StatementNode`.
 
 ### Why `StatementNode`?
 
@@ -98,22 +98,22 @@ In programming, such action-performing units are often called “statements”. 
 
 ## The Key Components
 
-Let's revisit the main components needed to create a custom tag:
+Let's revisit the main components needed to create a custom tag:
 
 ### Tag Parsing Function
 
 - This PHP callable parses the Latte tag syntax (`{...}`) in the template source.
-- It receives information about the tag (like its name, position, and whether it's an n:attribute) via a [Latte\Compiler\Tag](https://api.nette.org/latte/master/Latte/Compiler/Tag.html) object, and the main [Latte\Compiler\TemplateParser](https://api.nette.org/latte/master/Latte/Compiler/TemplateParser.html) as a second argument. Its full signature is `callable(Tag, TemplateParser): (Node|\Generator|void)`.
+- It receives information about the tag (like its name, position, and whether it's an n:attribute) via a [Latte\Compiler\Tag](https://api.nette.org/latte/master/Latte/Compiler/Tag.html) object, and the main [Latte\Compiler\TemplateParser](https://api.nette.org/latte/master/Latte/Compiler/TemplateParser.html) as a second argument. Its full signature is `callable(Tag, TemplateParser): (Node|\Generator|void)`.
 - Its primary tool for parsing arguments and expressions within the tag delimiters is the [Latte\Compiler\TagParser](https://api.nette.org/latte/master/Latte/Compiler/TagParser.html) object, accessible via `$tag->parser` (this is a different parser than the one that parses the whole template).
 - For paired tags, it uses `yield` to signal Latte to parse the inner content between the start and end tags.
 - The ultimate goal of the parsing function is to create and return a **Node Class** instance, which gets added to the AST.
-- It's customary (though not required) to implement the parsing function as a static method (often named `create`) directly within the corresponding Node class. This keeps the parsing logic and the node's representation neatly bundled together, allows access to private/protected class elements if needed, and improves organization.
+- It's customary (though not required) to implement the parsing function as a static method (often named `create`) directly within the corresponding Node class. This keeps the parsing logic and the node's representation neatly bundled together, allows access to private/protected class elements if needed, and improves organization.
 
 ### Node Class
 
 - Represents the *logical function* of your tag within the **Abstract Syntax Tree (AST)**.
 - Holds parsed information (like arguments or content) as public properties. These properties often contain other `Node` instances (e.g., `ExpressionNode` for parsed arguments, `AreaNode` for parsed content).
-- The `print(PrintContext $context): string` method generates the *PHP code* (a statement or series of statements) that performs the tag's action during template rendering.
+- The `print(PrintContext $context): string` method generates the *PHP code* (a statement or series of statements) that performs the tag's action during template rendering.
 - The `getIterator(): \Generator` method makes child nodes (arguments, content) accessible for traversal by **Compiler Passes**. It must yield references (`&`) to allow passes to potentially modify or replace subnodes.
 - After the entire template is parsed into an AST, Latte runs a series of [compiler passes](compiler-passes.md). These passes traverse the *entire* AST using the `getIterator()` method provided by each node. They can inspect nodes, collect information, and even *modify* the tree (e.g., by changing the public properties of nodes or replacing nodes entirely). This design, requiring comprehensive `getIterator()`, is crucial. It allows powerful features like the [Sandbox](sandbox.md) to analyze and potentially alter the behavior of *any* part of the template, including your custom tags, ensuring security and consistency.
 
@@ -128,7 +128,7 @@ We will now explore how to implement these components step-by-step.
 
 ## Creating a Simple Tag
 
-Let's dive into creating your first custom Latte tag. We'll start with a very simple example: a tag named `{datetime}` that outputs the current date and time. **Initially, this tag won't accept any arguments**, but we will enhance it later in the [Parsing Tag Arguments](#parsing-tag-arguments) section. It also doesn't have inner content.
+Let's dive into creating your first custom Latte tag. We'll start with a very simple example: a tag named `{datetime}` that outputs the current date and time. **Initially, this tag won't accept any arguments**, but we will enhance it later in the [Parsing Tag Arguments](#parsing-tag-arguments) section. It also doesn't have inner content.
 
 This example will guide you through the essential steps: defining the Node class, implementing its `print()` and `getIterator()` methods, creating the parsing function, and finally registering the tag.
 
@@ -184,11 +184,11 @@ class DatetimeNode extends StatementNode
 }
 ```
 
-When Latte encounters `{datetime}` in a template, it calls the tag parsing function `create()`. Its job is to return an instance of `DatetimeNode`. We also set `$tag->outputMode` to `OutputKeepIndentation`; because a tag runs in the default `OutputNone` mode (explained in [Tag Output Modes](#tag-output-modes)), a tag placed before the template's first text could otherwise emit its output in the generated `prepare()` method instead of `main()`. Setting this mode ensures the output lands where the tag stands.
+When Latte encounters `{datetime}` in a template, it calls the tag parsing function `create()`. Its job is to return an instance of `DatetimeNode`. We also set `$tag->outputMode` to `OutputKeepIndentation`; because a tag runs in the default `OutputNone` mode (explained in [Tag Output Modes](#tag-output-modes)), a tag placed before the template's first text could otherwise emit its output in the generated `prepare()` method instead of `main()`. Setting this mode ensures the output lands where the tag stands.
 
 The `print()` method generates the PHP code that will be executed when the template is rendered. We call the `$context->format()` method, which assembles the resulting PHP code string for the compiled template. The first argument, `'echo date('Y-m-d H:i:s') %line;'`, is the mask into which the subsequent parameters are substituted. The `%line` placeholder tells the `format()` method to take the following argument, which is `$this->position`, and insert a comment like `/* pos 15:1 */` that links the generated PHP code back to the original template line, which is crucial for debugging.
 
-The `$this->position` property is inherited from the base `Node` class and is automatically set by Latte's parser. It holds a [Latte\Compiler\Range](https://api.nette.org/latte/master/Latte/Compiler/Range.html) object (a subclass of `Position` extended with a `length` in bytes) indicating where the tag is located in the source `.latte` file. For paired tags the range spans from the opening to the closing tag, and `StatementNode` descendants additionally expose `$this->tagRanges` listing the `Range` of every constituent tag (opening, intermediate like `{else}`/`{case}`, and closing).
+The `$this->position` property is inherited from the base `Node` class and is automatically set by Latte's parser. It holds a [Latte\Compiler\Range](https://api.nette.org/latte/master/Latte/Compiler/Range.html) object (a subclass of `Position` extended with a `length` in bytes) indicating where the tag is located in the source `.latte` file. For paired tags the range spans from the opening to the closing tag, and `StatementNode` descendants additionally expose `$this->tagRanges` listing the `Range` of every constituent tag (opening, intermediate like `{else}`/`{case}`, and closing).
 
 The `getIterator()` method is vital for compiler passes. It must yield all child nodes, but our simple `DatetimeNode` currently has no arguments or content, thus no child nodes. However, the method must still exist and be a generator, i.e. the `yield` keyword must be somehow present in the method body.
 
@@ -242,19 +242,19 @@ In the next section, we'll enhance this tag to accept arguments, demonstrating h
 
 ## Parsing Tag Arguments
 
-Our simple `{datetime}` tag works, but it's not very flexible. Let's enhance it to accept an optional argument: a format string for the `date()` function. The desired syntax will be `{datetime $format}`.
+Our simple `{datetime}` tag works, but it's not very flexible. Let's enhance it to accept an optional argument: a format string for the `date()` function. The desired syntax will be `{datetime $format}`.
 
 **Goal:** Modify `{datetime}` to accept an optional PHP expression as an argument, which will be used as the format string for `date()`.
 
 ### Introducing `TagParser`
 
-Before we modify the code, it's important to understand the tool we'll use: [Latte\Compiler\TagParser](https://api.nette.org/latte/master/Latte/Compiler/TagParser.html). When Latte's main parser (`TemplateParser`) encounters a Latte tag like `{datetime ...}` or an n:attribute, it delegates the parsing of the content *inside* the tag (the part between `{` and `}`, or the attribute's value) to a specialized `TagParser`.
+Before we modify the code, it's important to understand the tool we'll use: [Latte\Compiler\TagParser](https://api.nette.org/latte/master/Latte/Compiler/TagParser.html). When Latte's main parser (`TemplateParser`) encounters a Latte tag like `{datetime ...}` or an n:attribute, it delegates the parsing of the content *inside* the tag (the part between `{` and `}`, or the attribute's value) to a specialized `TagParser`.
 
-This `TagParser` operates solely on the **tag's arguments**. Its job is to consume tokens representing these arguments. Crucially, it **must parse the entire content** provided to it. If your parsing function finishes but the `TagParser` hasn't reached the end of the arguments (checked via `$tag->parser->isEnd()`), Latte will throw an exception, because it indicates unexpected tokens were left inside the tag. Conversely, if a tag *requires* arguments, you should call `$tag->expectArguments()` at the beginning of your parsing function. This method checks if arguments are present and throws a helpful exception if the tag was used without any.
+This `TagParser` operates solely on the **tag's arguments**. Its job is to consume tokens representing these arguments. Crucially, it **must parse the entire content** provided to it. If your parsing function finishes but the `TagParser` hasn't reached the end of the arguments (checked via `$tag->parser->isEnd()`), Latte will throw an exception, because it indicates unexpected tokens were left inside the tag. Conversely, if a tag *requires* arguments, you should call `$tag->expectArguments()` at the beginning of your parsing function. This method checks if arguments are present and throws a helpful exception if the tag was used without any.
 
 `TagParser` offers useful methods for parsing different kinds of arguments:
 
-- `parseExpression(): ExpressionNode`: Parses a PHP-like expression (variables, literals, operators, function/method calls, etc.). It handles Latte's syntax sugar, like treating simple alphanumeric strings as quoted strings (e.g., `foo` is parsed as if it were `'foo'`).
+- `parseExpression(): ExpressionNode`: Parses a PHP-like expression (variables, literals, operators, function/method calls, etc.). It handles Latte's syntax sugar, like treating simple alphanumeric strings as quoted strings (e.g., `foo` is parsed as if it were `'foo'`).
 - `parseUnquotedStringOrExpression(): ExpressionNode`: Parses either a standard expression or an *unquoted string*. Unquoted strings are sequences allowed by Latte without quotes, often used for things like file paths (e.g., `{include ../file.latte}`). If it parses an unquoted string, it returns a `StringNode`.
 - `parseArguments(): ArrayNode`: Parses comma-separated arguments, potentially with keys, like `10, name: 'John', true`.
 - `parseModifier(): ModifierNode`: Parses filters like `|upper|truncate:10`.
@@ -268,7 +268,7 @@ For more complex or low-level parsing needs, you can directly interact with the 
 
 ### Updating the Parsing Function `create()`
 
-With that understanding, let's modify the `create()` method in `DatetimeNode` to parse the optional format argument using `$tag->parser`.
+With that understanding, let's modify the `create()` method in `DatetimeNode` to parse the optional format argument using `$tag->parser`.
 
 ```php
 <?php
@@ -325,7 +325,7 @@ Now, modify the `print()` method to use the parsed format expression stored in `
 
 Into the `$formatNode` variable, we store the AST node representing the format string for the PHP `date()` function. We use the null coalescing operator (`??`) here. If the user provided an argument in the template (e.g., `{datetime 'd.m.Y'}`), then the `$this->format` property holds the corresponding node (in this case, a `StringNode` with the value `'d.m.Y'`), and that node is used. If the user did not provide an argument (wrote just `{datetime}`), the `$this->format` property is `null`, and instead, we create a new `StringNode` with the default format `'Y-m-d H:i:s'`. This ensures that `$formatNode` always contains a valid AST node for the format.
 
-In the mask `'echo date(%node) %line;'`, the new placeholder `%node` is used, which tells the `format()` method to take the first following argument (which is our `$formatNode`), call its `print()` method (which returns its PHP code representation), and insert that result at the placeholder's position.
+In the mask `'echo date(%node) %line;'`, the new placeholder `%node` is used, which tells the `format()` method to take the first following argument (which is our `$formatNode`), call its `print()` method (which returns its PHP code representation), and insert that result at the placeholder's position.
 
 ### Implementing `getIterator()` for Subnodes
 
@@ -340,7 +340,7 @@ Our `DatetimeNode` now has a child node: the `$format` expression. We **must** m
 	}
 ```
 
-Why is this crucial? Imagine a Sandbox pass that needs to check if the `$format` argument contains a forbidden function call (e.g., `{datetime dangerousFunction()}`). If `getIterator()` doesn't yield `$this->format`, the Sandbox pass would never see the `dangerousFunction()` call inside our tag's argument, creating a potential security hole. By yielding it, we allow the Sandbox (and other passes) to inspect and potentially modify the `$format` expression node.
+Why is this crucial? Imagine a Sandbox pass that needs to check if the `$format` argument contains a forbidden function call (e.g., `{datetime dangerousFunction()}`). If `getIterator()` doesn't yield `$this->format`, the Sandbox pass would never see the `dangerousFunction()` call inside our tag's argument, creating a potential security hole. By yielding it, we allow the Sandbox (and other passes) to inspect and potentially modify the `$format` expression node.
 
 ### Using the Enhanced Tag
 
@@ -369,13 +369,13 @@ This tag will allow us to include debugging information in our templates that sh
 
 Sometimes, your tags need access to data or services that aren't passed directly as template parameters. For instance, determining if the application is in development mode, accessing a user object, or getting configuration values. Latte provides a mechanism called **Providers** for this.
 
-Providers are registered within your [Extension](extending-latte.md#the-robust-way-latte-extension) using the `getProviders()` method. This method returns an associative array where keys are names under which the providers will be accessible in the template's runtime code, and values are the actual data or objects.
+Providers are registered within your [Extension](extending-latte.md#the-robust-way-latte-extension) using the `getProviders()` method. This method returns an associative array where keys are names under which the providers will be accessible in the template's runtime code, and values are the actual data or objects.
 
-Inside the PHP code generated by your tag's `print()` method, you can then access these providers via the special object property `$this->global`. Since this property is shared across all extensions, it's a good practice to **prefix your provider names** to avoid potential naming collisions with Latte's core providers or providers from other third-party extensions. A common convention is to use a short, unique prefix related to your vendor or extension name. For our example, let's use the prefix `app` and the development mode flag will be available as `$this->global->appDevMode`.
+Inside the PHP code generated by your tag's `print()` method, you can then access these providers via the special object property `$this->global`. Since this property is shared across all extensions, it's a good practice to **prefix your provider names** to avoid potential naming collisions with Latte's core providers or providers from other third-party extensions. A common convention is to use a short, unique prefix related to your vendor or extension name. For our example, let's use the prefix `app` and the development mode flag will be available as `$this->global->appDevMode`.
 
 ### The `yield` Keyword for Parsing Content
 
-How do we tell Latte's parser to process the content *between* `{debug}` and `{/debug}`? This is where the `yield` keyword comes into play.
+How do we tell Latte's parser to process the content *between* `{debug}` and `{/debug}`? This is where the `yield` keyword comes into play.
 
 When `yield` is used in the `create()` function, the function becomes a [PHP Generator](https://www.php.net/manual/en/language.generators.overview.php). Its execution pauses, and control returns to the main `TemplateParser`. The `TemplateParser` then continues parsing the template content *until* it encounters the corresponding closing tag (`{/debug}` in our case).
 
@@ -384,7 +384,7 @@ Once the closing tag is found, the `TemplateParser` resumes the execution of our
 1. An `AreaNode` representing the parsed content between the start and end tags.
 2. The `Tag` object representing the closing tag (e.g., `{/debug}`).
 
-Let's create the `DebugNode` class and its `create` method using `yield`.
+Let's create the `DebugNode` class and its `create` method using `yield`.
 
 ```php
 <?php
@@ -420,7 +420,7 @@ class DebugNode extends StatementNode
 
 Note: `$endTag` is `null` if the tag is used as n:attribute, i.e. `<div n:debug>...</div>`.
 
-A paired tag can also be closed with a slash, like `{debug/}` (or `<div n:debug/>`). It then has no inner content: the generator receives `[$emptyFragmentNode, $startTag]`, where the second element is the *start* tag itself, not `null`.
+A paired tag can also be closed with a slash, like `{debug/}` (or `<div n:debug/>`). It then has no inner content: the generator receives `[$emptyFragmentNode, $startTag]`, where the second element is the *start* tag itself, not `null`.
 
 ### Implementing `print()` for Conditional Rendering
 
@@ -525,18 +525,18 @@ For most standard paired tags you define (like our `{debug}`), Latte automatical
 
 Both will render the `<div>` only if `$this->global->appDevMode` is true. The `inner-` and `tag-` prefixes also work as expected.
 
-Sometimes, your tag's logic might need to behave slightly differently depending on whether it's used as a standard pair tag or as an n:attribute, or if a prefix like `n:inner-tag` or `n:tag-tag` is used. The `Latte\Compiler\Tag` object, passed to your `create()` parsing function, provides this information:
+Sometimes, your tag's logic might need to behave slightly differently depending on whether it's used as a standard pair tag or as an n:attribute, or if a prefix like `n:inner-tag` or `n:tag-tag` is used. The `Latte\Compiler\Tag` object, passed to your `create()` parsing function, provides this information:
 
 - `$tag->isNAttribute(): bool`: Returns `true` if the tag is being parsed as an n:attribute
 - `$tag->prefix: ?string`: Returns the prefix used with the n:attribute, which can be `null` (not an n:attribute), `Tag::PrefixNone`, `Tag::PrefixInner`, or `Tag::PrefixTag`
 
-Now that we understand simple tags, argument parsing, paired tags, providers, and n:attributes, let's tackle a more complex scenario involving tags nested within other tags, using our `{debug}` tag as a starting point.
+Now that we understand simple tags, argument parsing, paired tags, providers, and n:attributes, let's tackle a more complex scenario involving tags nested within other tags, using our `{debug}` tag as a starting point.
 
 ## Intermediate Tags
 
 Some paired tags allow or even require other tags to appear *inside* them before the final closing tag. These are called **intermediate tags**. Classic examples include `{if}...{elseif}...{else}...{/if}` or `{switch}...{case}...{default}...{/switch}`.
 
-Let's extend our `{debug}` tag to support an optional `{else}` clause, which will be rendered when the application is *not* in development mode.
+Let's extend our `{debug}` tag to support an optional `{else}` clause, which will be rendered when the application is *not* in development mode.
 
 **Goal:** Modify `{debug}` to support an optional `{else}` intermediate tag. The final syntax should be `{debug} ... {else} ... {/debug}`.
 
@@ -546,7 +546,7 @@ We already know that `yield` pauses the parsing function `create()` and returns 
 
 When the parser encounters such an intermediate tag, it stops parsing the content, resumes the `create()` generator, and passes back the partially parsed content and the **intermediate tag** itself (instead of the final end tag). Our `create()` function can then handle this intermediate tag (e.g., parse its arguments if it had any) and `yield` again to parse the *next* part of the content until the *final* end tag or another expected intermediate tag is found.
 
-Let's modify `DebugNode::create()` to expect `{else}`:
+Let's modify `DebugNode::create()` to expect `{else}`:
 
 ```php
 <?php
@@ -643,7 +643,7 @@ The tag can now be used with an optional `{else}` clause:
 
 Our previous examples (`{datetime}`, `{debug}`) were relatively stateless within their `print()` methods. They either directly outputted content or made a simple conditional check based on a global provider. However, many tags need to manage some form of **state** during rendering or involve evaluating user-provided expressions that should only be run once for performance or correctness. Furthermore, we need to consider what happens when our custom tags are **nested**.
 
-Let's illustrate these concepts by creating a `{repeat $count}...{/repeat}` tag. This tag will repeat its inner content `$count` times.
+Let's illustrate these concepts by creating a `{repeat $count}...{/repeat}` tag. This tag will repeat its inner content `$count` times.
 
 **Goal:** Implement `{repeat $count}` which repeats its content a specified number of times.
 
@@ -687,7 +687,7 @@ Now consider nesting:
 {/repeat}
 ```
 
-If both the outer and inner `{repeat}` tags generated code using the *same* temporary variable names (e.g., `$__count` and `$__i`), the inner loop would overwrite the outer loop's variables, breaking the logic.
+If both the outer and inner `{repeat}` tags generated code using the *same* temporary variable names (e.g., `$__count` and `$__i`), the inner loop would overwrite the outer loop's variables, breaking the logic.
 
 We need to ensure that the temporary variables generated for each instance of the `{repeat}` tag are **unique**. We achieve this using `PrintContext::generateId()`. This method returns a unique integer during the compilation phase. We can append this ID to our temporary variable names.
 
@@ -695,7 +695,7 @@ So, instead of `$__count`, we'll generate a name with a unique numeric suffix, s
 
 ### Implementing `RepeatNode`
 
-Let's create the node class.
+Let's create the node class.
 
 ```php
 <?php
@@ -818,7 +818,7 @@ While many `n:attributes` like `n:if` or `n:foreach` serve as convenient shortha
 
 Standard examples built into Latte include [`n:class`](tags.md#nclass), which helps dynamically build the `class` attribute, and [`n:attr`](tags.md#nattr), which can set multiple arbitrary attributes.
 
-Let's create our own pure n:attribute: `n:confirm`, which will add a JavaScript confirmation dialog before an action (like following a link or submitting a form) is performed.
+Let's create our own pure n:attribute: `n:confirm`, which will add a JavaScript confirmation dialog before an action (like following a link or submitting a form) is performed.
 
 **Goal:** Implement `n:confirm="'Are you sure?'"` which adds an `onclick` handler to prevent the default action if the user cancels the confirmation dialog.
 
@@ -922,15 +922,15 @@ The `Tag` object passed to your `create()` function has a property `outputMode`.
 - `Tag::OutputRemoveIndentation` (set explicitly by the block tags `{block}`, `{embed}`, `{include}` and `{sandbox}`): removes the leading indentation before the tag and a single trailing newline. This helps keep the generated PHP code cleaner and avoids extra blank lines in the HTML output caused by the tag itself.
 - `Tag::OutputKeepIndentation` (set explicitly by output tags such as `{=...}`): Latte tries to preserve the indentation before the tag; newlines *after* the tag are generally kept. This is suitable for tags that output content inline – see the `{datetime}` example above, which sets this mode for exactly that reason.
 
-Choose the mode that best fits your tag's purpose. Since the default is `OutputNone`, control-flow and declaration tags need no change; set `OutputKeepIndentation` for tags that print content on their own line.
+Choose the mode that best fits your tag's purpose. Since the default is `OutputNone`, control-flow and declaration tags need no change; set `OutputKeepIndentation` for tags that print content on their own line.
 
 ### Accessing Parent/Closest Tags
 
-Sometimes, a tag's behavior needs to depend on the context it's used in, specifically which parent tag(s) it resides within. The `Tag` object passed to your `create()` function provides the `closestTag(array $classes, ?callable $condition = null): ?Tag` method precisely for this purpose.
+Sometimes, a tag's behavior needs to depend on the context it's used in, specifically which parent tag(s) it resides within. The `Tag` object passed to your `create()` function provides the `closestTag(array $classes, ?callable $condition = null): ?Tag` method precisely for this purpose.
 
 This method searches upwards through the hierarchy of currently open Latte tags (the chain of `$tag->parent`; surrounding HTML elements are not part of it) and returns the `Tag` object of the nearest ancestor that matches specific criteria. If no matching ancestor is found, it returns `null`.
 
-The `$classes` array specifies what kind of ancestor tags you are looking for. It checks whether the class of the ancestor tag's associated node (`$ancestorTag->node`) is exactly one of the listed classes; subclasses are not matched.
+The `$classes` array specifies what kind of ancestor tags you are looking for. It checks whether the class of the ancestor tag's associated node (`$ancestorTag->node`) is exactly one of the listed classes; subclasses are not matched.
 
 ```php
 function create(Tag $tag)
@@ -944,9 +944,9 @@ function create(Tag $tag)
 }
 ```
 
-Notice the `$foreachTag->node`: This works only because it's a convention in Latte tag development to immediately assign the created node to `$tag->node` within the `create()` method, like we always did.
+Notice the `$foreachTag->node`: This works only because it's a convention in Latte tag development to immediately assign the created node to `$tag->node` within the `create()` method, like we always did.
 
-Sometimes, just matching the node type isn't enough. You might need to check a specific property of the potential ancestor tag or its node. The optional second argument to `closestTag()` is a callable that receives the potential ancestor `Tag` object and should return whether it's a valid match.
+Sometimes, just matching the node type isn't enough. You might need to check a specific property of the potential ancestor tag or its node. The optional second argument to `closestTag()` is a callable that receives the potential ancestor `Tag` object and should return whether it's a valid match.
 
 ```php
 function create(Tag $tag)
@@ -963,23 +963,36 @@ Using `closestTag()` allows you to create tags that are context-aware and enforc
 
 ### `PrintContext::format()` Placeholders
 
-We've frequently used `PrintContext::format()` to generate PHP code in the `print()` methods of our nodes. It accepts a mask string and subsequent arguments that replace placeholders in the mask. Here's a summary of the available placeholders:
+We've frequently used `PrintContext::format()` to generate PHP code in the `print()` methods of our nodes. It accepts a mask string and subsequent arguments that replace placeholders in the mask. Here's a summary of the available placeholders:
 
 - **`%node`**: Argument must be a `Node` instance. It calls the node's `print()` method and inserts the resulting PHP code string.
+
 - **`%dump`**: Argument is any PHP value. It exports the value into valid PHP code. Suitable for scalars, arrays, null.
+
   - `$context->format('echo %dump;', 'Hello')` → `echo 'Hello';`
   - `$context->format('$arr = %dump;', [1, 2])` → `$arr = [1, 2];`
+
 - **`%raw`**: Inserts the argument directly into the output PHP code without any escaping or modification. **Use with caution**, primarily for inserting pre-generated PHP code snippets or variable names.
+
   - `$context->format('%raw = 1;', '$variableName')` → `$variableName = 1;`
+
 - **`%args`**: Argument must be an `Expression\ArrayNode`. It prints the array items formatted as arguments for a function or method call (comma-separated, handling named arguments if present).
+
   - `$argsNode = new ArrayNode([...]);`
   - `$context->format('myFunc(%args);', $argsNode)` → `myFunc(1, name: 'Joe');`
+
 - **`%line`**: Argument must be a `Position` (or `Range`) object (usually `$this->position`). It inserts a PHP comment `/* pos X:Y */` indicating the source line and column.
+
   - `$context->format('echo "Hi" %line;', $this->position)` → `echo "Hi" /* pos 42:1 */;`
+
 - **`%escape(...)`**: It generates PHP code that, *at runtime*, will escape the inner expression using the current context-aware escaping rules.
+
   - `$context->format('echo %escape(%node);', $variableNode)`
+
 - **`%modify(...)`**: Argument must be a `ModifierNode`. It generates PHP code that applies the filters specified in the `ModifierNode` to the inner content, including context-aware escaping if not disabled by `|noescape`.
+
   - `$context->format('%modify(%node);', $modifierNode, $variableNode)`
+
 - **`%modifyContent(...)`**: Similar to `%modify`, but intended for modifying blocks of captured content (often HTML).
 
 You can explicitly reference arguments by their zero-based index: `%0.node`, `%1.dump`, `%2.raw`, etc. This allows reusing an argument multiple times in the mask without passing it repeatedly to `format()`. See the `{repeat}` tag example where `%0.raw` and `%2.raw` were used.
@@ -1070,7 +1083,7 @@ Latte provides two distinct types based on where you need to insert the generate
 
 The important reason to use `AuxiliaryNode` instead of standard nodes (like `StaticMethodCallNode`) within your `print()` method or a compiler pass is to **control visibility for subsequent compiler passes**, especially security-related ones like the Sandbox.
 
-Consider a scenario: Your compiler pass needs to wrap a user-provided expression (`$userExpr`) with a call to a specific, trusted helper function `myInternalSanitize($userExpr)`. If you create a standard node `new FunctionCallNode('myInternalSanitize', [$userExpr])`, it will be fully visible to the AST traverser. If a Sandbox pass runs later and `myInternalSanitize` is *not* on its allowlist, the Sandbox might *block* or modify this call, potentially breaking your tag's internal logic, even though *you*, the tag author, know this specific call is safe and necessary. So you can generate the call directly within the `AuxiliaryNode`'s closure.
+Consider a scenario: Your compiler pass needs to wrap a user-provided expression (`$userExpr`) with a call to a specific, trusted helper function `myInternalSanitize($userExpr)`. If you create a standard node `new FunctionCallNode('myInternalSanitize', [$userExpr])`, it will be fully visible to the AST traverser. If a Sandbox pass runs later and `myInternalSanitize` is *not* on its allowlist, the Sandbox might *block* or modify this call, potentially breaking your tag's internal logic, even though *you*, the tag author, know this specific call is safe and necessary. So you can generate the call directly within the `AuxiliaryNode`'s closure.
 
 ```php
 use Latte\Compiler\Nodes\Php\Expression\AuxiliaryNode;
@@ -1096,11 +1109,11 @@ While the generated PHP code itself is hidden from passes, the *inputs* to that 
 - **Implement `getIterator()` Correctly:** Always implement `getIterator()` and yield *references* (`&`) to *all* child nodes (arguments, content) that were parsed from the template. This is essential for compiler passes, security (Sandbox), and potential future optimizations.
 - **Public Properties for Nodes:** Make properties holding child nodes public so that compiler passes can potentially modify them if needed.
 - **Use `PrintContext::format()`:** Utilize the `format()` method for generating PHP code. It handles quoting, escaping placeholders correctly, and adds line number comments automatically.
-- **Temporary Variables (`$__`):** When generating runtime PHP code that needs temporary variables (e.g., to store intermediate results, loop counters), use the `$__` prefix convention to avoid collisions with user variables and Latte's internal `$ʟ_` variables.
+- **Temporary Variables (`$__`):** When generating runtime PHP code that needs temporary variables (e.g., to store intermediate results, loop counters), use the `$__` prefix convention to avoid collisions with user variables and Latte's internal `$ʟ_` variables.
 - **Nesting and Unique IDs:** If your tag can be nested or needs instance-specific state at runtime, use `$context->generateId()` within your `print()` method to create unique suffixes for your `$__` temporary variables.
 - **Providers for External Data:** Use Providers (registered via `Extension::getProviders()`) to access runtime data or services ($this-\>global-\>…) instead of hardcoding values or relying on global state. Use vendor prefixes for provider names.
 - **Consider n:attributes:** If your paired tag operates logically on a single HTML element, Latte likely provides automatic `n:attribute` support. Keep this in mind for user convenience. If creating an attribute-modifying tag, consider if a pure `n:attribute` is the most appropriate form.
-- **Testing:** Write tests for your tags, covering both parsing various syntax inputs and the correctness of the generated PHP code's output.
+- **Testing:** Write tests for your tags, covering both parsing various syntax inputs and the correctness of the generated PHP code's output.
 
 By following these guidelines, you can create powerful, robust, and maintainable custom tags that seamlessly integrate with the Latte templating engine.
 

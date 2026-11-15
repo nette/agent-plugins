@@ -47,7 +47,7 @@ Automatically validates UTF-8, trims leading and trailing whitespace, and remove
 
 The maximum length can be limited using `setMaxLength()`. The [addFilter()](validation.md#modifying-input-values) method allows modifying the value entered by the user.
 
-Using `setHtmlType()`, you can change the visual appearance of the text field to types like `search`, `tel`, or `url` as defined in the [specification](https://developer.mozilla.org/en-US/docs/Learn/Forms/HTML5_input_types). Remember that changing the type is purely visual and does not replace validation functionality. For the `url` type, it's advisable to add a specific [URL validation rule](validation.md#text-inputs).
+Using `setHtmlType()`, you can change the visual appearance of the text field to types like `search`, `tel`, or `url` as defined in the [specification](https://developer.mozilla.org/en-US/docs/Learn/Forms/HTML5_input_types). Remember that changing the type is purely visual and does not replace validation functionality. For the `url` type, it's advisable to add a specific [URL validation rule](validation.md#text-inputs).
 
 For other input types like `number`, `range`, `email`, `date`, `datetime-local`, `time`, and `color`, use specialized methods such as [addInteger](#addintegerstring-name-labelnull-textinput), [addFloat](#addfloatstring-name-labelnull-textinput-since-3112), [addEmail](#addemailstring-name-labelnull-int-maxlength255-textinput), [addDate](#adddatestring-name-labelnull-datetimecontrol-since-3114), [addTime](#addtimestring-name-labelnull-bool-withsecondsfalse-datetimecontrol-since-3114), [addDateTime](#adddatetimestring-name-labelnull-bool-withsecondsfalse-datetimecontrol-since-3114), and [addColor](#addcolorstring-name-labelnull-colorpicker-since-3114), which provide server-side validation. The types `month` and `week` are not yet fully supported by all browsers.
 
@@ -251,7 +251,7 @@ If the file fails to upload correctly, the form is not successfully submitted, a
 
 Never trust the original file name returned by the `FileUpload::getName()` method; the client could have sent a malicious file name with the intent to damage or hack your application.
 
-The `MimeType` and `Image` rules detect the required type based on the file's signature and do not verify its integrity. Whether an image is corrupted can be determined, for example, by attempting to [load it](../http/request.md#toimage-netteutilsimage).
+The `MimeType` and `Image` rules detect the required type based on the file's signature and do not verify its integrity. Whether an image is corrupted can be determined, for example, by attempting to [load it](../http/request.md#toimage-netteutilsimage).
 
 ## `addMultiUpload(string $name, $label=null): UploadControl`
 
@@ -266,7 +266,7 @@ If any file fails to upload correctly, the form is not successfully submitted, a
 
 Never trust the original file names returned by the `FileUpload::getName()` method; the client could have sent malicious file names with the intent to damage or hack your application.
 
-The `MimeType` and `Image` rules detect the required type based on the file's signature and do not verify its integrity. Whether an image is corrupted can be determined, for example, by attempting to [load it](../http/request.md#toimage-netteutilsimage).
+The `MimeType` and `Image` rules detect the required type based on the file's signature and do not verify its integrity. Whether an image is corrupted can be determined, for example, by attempting to [load it](../http/request.md#toimage-netteutilsimage).
 
 ## `addDate(string $name, $label=null): DateTimeControl` (since 3.1.14)
 
@@ -441,7 +441,7 @@ Rendering:
 
 |  |  |
 | --- | --- |
-| `setCaption($caption)` | changes the control's label |
+| `setCaption($caption)` | changes the control's label |
 | `setTranslator($translator)` | sets the [translator](rendering.md#translating) |
 | `setHtmlAttribute($name, $value)` | sets an [HTML attribute](rendering.md#html-attributes) for the element |
 | `setHtmlId($id)` | sets the HTML attribute `id` |
@@ -478,7 +478,7 @@ $form->addPassword('passwordVerify', 'Password again:')
 
 ## Disabling Inputs
 
-Controls can be disabled using `setDisabled()`. A disabled control cannot be edited by the user.
+Controls can be disabled using `setDisabled()`. A disabled control cannot be edited by the user.
 
 ```php
 $form->addText('username', 'User name:')
@@ -487,7 +487,7 @@ $form->addText('username', 'User name:')
 
 Disabled controls are not sent by the browser to the server at all, so you won't find them in the data returned by the `$form->getValues()` function. However, if you set `setOmitted(false)`, Nette will include their default value in this data.
 
-When `setDisabled()` is called, the **control's value is cleared** for security reasons. If you are setting a default value, it is necessary to do so after disabling it:
+When `setDisabled()` is called, the **control's value is cleared** for security reasons. If you are setting a default value, it is necessary to do so after disabling it:
 
 ```php
 $form->addText('username', 'User name:')
@@ -510,7 +510,7 @@ How to write such a control, including reading submitted data, validation, and r
 
 ## Low-Level Fields
 
-It's also possible to use controls that are only written in the template and not added to the form using any of the `$form->addXyz()` methods. For example, when listing records from a database where we don't know in advance how many there will be or what their IDs will be, and we want to display a checkbox or radio button for each row, we can simply code it in the template:
+It's also possible to use controls that are only written in the template and not added to the form using any of the `$form->addXyz()` methods. For example, when listing records from a database where we don't know in advance how many there will be or what their IDs will be, and we want to display a checkbox or radio button for each row, we can simply code it in the template:
 
 ```latte
 {foreach $items as $item}

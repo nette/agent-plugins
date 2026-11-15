@@ -1,7 +1,7 @@
 # What Is a DI Container?
 
 
-A Dependency Injection Container (DIC or DI container) is an object responsible for instantiating and configuring other objects (called services).
+A Dependency Injection Container (DIC or DI container) is an object responsible for instantiating and configuring other objects (called services).
 
 It might surprise you, but in many cases, you don't need a dependency injection container to leverage the benefits of dependency injection (DI for short). After all, even in the [introductory chapter](introduction.md), we showed specific examples of DI, and no container was necessary.
 
@@ -38,9 +38,9 @@ $container = new Container;
 $controller = $container->createEditController();
 ```
 
-We simply request the object from the container, without needing to know how to create it or what its dependencies are; the container handles all of that. Dependencies are automatically injected by the container. That's its strength.
+We simply request the object from the container, without needing to know how to create it or what its dependencies are; the container handles all of that. Dependencies are automatically injected by the container. That's its strength.
 
-Currently, the container has all the information hardcoded. So, let's take the next step and add parameters to make the container truly useful:
+Currently, the container has all the information hardcoded. So, let's take the next step and add parameters to make the container truly useful:
 
 ```php
 class Container
@@ -133,6 +133,6 @@ $controller = $container->getService('EditController');
 $database = $container->getService('Database');
 ```
 
-As you can see, writing a DIC isn't difficult. It's worth noting that the objects themselves are unaware that a container is creating them. Consequently, it's possible to create any PHP object this way without modifying its source code.
+As you can see, writing a DIC isn't difficult. It's worth noting that the objects themselves are unaware that a container is creating them. Consequently, it's possible to create any PHP object this way without modifying its source code.
 
 Manually creating and maintaining the container class can quickly become a nightmare. Therefore, in the next chapter, we will discuss the [Nette DI Container](nette-container.md), which can generate and update itself almost automatically.

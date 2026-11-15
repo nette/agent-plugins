@@ -231,7 +231,7 @@ $needle = 'St';
 Strings::startsWith($haystack, $needle); // true
 ```
 
-Use the native `str_starts_with()` function.
+Use the native [`str_starts_with()`](https://www.php.net/manual/en/function.str-starts-with.php) function.
 
 ### `endsWith(string $haystack, string $needle): bool` (deprecated)
 
@@ -243,7 +243,7 @@ $needle = 'ds';
 Strings::endsWith($haystack, $needle); // true
 ```
 
-Use the native `str_ends_with()` function.
+Use the native [`str_ends_with()`](https://www.php.net/manual/en/function.str-ends-with.php) function.
 
 ### `contains(string $haystack, string $needle): bool` (deprecated)
 
@@ -255,7 +255,7 @@ $needle = 'dit';
 Strings::contains($haystack, $needle); // true
 ```
 
-Use the native `str_contains()` function.
+Use the native [`str_contains()`](https://www.php.net/manual/en/function.str-contains.php) function.
 
 ### `compare(string $left, string $right, ?int $length=null): bool`
 
@@ -381,7 +381,7 @@ Strings::split('hello, world, ', '~,\s*~', skipEmpty: true);
 // ['hello', 'world']
 ```
 
-If `$limit` is specified, only substrings up to the limit are returned, and the rest of the string is placed in the last element. A limit of –1 or 0 means no limit.
+If `$limit` is specified, only substrings up to the limit are returned, and the rest of the string is placed in the last element. A limit of –1 or 0 means no limit.
 
 ```php
 Strings::split('hello, world, third', '~,\s*~', limit: 2);
@@ -542,7 +542,7 @@ Strings::replace('hello, world!', [
 // '-- --!'
 ```
 
-The `$limit` parameter restricts the number of replacements performed. A limit of –1 means no limit.
+The `$limit` parameter restricts the number of replacements performed. A limit of –1 means no limit.
 
 If `$utf8` is `true`, evaluation switches to Unicode mode, similar to using the `u` modifier.
 

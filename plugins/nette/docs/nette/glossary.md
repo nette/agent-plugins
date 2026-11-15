@@ -38,7 +38,7 @@ Asynchronous JavaScript and XML – a technology for exchanging information bet
 
 ## Presenter Action
 
-A logical part of a presenter that performs a single action. For example, displaying a product page, logging out a user, etc. A single presenter can have multiple actions.
+A logical part of a presenter that performs a single action. For example, displaying a product page, logging out a user, etc. A single presenter can have multiple actions.
 
 ## BOM
 
@@ -46,7 +46,7 @@ The *byte order mark* is a special first character in a file used as an indicato
 
 ## Controller
 
-A controller processes user requests and, based on them, calls the appropriate application logic (i.e., [model](#model)) and then asks the [view](#view) to render the data. The equivalent of controllers in the Nette Framework are [presenters](#presenter).
+A controller processes user requests and, based on them, calls the appropriate application logic (i.e., [model](#model)) and then asks the [view](#view) to render the data. The equivalent of controllers in the Nette Framework are [presenters](#presenter).
 
 ## Cross-Site Scripting (XSS)
 
@@ -56,7 +56,7 @@ Nette Framework introduces the revolutionary [Context-Aware Escaping](../latte/s
 
 ## Cross-Site Request Forgery (CSRF)
 
-A Cross-Site Request Forgery attack involves the attacker luring a victim to a page that subtly executes a request in the victim's browser to a server where the victim is logged in. The server believes the request was made willingly by the victim. Thus, under the victim's identity, it performs an action without their knowledge. This could involve changing or deleting data, sending a message, etc.
+A Cross-Site Request Forgery attack involves the attacker luring a victim to a page that subtly executes a request in the victim's browser to a server where the victim is logged in. The server believes the request was made willingly by the victim. Thus, under the victim's identity, it performs an action without their knowledge. This could involve changing or deleting data, sending a message, etc.
 
 Nette Framework **automatically protects forms and signals in presenters** against this type of attack by preventing them from being submitted or triggered from another domain.
 
@@ -72,7 +72,7 @@ Dependency Injection (DI) is a design pattern that dictates how to separate the 
 
 ## Dependency Injection Container
 
-A Dependency Injection container (also DI container or IoC container) is a tool that manages the creation and administration of dependencies (or [services](#service)) within an application. The container typically has a configuration defining which classes depend on others, which specific dependency implementations should be used, and how these dependencies should be created. The container then creates these objects and provides them to the classes that need them. More in the chapter [What is a DI container?](../dependency-injection/container.md)
+A Dependency Injection container (also DI container or IoC container) is a tool that manages the creation and administration of dependencies (or [services](#service)) within an application. The container typically has a configuration defining which classes depend on others, which specific dependency implementations should be used, and how these dependencies should be created. The container then creates these objects and provides them to the classes that need them. More in the chapter [What is a DI container?](../dependency-injection/container.md)
 
 ## Escaping
 
@@ -88,11 +88,11 @@ Notifying a [snippet](#snippet) to redraw itself. In another context, it also me
 
 ## JSON
 
-A data exchange format based on JavaScript syntax (it is a subset of it). The exact specification can be found at [www.json.org](http://www.json.org).
+A data exchange format based on JavaScript syntax (it is a subset of it). The exact specification can be found at [www.json.org](http://www.json.org).
 
 ## Component
 
-A reusable part of an application. It can be a visual part of a page, as described in the chapter [Writing Components](../application/components.md), or the term component also refers to the class [Component](../component-model/index.md) (such a component does not have to be visual).
+A reusable part of an application. It can be a visual part of a page, as described in the chapter [Writing Components](../application/components.md), or the term component also refers to the class [Component](../component-model/index.md) (such a component does not have to be visual).
 
 ## Control Characters
 
@@ -110,13 +110,13 @@ One of the most advanced [templating systems](https://latte.nette.org/en).
 
 ## Model
 
-The model is the data and, especially, the functional core of the entire application. It contains all the application logic (the term business logic is also used). It's the **M** in **M**VC or MVP. Any user action (logging in, adding goods to the cart, changing a value in the database) represents an action of the model.
+The model is the data and, especially, the functional core of the entire application. It contains all the application logic (the term business logic is also used). It's the **M** in **M**VC or MVP. Any user action (logging in, adding goods to the cart, changing a value in the database) represents an action of the model.
 
 The model manages its internal state and offers a fixed interface to the outside. By calling functions of this interface, we can query or change its state. The model is unaware of the existence of the [view](#view) or [controller](#controller).
 
 ## Model-View-Controller
 
-A software architecture that arose from the need to separate the handling code ([controller](#controller)) from the application logic code ([model](#model)) and the data display code ([view](#view)) in applications with a graphical interface. This makes the application clearer, facilitates future development, and allows for testing individual parts separately.
+A software architecture that arose from the need to separate the handling code ([controller](#controller)) from the application logic code ([model](#model)) and the data display code ([view](#view)) in applications with a graphical interface. This makes the application clearer, facilitates future development, and allows for testing individual parts separately.
 
 ## Model-View-Presenter
 
@@ -124,7 +124,7 @@ An architecture based on [Model-View-Controller](#model-view-controller).
 
 ## Module
 
-A module represents a logical part of an application. In a typical arrangement, it is a group of presenters and templates that address a specific area of functionality. Modules are placed in [separate directories](../application/directory-structure.md#presenters-and-templates), such as `Front/`, `Admin/`, or `Shop/`.
+A module represents a logical part of an application. In a typical arrangement, it is a group of presenters and templates that address a specific area of functionality. Modules are placed in [separate directories](../application/directory-structure.md#presenters-and-templates), such as `Front/`, `Admin/`, or `Shop/`.
 
 For example, an e-shop can be divided into:
 
@@ -136,17 +136,17 @@ Technically, these are regular directories, but thanks to clear structuring, the
 
 ## Namespace
 
-A namespace, part of the PHP language since version 5.3 and of some other programming languages, allows the use of identically named classes in different libraries without name collisions. See the [PHP documentation](https://www.php.net/manual/en/language.namespaces.rationale.php).
+A namespace, part of the PHP language since version 5.3 and of some other programming languages, allows the use of identically named classes in different libraries without name collisions. See the [PHP documentation](https://www.php.net/manual/en/language.namespaces.rationale.php).
 
 ## Presenter
 
-A presenter is an object that takes a [request](https://api.nette.org/application/master/Nette/Application/Request.html) translated by the router from an HTTP request and generates a [response](https://api.nette.org/application/master/Nette/Application/Response.html). The response can be an HTML page, an image, an XML document, a file on disk, JSON, a redirect, or anything you devise.
+A presenter is an object that takes a [request](https://api.nette.org/application/master/Nette/Application/Request.html) translated by the router from an HTTP request and generates a [response](https://api.nette.org/application/master/Nette/Application/Response.html). The response can be an HTML page, an image, an XML document, a file on disk, JSON, a redirect, or anything you devise.
 
 Usually, the term presenter refers to a descendant of the [Nette\Application\UI\Presenter](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html) class. Based on incoming requests, it executes corresponding [actions](../application/presenters.md#presenter-life-cycle) and renders templates.
 
 ## Router
 
-A bidirectional translator between an HTTP request / URL and a presenter action. Bidirectional means that it's possible to derive a [presenter action](#presenter-action) from an HTTP request, and conversely, to generate the corresponding URL for an action. More in the chapter on [URL routing](../application/routing.md).
+A bidirectional translator between an HTTP request / URL and a presenter action. Bidirectional means that it's possible to derive a [presenter action](#presenter-action) from an HTTP request, and conversely, to generate the corresponding URL for an action. More in the chapter on [URL routing](../application/routing.md).
 
 ## SameSite cookie
 
@@ -154,11 +154,11 @@ SameSite cookies provide a mechanism to recognize what led to the page load. It 
 
 ## Service
 
-In the context of Dependency Injection, a service refers to an object that is created and managed by the DI container. A service can be easily replaced by another implementation, for example, for testing purposes or to change the application's behavior, without needing to modify the code that uses the service.
+In the context of Dependency Injection, a service refers to an object that is created and managed by the DI container. A service can be easily replaced by another implementation, for example, for testing purposes or to change the application's behavior, without needing to modify the code that uses the service.
 
 ## Snippet
 
-A snippet is a part of a page that can be independently redrawn during an AJAX request.
+A snippet is a part of a page that can be independently redrawn during an AJAX request.
 
 ## View
 

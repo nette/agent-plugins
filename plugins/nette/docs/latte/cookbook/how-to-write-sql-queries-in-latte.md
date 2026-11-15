@@ -2,7 +2,7 @@
 
 Latte can also be useful for generating really complex SQL queries in a more readable way.
 
-If constructing an SQL query involves numerous conditions and variables, writing it in Latte can significantly improve clarity. Here's a very simple example:
+If constructing an SQL query involves numerous conditions and variables, writing it in Latte can significantly improve clarity. Here's a very simple example:
 
 ```latte
 SELECT users.* FROM users

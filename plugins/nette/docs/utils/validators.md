@@ -237,7 +237,7 @@ Validators::isPhpIdentifier('one two'); // false
 
 ### `isBuiltinType(string $type): bool`
 
-Determines if `$type` is a PHP built-in type (e.g., `string`, `int`, `array`, `bool`). Otherwise, it's assumed to be a class name.
+Determines if `$type` is a PHP built-in type (e.g., `string`, `int`, `array`, `bool`). Otherwise, it's assumed to be a class name.
 
 ```php
 Validators::isBuiltinType('string'); // true
@@ -246,7 +246,7 @@ Validators::isBuiltinType('Foo');    // false
 
 ### `isTypeDeclaration(string $type): bool`
 
-Checks whether the given type declaration string is syntactically valid according to PHP's type declaration rules (including union, intersection, DNF types).
+Checks whether the given type declaration string is syntactically valid according to PHP's type declaration rules (including union, intersection, DNF types).
 
 ```php
 Validators::isTypeDeclaration('?string');      // true
@@ -293,7 +293,7 @@ Validators::isUrl('nette.org');                   // false (missing scheme)
 
 ### `isUri(string $value): bool`
 
-Verifies that the value is a valid URI address, meaning it's a string starting with a syntactically valid scheme followed by a colon (e.g., `http:`, `https:`, `mailto:`, `ftp:`).
+Verifies that the value is a valid URI address, meaning it's a string starting with a syntactically valid scheme followed by a colon (e.g., `http:`, `https:`, `mailto:`, `ftp:`).
 
 ```php
 Validators::isUri('https://nette.org');           // true

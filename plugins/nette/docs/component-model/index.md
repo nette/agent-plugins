@@ -1,12 +1,29 @@
 # Component Model
 
+Contents:
+
+- [Component](#component)
+  - [`lookup(?string $type, bool $throw=true): ?IComponent`](#lookupstring-type-bool-throwtrue-icomponent)
+  - [`lookupPath(?string $type=null, bool $throw=true): ?string`](#lookuppathstring-typenull-bool-throwtrue-string)
+- [Container](#container)
+  - [`addComponent(IComponent $component, ?string $name, ?string $insertBefore=null): static`](#addcomponenticomponent-component-string-name-string-insertbeforenull-static)
+  - [`removeComponent(IComponent $component): void`](#removecomponenticomponent-component-void)
+  - [`getComponent(string $name, bool $throw=true): ?IComponent`](#getcomponentstring-name-bool-throwtrue-icomponent)
+  - [`getComponents(): IComponent[]`](#getcomponents-icomponent)
+  - [`getComponentTree(): list<IComponent>`](#getcomponenttree-listicomponent)
+- [Monitoring Ancestors](#monitoring-ancestors)
+  - [Refusing to Be Attached (since 4.0.2)](#refusing-to-be-attached-since-402)
+  - [Changing the Tree in a Callback](#changing-the-tree-in-a-callback)
+- [Cloning and Serialization](#cloning-and-serialization)
+
+
 An important concept in Nette is the component. We insert [visual interactive components](../application/components.md) into pages; forms and all their elements are also components. The two basic classes from which all these components inherit are part of the `nette/component-model` package and are responsible for creating the component tree hierarchy.
 
 ## Component
 
-[Nette\ComponentModel\Component](https://api.nette.org/component-model/master/Nette/ComponentModel/Component.html) is the common ancestor of all components. It contains the `getName()` method returning the name of the component and the `getParent()` method returning its parent. Both can be set using the `setParent()` method – the first parameter is the parent, and the second is the component name.
+[Nette\ComponentModel\Component](https://api.nette.org/component-model/master/Nette/ComponentModel/Component.html) is the common ancestor of all components. It contains the `getName()` method returning the name of the component and the `getParent()` method returning its parent. You don't set either of them yourself: the container sets both when you add the component to it. (It uses the `setParent()` method for that, which is internal, so don't call it from your code.)
 
-### `lookup(?string $type, bool $throw=true): ?Component`
+### `lookup(?string $type, bool $throw=true): ?IComponent`
 
 Searches up the hierarchy for an object of the desired class or interface. For example, `$component->lookup(Nette\Application\UI\Presenter::class)` returns the presenter if the component is connected to it, even across several levels. If no matching object is found, it throws an exception; pass `false` as the second argument to return `null` instead. If you pass `null` as the `$type`, the method searches for the topmost component in the tree, i.e., the root with no parent.
 
@@ -18,17 +35,23 @@ Returns the so-called path, which is a string formed by concatenating the names 
 
 [Nette\ComponentModel\Container](https://api.nette.org/component-model/master/Nette/ComponentModel/Container.html) is the parent component, i.e., the component containing children and thus forming the tree structure. It has methods for easily adding, retrieving, and removing objects. It is the ancestor of, for example, the form or classes `Control` and `Presenter`. Descendants that use the `ArrayAccess` trait (such as `Control` and `Presenter`) also allow accessing children via array notation, e.g. `$container['child']`.
 
-### `addComponent(Component $component, ?string $name, ?string $insertBefore=null): static`
+### `addComponent(IComponent $component, ?string $name, ?string $insertBefore=null): static`
 
-Adds a component to the container as a child. If `$name` is `null`, the component's own name is used. Using the optional `$insertBefore` – the name of an existing child – the new component is inserted right before it; otherwise it is appended to the end. The method returns the container itself, so calls can be chained.
+Adds a component to the container as a child. If `$name` is `null`, the component's own name is used. Using the optional `$insertBefore` – the name of an existing child – the new component is inserted right before it; otherwise it is appended to the end. The method returns the container itself, so calls can be chained.
 
-### `removeComponent(Component $component): void`
+The name may contain only letters, digits and underscores, because the hyphen joins names into a path (see [getComponent()](#getcomponentstring-name-bool-throwtrue-icomponent)); any other name throws `Nette\InvalidArgumentException`. If the container already has a child of that name, or the component already has a parent, the method throws `Nette\InvalidStateException`.
 
-Removes a child component from the container.
+### `removeComponent(IComponent $component): void`
 
-### `getComponent(string $name): ?Component`
+Removes a child component from the container. If the component is not its child, it throws `Nette\InvalidArgumentException`.
+
+(since 4.0.2) The component stays in the container until its `$detached` callbacks (see [monitoring ancestors](#monitoring-ancestors)) have run, so they still see it in its place.
+
+### `getComponent(string $name, bool $throw=true): ?IComponent`
 
 Returns a component. Attempting to retrieve an undefined child invokes the factory method `createComponent($name)`. The `createComponent($name)` method calls the method `createComponent<component name>` in the current component, passing the component name as a parameter. The created component is then added to the current component as its child. We call these methods component factories, and they can be implemented in classes inherited from `Container`.
+
+The name can also be a path to a deeper descendant, with the names joined by a hyphen: `$form->getComponent('address-street')` returns the `street` component inside the `address` container. If there is no such component, the method throws `Nette\InvalidArgumentException` and suggests a similar name if it finds one, for example `Component with name 'adress' does not exist, did you mean 'address'?`. Pass `false` as the second argument to get `null` instead.
 
 ### `getComponents(): IComponent[]`
 
@@ -40,13 +63,15 @@ Gets the entire hierarchy of components, including all nested child components, 
 
 ## Monitoring Ancestors
 
-The Nette component model allows for very dynamic work with the tree (we can remove, move, add components), so it would be a mistake to rely on the fact that after creating a component, the parent, parent's parent, etc., are known immediately (in the constructor). Usually, the parent is not known at all when the component is created.
+The Nette component model allows for very dynamic work with the tree (we can remove, move, add components), so it would be a mistake to rely on the fact that after creating a component, the parent, parent's parent, etc., are known immediately (in the constructor). Usually, the parent is not known at all when the component is created.
 
-How can a component find out the moment it is attached below a presenter – or below any other ancestor of a given type? Watching the direct parent isn't enough, because the connection may happen higher up the tree, for example when the parent's parent gets attached. That is what the [monitor($type, $attached, $detached)](https://api.nette.org/component-model/master/Nette/ComponentModel/Component.html#method_monitor) method is for: a component declares that it wants to be notified whenever an ancestor of class or interface `$type` appears above it in the tree, or disappears from it. A component can monitor any number of types; the `$attached` callback fires when a matching ancestor connects and receives that ancestor as its argument, while `$detached` fires when it disconnects. Monitoring can be stopped again with `unmonitor($type)`.
+How can a component find out the moment it is attached below a presenter – or below any other ancestor of a given type? Watching the direct parent isn't enough, because the connection may happen higher up the tree, for example when the parent's parent gets attached. That is what the [monitor($type, $attached, $detached)](https://api.nette.org/component-model/master/Nette/ComponentModel/Component.html#method_monitor) method is for: a component declares that it wants to be notified whenever an ancestor of class or interface `$type` appears above it in the tree, or disappears from it. A component can monitor any number of types; the `$attached` callback fires when a matching ancestor connects and receives that ancestor as its argument, while `$detached` fires when it disconnects. Monitoring can be stopped again with `unmonitor($type)`.
 
-Notifications follow the tree structure. When attaching, an ancestor is notified before its descendants (top-down), so a parent can prepare shared state first, or even remove a child before the child's own callback runs. When detaching, the order is reversed – descendants are notified first. Callbacks are also deduplicated, so the same callback is never called twice for the same object. For the reasoning behind this behavior, see the [blog post about version 4.0](https://blog.nette.org/en/nette-component-model-4-0).
+If the ancestor is already there when you call `monitor()`, the `$attached` callback runs right away. So it doesn't matter whether the component starts monitoring before or after it is attached.
 
-For better understanding, here's an example: The `UploadControl` class, representing the form control for uploading files in Nette Forms, must set the form's `enctype` attribute to `multipart/form-data`. However, at the time the object is created, it might not be attached to any form. So, at what point should the form be modified? The solution is simple – a request for monitoring is made in the constructor:
+Notifications follow the tree structure. When attaching, an ancestor is notified before its descendants (top-down), so a parent can prepare shared state first, or even remove a child before the child's own callback runs. When detaching, the order is reversed – descendants are notified first. A callback registered for several types is called only once for the same ancestor, and registering the same callback a second time has no effect. For the reasoning behind this behavior, see the [blog post about version 4.0](https://blog.nette.org/en/nette-component-model-4-0).
+
+For better understanding, here's an example: The `UploadControl` class, representing the form control for uploading files in Nette Forms, must set the form's `enctype` attribute to `multipart/form-data`. However, at the time the object is created, it might not be attached to any form. So, at what point should the form be modified? The solution is simple – a request for monitoring is made in the constructor:
 
 ```php
 class UploadControl extends Nette\Forms\Controls\BaseControl
@@ -64,5 +89,37 @@ class UploadControl extends Nette\Forms\Controls\BaseControl
 ```
 
 and as soon as the form becomes available, the callback is invoked.
+
+### Refusing to Be Attached (since 4.0.2)
+
+A callback can also stop the change. When `$attached` throws an exception, the component is not attached at all: the change is rolled back, the callbacks that have already run get their `$detached` counterpart, and the exception goes on to the code that was adding the component. This is how Nette Forms refuse to place a form inside another form. Here a wizard refuses to live inside a form:
+
+```php
+class Wizard extends Nette\ComponentModel\Container
+{
+	public function __construct()
+	{
+		$this->monitor(Nette\Forms\Form::class, function (): void {
+			throw new Nette\InvalidStateException('A wizard cannot be placed inside a form.');
+		});
+	}
+}
+
+$form->addComponent(new Wizard, 'wizard'); // throws the exception, $form stays as it was
+```
+
+The same works the other way round: a `$detached` callback that throws keeps the component where it is.
+
+### Changing the Tree in a Callback
+
+Callbacks may change the tree themselves: remove their own component, a sibling, or an ancestor. The notifications take it into account, so a component that an earlier callback has removed from the tree is no longer notified.
+
+(since 4.0.2) A `$detached` callback runs before the component is actually detached, so `lookup()` inside it still finds the ancestor being left.
+
+## Cloning and Serialization
+
+A component can be copied with `clone`. The copy gets copies of all its descendants, but no parent: it starts outside the tree, so its monitors receive `$detached` from the ancestors of the original. Inside the copy, `lookup()` sees the copy's own tree.
+
+Components cannot be serialized; `serialize()` throws `Nette\NotImplementedException`.
 
 If you are upgrading to a newer version, see the [upgrading](upgrading.md) page.

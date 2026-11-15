@@ -30,9 +30,9 @@ Filters in Latte are essentially **PHP functions designed specifically to transf
 {$product->name|lower|capitalize}
 ```
 
-**Readability:** Using filters makes templates cleaner and more focused on presentation, moving the transformation logic into the filter's definition.
+**Readability:** Using filters makes templates cleaner and more focused on presentation, moving the transformation logic into the filter's definition.
 
-**Context-Awareness:** A key strength of Latte filters is their ability to be [context-aware](#contextual-filters). This means a filter can understand the type of content it's operating on (HTML, JavaScript, plain text, etc.) and apply appropriate logic or escaping, which is crucial for security and correctness, especially when dealing with HTML generation.
+**Context-Awareness:** A key strength of Latte filters is their ability to be [context-aware](#contextual-filters). This means a filter can understand the type of content it's operating on (HTML, JavaScript, plain text, etc.) and apply appropriate logic or escaping, which is crucial for security and correctness, especially when dealing with HTML generation.
 
 **Integration with Application Logic:** Just like custom functions, the PHP callable behind a filter can be a closure, a static method, or an instance method. This allows filters to access application services or data if needed, though their primary purpose remains *transforming the input value*.
 
@@ -153,9 +153,9 @@ Latte will automatically detect and register methods marked with this attribute 
 
 ## Contextual Filters
 
-Sometimes, a filter needs more information than just the input value. It might need to know the **content type** of the string it's processing (e.g., HTML, JavaScript, plain text) or even modify it. This is where contextual filters come in.
+Sometimes, a filter needs more information than just the input value. It might need to know the **content type** of the string it's processing (e.g., HTML, JavaScript, plain text) or even modify it. This is where contextual filters come in.
 
-A contextual filter is defined just like a regular filter, but its **first parameter must be** type-hinted as `Latte\Runtime\FilterInfo`. Latte automatically recognizes this signature and passes the `FilterInfo` object when calling the filter. Subsequent parameters receive the filter arguments as usual.
+A contextual filter is defined just like a regular filter, but its **first parameter must be** type-hinted as `Latte\Runtime\FilterInfo`. Latte automatically recognizes this signature and passes the `FilterInfo` object when calling the filter. Subsequent parameters receive the filter arguments as usual.
 
 ```php
 use Latte\Runtime\FilterInfo;
@@ -192,7 +192,7 @@ By setting the content type to HTML, you tell Latte that the string returned by 
 
 ### Filters on Blocks
 
-Filters applied to [blocks](tags.md#block) with a content type other than text (typically HTML) *must* be contextual. This is because the block's content has a defined content type that the filter needs to be aware of. A classic, non-contextual filter can only be applied to a block whose content is plain text.
+Filters applied to [blocks](tags.md#block) with a content type other than text (typically HTML) *must* be contextual. This is because the block's content has a defined content type that the filter needs to be aware of. A classic, non-contextual filter can only be applied to a block whose content is plain text.
 
 ```latte
 {block heading|money}1000{/block}

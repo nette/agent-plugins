@@ -67,7 +67,7 @@ Debugger::$showBar = false;
 
 ## Visualization of Errors and Exceptions
 
-You surely know how PHP reports errors: it prints something like this into the page's source code:
+You surely know how PHP reports errors: it prints something like this into the page's source code:
 
 ```
 Parse error:  syntax error, unexpected '}' in HomePresenter.php on line 15
@@ -96,7 +96,7 @@ And guess what? Fatal errors are captured and displayed in the same way. Without
 
 ![](https://files.nette.org/git/tracy/2.x/tracy-error.webp)
 
-Errors like a typo in a variable name or an attempt to open a non-existent file generate reports at the E_NOTICE or E_WARNING level. These can be easily overlooked within the page's graphical layout, or even be completely invisible (unless you look at the source code). Let Tracy manage them:
+Errors like a typo in a variable name or an attempt to open a non-existent file generate reports at the E_NOTICE or E_WARNING level. These can be easily overlooked within the page's graphical layout, or even be completely invisible (unless you look at the source code). Let Tracy manage them:
 
 [![](https://files.nette.org/git/tracy/2.x/tracy-notice2.webp)](https://nette.github.io/tracy/tracy-debug-bar.html)
 
@@ -113,7 +113,7 @@ Note: Tracy, when activated, changes the error reporting level to E_ALL. If you 
 
 ## Development vs Production Mode
 
-As you can see, Tracy is quite talkative, which can be appreciated in the development environment, while on the production server it would cause a disaster. That's because no debugging information should be displayed there. Tracy therefore has **environment auto-detection**. If the example is run on a live server, the error will be logged instead of displayed, and the visitor will only see a user-friendly message:
+As you can see, Tracy is quite talkative, which can be appreciated in the development environment, while on the production server it would cause a disaster. That's because no debugging information should be displayed there. Tracy therefore has **environment auto-detection**. If the example is run on a live server, the error will be logged instead of displayed, and the visitor will only see a user-friendly message:
 
 ![](https://files.nette.org/git/tracy/2.x/tracy-error2.webp)
 
@@ -194,7 +194,7 @@ When an AI agent drives your application through a browser (Chrome DevTools MCP,
 
 Detection sets the cookie `tracy-webdriver=1`; you can set it manually in DevTools to enable the markdown output from a regular browser. Agent activation does not affect the `.md` siblings written next to every `log/exception-*.html` – those are produced unconditionally and form the basis for batch processing of production logs.
 
-Custom Tracy Bar panels can supply their own markdown by implementing [`getAgentInfo()`](extensions.md#ai-agent-support-since-2120). For Claude Code and Codex users, the [Nette plugin](https://ai.nette.org/en/agent-plugins) includes the `tracy-debugging` skill that teaches the agent how to read Tracy's output from `list_console_messages()`.
+Custom Tracy Bar panels can supply their own markdown by implementing [`getAgentInfo()`](extensions.md#ai-agent-support-since-2120). For Claude Code and Codex users, the [Nette plugin](https://ai.nette.org/en/agent-plugins) includes the `tracy-debugging` skill that teaches the agent how to read Tracy's output from `list_console_messages()`.
 
 ## Opening Files in the Editor
 

@@ -18,19 +18,19 @@ Contents:
   - [`getCacheKey(Latte\Engine $engine): mixed`](#getcachekeylatteengine-engine-mixed)
 
 
-Latte is designed with extensibility in mind. While its standard set of tags, filters, and functions covers many use cases, you often need to add your own specific logic or helpers. This page provides an overview of how you can extend Latte to perfectly fit your project's requirements, from simple helpers to complex new syntax.
+Latte is designed with extensibility in mind. While its standard set of tags, filters, and functions covers many use cases, you often need to add your own specific logic or helpers. This page provides an overview of how you can extend Latte to perfectly fit your project's requirements, from simple helpers to complex new syntax.
 
 ## Ways to Extend Latte
 
-Here's a quick overview of the main ways you can customize and extend Latte:
+Here's a quick overview of the main ways you can customize and extend Latte:
 
 - **[Custom Filters](custom-filters.md):** For formatting or transforming data directly in the template output (e.g., `{$var|myFilter}`). Ideal for tasks like date formatting, text manipulation, or applying specific escaping. You can also use them to modify larger blocks of HTML content by wrapping the content in an anonymous [`{block}`](tags.md#block) and applying a custom filter.
 - **[Custom Functions](custom-functions.md):** For adding reusable logic that can be called within template expressions (e.g., `{myFunction($arg1, $arg2)}`). Useful for calculations, accessing application helpers, or generating small pieces of content.
 - **[Custom Tags](custom-tags.md):** For creating entirely new language constructs (`{mytag}...{/mytag}` or `n:mytag`). Tags offer the most power, allowing you to define custom structures, control template parsing, and implement complex rendering logic.
-- **[Compiler Passes](compiler-passes.md):** Functions that modify the template's Abstract Syntax Tree (AST) after parsing but before PHP code generation. Used for advanced optimizations, security checks (like the Sandbox), or automatic code modifications.
+- **[Compiler Passes](compiler-passes.md):** Functions that modify the template's Abstract Syntax Tree (AST) after parsing but before PHP code generation. Used for advanced optimizations, security checks (like the Sandbox), or automatic code modifications.
 - **[Custom Loaders](loaders.md):** For changing how Latte finds and loads template files (e.g., loading from a database, encrypted storage, etc.).
 
-Choosing the right extension method is key. Before creating a complex tag, consider if a simpler filter or function would suffice. Let's illustrate with an example: implementing a *Lorem ipsum* generator that takes the number of words to generate as an argument.
+Choosing the right extension method is key. Before creating a complex tag, consider if a simpler filter or function would suffice. Let's illustrate with an example: implementing a *Lorem ipsum* generator that takes the number of words to generate as an argument.
 
 - **As a tag?** `{lipsum 40}` – Possible, but tags are better suited for control structures or complex markup generation. Tags cannot be used directly within expressions.
 - **As a filter?** `{=40|lipsum}` – Technically works, but filters are meant to *transform* input. Here, `40` is an *argument*, not the value being transformed. It feels semantically incorrect.
@@ -99,7 +99,7 @@ Whenever you make a change to a class and auto-refresh is not turned off, Latte 
 
 To create your own extension, you need to create a class that inherits from [Latte\Extension](https://api.nette.org/latte/master/Latte/Extension.html). For an idea of what the extension looks like, take a look at the built-in [CoreExtension](https://github.com/nette/latte/blob/master/src/Latte/Essential/CoreExtension.php).
 
-Let's look at what methods you can implement:
+Let's look at what methods you can implement:
 
 ### `beforeCompile(Latte\Engine $engine): void`
 

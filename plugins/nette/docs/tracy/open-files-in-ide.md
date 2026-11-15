@@ -89,7 +89,7 @@ Make it executable:
 chmod +x ~/bin/open-editor.sh
 ```
 
-If the editor you use is not installed from a package, its binary might not be in the system's `$PATH`. This can be easily fixed. In the `~/bin` directory, create a symbolic link to the editor's binary.
+If the editor you use is not installed from a package, its binary might not be in the system's `$PATH`. This can be easily fixed. In the `~/bin` directory, create a symbolic link to the editor's binary.
 
 3. Register the handler for the `editor://` protocol in the system.
 

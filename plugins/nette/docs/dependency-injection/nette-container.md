@@ -8,7 +8,7 @@ Contents:
 - [Using with Nette Framework](#using-with-nette-framework)
 
 
-Nette DI is one of Nette's most interesting libraries. It can generate and automatically update compiled DI containers that are extremely fast and remarkably easy to configure.
+Nette DI is one of Nette's most interesting libraries. It can generate and automatically update compiled DI containers that are extremely fast and remarkably easy to configure.
 
 The form of services that the DI container should create is usually defined using configuration files in [NEON format](../neon/format.md). The container we manually created in the [previous chapter](container.md) would be written like this:
 
@@ -27,7 +27,7 @@ services:
 
 The syntax is very concise.
 
-All dependencies declared in the constructors of the `ArticleFactory` and `EditController` classes are discovered and passed automatically by Nette DI thanks to so-called [autowiring](autowiring.md), so there's no need to specify anything in the configuration file. Thus, even if parameters change, you don't need to change anything in the configuration. During development, Nette automatically regenerates the container. You can focus purely on application development.
+All dependencies declared in the constructors of the `ArticleFactory` and `EditController` classes are discovered and passed automatically by Nette DI thanks to so-called [autowiring](autowiring.md), so there's no need to specify anything in the configuration file. Thus, even if parameters change, you don't need to change anything in the configuration. During development, Nette automatically regenerates the container. You can focus purely on application development.
 
 If we want to pass dependencies using setters, we use the [setup](services.md#setup) section for this.
 
@@ -89,7 +89,7 @@ $controller = $container->getByType(EditController::class);
 $controller->someMethod();
 ```
 
-During development, it's useful to activate auto-refresh mode, where the container automatically regenerates if any class or configuration file is modified. Just provide `true` as the second argument in the [ContainerLoader](https://api.nette.org/di/master/Nette/DI/ContainerLoader.html) constructor.
+During development, it's useful to activate auto-refresh mode, where the container automatically regenerates if any class or configuration file is modified. Just provide `true` as the second argument in the [ContainerLoader](https://api.nette.org/di/master/Nette/DI/ContainerLoader.html) constructor.
 
 ```php
 $loader = new Nette\DI\ContainerLoader(__DIR__ . '/temp', true);
@@ -127,7 +127,7 @@ $psr->get(PDO::class);   // a type, resolved by autowiring
 $psr->get('database');   // a service name
 ```
 
-The identifier is treated first as a type resolved by autowiring, and only then as a service name. If several autowired services match the type, `get()` throws `NotFoundException` instead of picking one of them, while `has()` returns `false`. The bridge's exceptions implement the PSR-11 interfaces, so `catch (Psr\Container\NotFoundExceptionInterface)` works as expected.
+The identifier is treated first as a type resolved by autowiring, and only then as a service name. If several autowired services match the type, `get()` throws `NotFoundException` instead of picking one of them, while `has()` returns `false`. The bridge's exceptions implement the PSR-11 interfaces, so `catch (Psr\Container\NotFoundExceptionInterface)` works as expected.
 
 The `psr/container` package is not a dependency of `nette/di`, so add it to your application yourself:
 

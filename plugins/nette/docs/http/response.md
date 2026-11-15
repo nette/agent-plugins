@@ -169,7 +169,7 @@ The [Nette\Http\Context](https://api.nette.org/http/master/Nette/Http/Context.ht
 
 ### `isModified(string|int|\DateTimeInterface|null $lastModified=null, ?string $etag=null): bool`
 
-Determines whether the content has changed since the client's last visit. If you pass the time of the last modification, it sends the `Last-Modified` header; if you pass an ETag validator (a short string identifying the current version of the content, e.g., its hash), it sends the `ETag` header. It then compares both against the `If-Modified-Since` and `If-None-Match` headers sent by the browser.
+Determines whether the content has changed since the client's last visit. If you pass the time of the last modification, it sends the `Last-Modified` header; if you pass an ETag validator (a short string identifying the current version of the content, e.g., its hash), it sends the `ETag` header. It then compares both against the `If-Modified-Since` and `If-None-Match` headers sent by the browser.
 
 If the browser already holds a matching version, the method sets the code `304 Not Modified` and returns `false` – in that case, do not send the body of the response at all. Otherwise, it returns `true`.
 

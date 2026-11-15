@@ -47,7 +47,7 @@ Usually, the term presenter refers to a descendant of the [Nette\Application\UI\
 
 ## Presenter Life Cycle
 
-The presenter's task is to handle a request and return a response (which could be an HTML page, an image, a redirect, etc.).
+The presenter's task is to handle a request and return a response (which could be an HTML page, an image, a redirect, etc.).
 
 So, initially, a request is passed to it. This isn't the direct HTTP request, but a [Nette\Application\Request](https://api.nette.org/application/master/Nette/Application/Request.html) object, into which the HTTP request was transformed with the help of the router. We usually don't interact directly with this object, as the presenter cleverly delegates request processing to other methods, which we will now explore.
 
@@ -59,9 +59,9 @@ The diagram shows a list of methods that are called sequentially from top to bot
 
 ### `__construct()`
 
-The constructor doesn't strictly belong to the presenter's life cycle, as it's called at the moment the object is created. However, we mention it due to its importance. The constructor (along with the [inject method](../best-practices/inject-method-attribute.md)) is used for passing dependencies.
+The constructor doesn't strictly belong to the presenter's life cycle, as it's called at the moment the object is created. However, we mention it due to its importance. The constructor (along with the [inject method](../best-practices/inject-method-attribute.md)) is used for passing dependencies.
 
-The presenter should not handle the application's business logic, write to or read from the database, perform calculations, etc. That's the responsibility of classes in the layer we call the model. For example, an `ArticleRepository` class might be responsible for loading and saving articles. For the presenter to work with it, it needs to have it [passed via dependency injection](../dependency-injection/passing-dependencies.md):
+The presenter should not handle the application's business logic, write to or read from the database, perform calculations, etc. That's the responsibility of classes in the layer we call the model. For example, an `ArticleRepository` class might be responsible for loading and saving articles. For the presenter to work with it, it needs to have it [passed via dependency injection](../dependency-injection/passing-dependencies.md):
 
 ```php
 class ArticlePresenter extends Nette\Application\UI\Presenter
@@ -81,21 +81,21 @@ Immediately after receiving the request, the `startup()` method is invoked. You 
 
 Similar to the `render<View>()` method. While `render<View>()` is intended to prepare data for a specific template that will subsequently be rendered, `action<Action>()` processes a request without necessarily rendering a template afterwards. For example, it might process data, log a user in or out, and so on, and then [redirect elsewhere](#redirection).
 
-It's important that `action<Action>()` is called *before* `render<View>()`. This allows us to potentially change the course of the request within the action method, for instance, by changing the template that will be rendered or even the `render<View>()` method that will be called, using `setView('otherView')`.
+It's important that `action<Action>()` is called *before* `render<View>()`. This allows us to potentially change the course of the request within the action method, for instance, by changing the template that will be rendered or even the `render<View>()` method that will be called, using `setView('otherView')`.
 
 (since 3.2.3) You can even switch to an entirely different action using the `switch('otherAction')` method. It aborts the current method and instead runs the new action's `action<Action>()` and `render<View>()` methods (and turns off automatic [canonicalization](#canonization)). The request itself continues; only the currently running method is interrupted.
 
-Parameters from the request are passed to the method. It's possible and recommended to specify types for these parameters, e.g., `actionShow(int $id, ?string $slug = null)`. If the `id` parameter is missing or is not an integer, the presenter returns a [404 error](#error-404etc) and terminates.
+Parameters from the request are passed to the method. It's possible and recommended to specify types for these parameters, e.g., `actionShow(int $id, ?string $slug = null)`. If the `id` parameter is missing or is not an integer, the presenter returns a [404 error](#error-404etc) and terminates.
 
 ### `handle<Signal>(args...)`
 
-This method processes so-called signals, which we'll learn about in the chapter dedicated to [components](components.md#signal). It's primarily intended for components and handling AJAX requests.
+This method processes so-called signals, which we'll learn about in the chapter dedicated to [components](components.md#signal). It's primarily intended for components and handling AJAX requests.
 
 Parameters from the request are passed to the method, just like with `action<Action>()`, including type checking.
 
 ### `beforeRender()`
 
-The `beforeRender` method, as its name suggests, is called before every `render<View>()` method. It's used for common template configuration, passing variables to the layout, and similar tasks.
+The `beforeRender` method, as its name suggests, is called before every `render<View>()` method. It's used for common template configuration, passing variables to the layout, and similar tasks.
 
 ### `render<View>(args...)`
 
@@ -113,15 +113,15 @@ public function renderShow(int $id): void
 
 ### `afterRender()`
 
-The `afterRender` method, as the name suggests again, is called after every `render<View>()` method. It's used rather rarely.
+The `afterRender` method, as the name suggests again, is called after every `render<View>()` method. It's used rather rarely.
 
 ### `shutdown()`
 
-Called at the end of the presenter's life cycle.
+Called at the end of the presenter's life cycle.
 
 ### Events
 
-In addition to the `startup()`, `beforeRender()`, and `shutdown()` methods, which are called as part of the presenter's life cycle, other functions can be defined to be called automatically. The presenter defines so-called [events](../nette/glossary.md#events), and you add their handlers to the `$onStartup`, `$onRender`, and `$onShutdown` arrays.
+In addition to the `startup()`, `beforeRender()`, and `shutdown()` methods, which are called as part of the presenter's life cycle, other functions can be defined to be called automatically. The presenter defines so-called [events](../nette/glossary.md#events), and you add their handlers to the `$onStartup`, `$onRender`, and `$onShutdown` arrays.
 
 ```php
 class ArticlePresenter extends Nette\Application\UI\Presenter
@@ -137,11 +137,11 @@ class ArticlePresenter extends Nette\Application\UI\Presenter
 
 Handlers in the `$onStartup` array are called just before the `startup()` method, `$onRender` handlers between `beforeRender()` and `render<View>()`, and finally `$onShutdown` handlers just before `shutdown()`.
 
-**A piece of advice before we continue:** As you can see, a presenter can handle multiple actions/views, meaning it can have multiple `render<View>()` methods. However, we recommend designing presenters with one or as few actions as possible.
+**A piece of advice before we continue:** As you can see, a presenter can handle multiple actions/views, meaning it can have multiple `render<View>()` methods. However, we recommend designing presenters with one or as few actions as possible.
 
 ## Sending a Response
 
-The presenter's response is typically [rendering a template into an HTML page](templates.md), but it can also be sending a file, JSON, or even redirecting to another page.
+The presenter's response is typically [rendering a template into an HTML page](templates.md), but it can also be sending a file, JSON, or even redirecting to another page.
 
 At any point during the life cycle, we can use one of the following methods to send a response and simultaneously terminate the presenter:
 
@@ -169,7 +169,7 @@ $url = $this->link('Product:show', [$id, 'lang' => 'en']);
 In the template, links to other presenters & actions are created like this:
 
 ```latte
-<a n:href="Product:show $id">product detail</a>
+<a n:href="Product:show, $id">product detail</a>
 ```
 
 Simply write the familiar `Presenter:action` pair instead of the actual URL and include any necessary parameters. The trick lies in `n:href`, which tells Latte to process this attribute and generate the real URL. In Nette, you don't need to think about URLs at all, just about presenters and actions.
@@ -204,9 +204,9 @@ You can redirect to another URL outside the application using the `redirectUrl()
 $this->redirectUrl('https://nette.org');
 ```
 
-Redirection immediately terminates the presenter's activity by throwing the so-called silent termination exception, `Nette\Application\AbortException`.
+Redirection immediately terminates the presenter's activity by throwing the so-called silent termination exception, `Nette\Application\AbortException`.
 
-Before redirection, it's possible to send [flash messages](#flash-messages), i.e., messages that will be displayed in the template after redirection.
+Before redirection, it's possible to send [flash messages](#flash-messages), i.e., messages that will be displayed in the template after redirection.
 
 ## Flash Messages
 
@@ -274,15 +274,15 @@ class HomePresenter extends Nette\Application\UI\Presenter
 
 For the property, we recommend specifying the data type (e.g., `string`), and Nette will automatically cast the value accordingly. Parameter values can also be [validated](#validation-of-parameters).
 
-When creating a link, you can set the parameter's value directly:
+When creating a link, you can set the parameter's value directly:
 
 ```latte
-<a n:href="Home:default theme: dark">click</a>
+<a n:href="Home:default, theme: dark">click</a>
 ```
 
 ## Persistent Parameters
 
-Persistent parameters are used to maintain state across different requests. Their value remains the same even after clicking a link. Unlike session data, they are transmitted in the URL. And this happens completely automatically, so there's no need to explicitly include them in `link()` or `n:href`.
+Persistent parameters are used to maintain state across different requests. Their value remains the same even after clicking a link. Unlike session data, they are transmitted in the URL. And this happens completely automatically, so there's no need to explicitly include them in `link()` or `n:href`.
 
 An example use case? Imagine you have a multilingual application. The current language is a parameter that must always be part of the URL. But it would be incredibly tedious to include it in every link. So, you make it a persistent parameter `lang`, and it will be carried along automatically. Neat!
 
@@ -323,13 +323,13 @@ class ProductPresenter extends Nette\Application\UI\Presenter
 When creating a link, the value of a persistent parameter can be changed:
 
 ```latte
-<a n:href="Product:show $id, lang: cs">detail in Czech</a>
+<a n:href="Product:show, $id, lang: cs">detail in Czech</a>
 ```
 
 Alternatively, it can be *reset*, i.e., removed from the URL. It will then assume its default value:
 
 ```latte
-<a n:href="Product:show $id, lang: null">click</a>
+<a n:href="Product:show, $id, lang: null">click</a>
 ```
 
 ## Shared Parameter Space
@@ -348,7 +348,7 @@ public function handleSearch(string $query, string $lang): void
 }
 ```
 
-Because this space is shared, keep parameter names unique unless you deliberately want them to share a value. This applies to signals as well, which additionally read parameters from the request's POST body, see [Signals in Depth](components.md#signals-in-depth).
+Because this space is shared, keep parameter names unique unless you deliberately want them to share a value. This applies to signals as well, which additionally read parameters from the request's POST body, see [Signals in Depth](components.md#signals-in-depth).
 
 ## Interactive Components
 
@@ -367,7 +367,7 @@ And where can you get components? On [Componette](https://componette.org/search/
 
 The values of [Request-Parameters](#request-parameters-since-3114) and [Persistent-Parameters](#persistent-parameters) received from URLs are written to properties by the `loadState()` method. It also checks if the data type specified in the property matches, otherwise it will respond with a 404 error and the page will not be displayed.
 
-Never blindly trust parameters received from the URL, as they can easily be overwritten by the user. For example, this is how we would verify if the language `$this->lang` is among the supported ones. A suitable way to do this is by overriding the aforementioned `loadState()` method:
+Never blindly trust parameters received from the URL, as they can easily be overwritten by the user. For example, this is how we would verify if the language `$this->lang` is among the supported ones. A suitable way to do this is by overriding the aforementioned `loadState()` method:
 
 ```php
 class ProductPresenter extends Nette\Application\UI\Presenter
@@ -392,7 +392,7 @@ The request handled by the presenter is a [Nette\Application\Request](https://ap
 
 The current request can be saved to the session or, conversely, restored from it and have the presenter execute it again. This is useful, for example, when a user is filling out a form and their login session expires. To avoid data loss, before redirecting to the login page, we save the current request to the session using `$reqId = $this->storeRequest()`. This returns its identifier as a short string, which we then pass as a parameter to the login presenter.
 
-After logging in, we call the `$this->restoreRequest($reqId)` method, which retrieves the request from the session. POST requests are forwarded to it, while the others (GET) are redirected to the request's URL. The method verifies that the request was created by the same user who is now logged in. If a different user logs in or the key is invalid, it does nothing, and the program continues as usual.
+After logging in, we call the `$this->restoreRequest($reqId)` method, which retrieves the request from the session. POST requests are forwarded to it, while the others (GET) are redirected to the request's URL. The method verifies that the request was created by the same user who is now logged in. If a different user logs in or the key is invalid, it does nothing, and the program continues as usual.
 
 See the guide [How to Return to a Previous Page](../best-practices/restore-request.md).
 
@@ -481,7 +481,7 @@ You then send it in the presenter as usual: `$this->sendResponse(new CsvResponse
 
 ### HTTP Caching
 
-The `lastModified()` method makes it easy to take advantage of HTTP caching. You pass it the date and time of the content's last modification (as a timestamp, string, or `DateTimeInterface` object), and optionally an ETag validator (a short string identifying the current version of the content, such as a hash of it) and an expiration time. If the browser already holds a matching version, the presenter sends a `304 Not Modified` response and terminates, so the page isn't rendered or transferred needlessly:
+The `lastModified()` method makes it easy to take advantage of HTTP caching. You pass it the date and time of the content's last modification (as a timestamp, string, or `DateTimeInterface` object), and optionally an ETag validator (a short string identifying the current version of the content, such as a hash of it) and an expiration time. If the browser already holds a matching version, the presenter sends a `304 Not Modified` response and terminates, so the page isn't rendered or transferred needlessly:
 
 ```php
 public function renderArticle(int $id): void
@@ -546,7 +546,7 @@ class MyPresenter extends Nette\Application\UI\Presenter
 }
 ```
 
-It's important to emphasize that if you enable the `OPTIONS` method, you must subsequently handle it appropriately within your presenter. This method is often used as a so-called preflight request, which the browser automatically sends before the actual request when it's necessary to determine if the request is permissible according to the CORS (Cross-Origin Resource Sharing) policy. If you enable the method but don't implement the correct response, it can lead to inconsistencies and potential security problems.
+It's important to emphasize that if you enable the `OPTIONS` method, you must subsequently handle it appropriately within your presenter. This method is often used as a so-called preflight request, which the browser automatically sends before the actual request when it's necessary to determine if the request is permissible according to the CORS (Cross-Origin Resource Sharing) policy. If you enable the method but don't implement the correct response, it can lead to inconsistencies and potential security problems.
 
 ### Marking Deprecated Actions (since 3.2.3)
 

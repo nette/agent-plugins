@@ -28,7 +28,7 @@ Imagine a database table `items` whose items belong to various categories:
 | 5 | 3 | Red |
 | 6 | 3 | Blue |
 
-A simple list of all items using a Latte template would look like this:
+A simple list of all items using a Latte template would look like this:
 
 ```latte
 <ul>
@@ -77,13 +77,13 @@ If you want to group items based on more complex criteria, you can use a functio
 {/foreach}
 ```
 
-It's important to note that each group (including `$categoryItems`) is not a regular array, but an object that behaves like an iterator – so you cannot access items by index, e.g. `$categoryItems[0]`. You can, however, count the items with `count($categoryItems)`, and to access the first item in the group, use the [`first()`](../functions.md#firststringiterable-value-mixed) function.
+It's important to note that each group (including `$categoryItems`) is not a regular array, but an object that behaves like an iterator – so you cannot access items by index, e.g. `$categoryItems[0]`. You can, however, count the items with `count($categoryItems)`, and to access the first item in the group, use the [`first()`](../functions.md#firststringiterable-value-mixed) function.
 
 This flexibility makes `|group` an exceptionally useful tool for presenting data.
 
 ### Nested Loops
 
-Let's imagine our database table has an additional column `subcategoryId`, defining subcategories for each item. We want to display each main category in a separate `<ul>` list and each subcategory within that main category in a separate nested `<ol>` list:
+Let's imagine our database table has an additional column `subcategoryId`, defining subcategories for each item. We want to display each main category in a separate `<ul>` list and each subcategory within that main category in a separate nested `<ol>` list:
 
 ```latte
 {foreach ($items|group: categoryId) as $categoryItems}
@@ -101,7 +101,7 @@ Let's imagine our database table has an additional column `subcategoryId`, defi
 
 ### Together with Nette Database
 
-Let's demonstrate how to effectively use data grouping in combination with Nette Database. Assume we are working with the `items` table from the introductory example, connected via the `categoryId` column to this `categories` table:
+Let's demonstrate how to effectively use data grouping in combination with Nette Database. Assume we are working with the `items` table from the introductory example, connected via the `categoryId` column to this `categories` table:
 
 | categoryId | name |
 | --- | --- |
@@ -126,7 +126,7 @@ In this case, we use the `|group` filter to group by the related row `$item->cat
 
 ## Filter `|batch`
 
-The filter splits a list of items into batches of a fixed size. It's handy for grid layouts, column arrangements, or any kind of visual grouping.
+The filter splits a list of items into batches of a fixed size. It's handy for grid layouts, column arrangements, or any kind of visual grouping.
 
 Imagine we want to display items in lists where each list contains a maximum of three items:
 
@@ -152,9 +152,9 @@ If the last group does not contain enough elements to reach the desired number, 
 
 ## Tag `{iterateWhile}`
 
-We will demonstrate the same tasks addressed with the `|group` filter using the `{iterateWhile}` tag. The main difference between the two approaches is that `|group` first processes and groups all input data, whereas `{iterateWhile}` controls the loop's progression via a condition and iteration proceeds sequentially.
+We will demonstrate the same tasks addressed with the `|group` filter using the `{iterateWhile}` tag. The main difference between the two approaches is that `|group` first processes and groups all input data, whereas `{iterateWhile}` controls the loop's progression via a condition and iteration proceeds sequentially.
 
-First, let's render the table with categories using `{iterateWhile}`:
+First, let's render the table with categories using `{iterateWhile}`:
 
 ```latte
 {foreach $items as $item}
@@ -193,7 +193,7 @@ The result would look like this:
 </ul>
 ```
 
-What's the benefit of using `{iterateWhile}` like this? Because the `<ul>` is inside the outer `{foreach}`, nothing is rendered at all when the input is empty – no lone `<ul></ul>`. Without `{iterateWhile}` you would have to handle the same case with an `{if}` before opening the tag or via `{foreachelse}`.
+What's the benefit of using `{iterateWhile}` like this? Because the `<ul>` is inside the outer `{foreach}`, nothing is rendered at all when the input is empty – no lone `<ul></ul>`. Without `{iterateWhile}` you would have to handle the same case with an `{if}` before opening the tag or via `{foreachelse}`.
 
 If we specify the condition in the opening `{iterateWhile}` tag, the behavior changes: the condition (and transition to the next element) is performed at the beginning of the inner cycle, not at the end. Thus, while you always enter `{iterateWhile}` without conditions, you enter `{iterateWhile $cond}` only when the condition `$cond` is met. And at the same time, the next element is written into `$item`.
 
@@ -233,7 +233,7 @@ We modify the original code to first render the item as a heading, and then use 
 
 Within a single loop, we can create multiple inner loops and even nest them. This way you can group on multiple levels at once – for example, subcategories under categories.
 
-Let's assume the table has another column `subcategoryId`, and besides each category being in a separate `<ul>`, each subcategory will be in a separate `<ol>`:
+Let's assume the table has another column `subcategoryId`, and besides each category being in a separate `<ul>`, each subcategory will be in a separate `<ol>`:
 
 ```latte
 {foreach $items as $item}

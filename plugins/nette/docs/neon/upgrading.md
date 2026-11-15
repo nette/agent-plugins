@@ -1,11 +1,25 @@
 # Upgrading
 
+## Upgrading to Version 4.0
+
+`Neon::decode()`, `decodeFile()` and `encode()` work as before and give the same values. What changed:
+
+- the minimum required PHP version is 8.4, and the `mbstring` extension is required
+- the syntax tree is new: `Neon::parse()` gives a lossless `DocumentNode` you can [edit](https://doc.nette.org/en/neon/editing); the classes `Nette\Neon\Decoder` and `Nette\Neon\Node\*` and the old `Traverser` are gone, the nodes are now in `Nette\Neon\Nodes`, and a node cannot be serialized
+- `encode()` throws `Nette\Neon\Exception` for a string that is not valid UTF-8, where 3.4 replaced the invalid bytes and triggered a warning, and for a resource, a closure or a structure that contains itself
+- the constants `Neon::BLOCK` and `Neon::CHAIN` trigger `E_USER_DEPRECATED`; pass `true` as the second argument of `encode()` and use `Neon::Chain`
+- `decode()` accepts a byte order mark at the start of the input, as `decodeFile()` does
+- some error messages are more precise, so code that matches their text may need a change
+- `neon-lint` no longer has the option `--debug`, and it has [new options](php.md#checking-files-neon-lint)
+
+Since version 4.0.1, a value on the line after a key inside brackets is the value of that key, as in JSON: `{a:` and `b}` on the next line is `{a: b}`. Version 3 read it as `{a: null, 0: b}`. Decoding such a document triggers `E_USER_NOTICE`; to keep the old meaning, write `null` or a comma after the key.
+
 ## Upgrading to Version 3.4
 
-- the `\xAA` escape sequence was removed, use `\uAAAA` instead
+- the `\xAA` escape sequence was removed, use `ꪪ` instead
 - the `on` and `off` keywords are no longer decoded as booleans, use `true`/`yes` and `false`/`no`
 
 ## Upgrading to Version 3.2
 
 - the Decoder works in UTF-8 mode and throws an exception on invalid input
-- the `\xAA` escape sequence is deprecated in favor of `\uAAAA`
+- the `\xAA` escape sequence is deprecated in favor of `ꪪ`

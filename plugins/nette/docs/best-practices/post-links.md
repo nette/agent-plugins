@@ -15,8 +15,8 @@ Thanks to this form, instead of a standard `<a>` link, you can use a `<button>`.
 	<tr n:foreach="$posts as $post">
 		<td>{$post->title}</td>
 		<td>
-			<button class="btn btn-link" form="postForm" formaction="{link delete $post->id}">delete</button>
-			<!-- instead of <a n:href="delete $post->id">delete</a> -->
+			<button class="btn btn-link" form="postForm" formaction="{link delete, $post->id}">delete</button>
+			<!-- instead of <a n:href="delete, $post->id">delete</a> -->
 		</td>
 	</tr>
 </table>
@@ -51,4 +51,4 @@ public function handleDelete(int $id): void
 }
 ```
 
-This approach not only enhances your application's security but also promotes adherence to proper web standards and practices. Using POST methods for state-changing actions results in a more robust and secure application.
+This approach not only enhances your application's security but also promotes adherence to proper web standards and practices. Using POST methods for state-changing actions results in a more robust and secure application.

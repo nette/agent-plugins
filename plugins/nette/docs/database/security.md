@@ -95,7 +95,7 @@ For this level of validation, we can partially rely on the database itself – 
 
 ### Domain-Specific Validation
 
-The third level involves logical checks specific to your application. For example, verifying that values from select boxes match the offered options, that numbers are within the expected range (e.g., age 0–150 years), or that mutual dependencies between values make sense.
+The third level involves logical checks specific to your application. For example, verifying that values from select boxes match the offered options, that numbers are within the expected range (e.g., age 0–150 years), or that mutual dependencies between values make sense.
 
 ### Recommended Validation Methods
 

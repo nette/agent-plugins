@@ -1,4 +1,4 @@
-# Let's Create a Contact Form
+# Let's Create a Contact Form
 
 Contents:
 
@@ -6,11 +6,11 @@ Contents:
 - [Configuring](#configuring)
 
 
-Let's explore how to create a contact form in Nette, including sending the submitted data via email. Let's get started!
+Let's explore how to create a contact form in Nette, including sending the submitted data via email. Let's get started!
 
 First, we need to create a new project. The [Getting Started](../nette/installation.md) page explains how. Then, we can begin creating the form.
 
-The simplest approach is to create the [form directly within the Presenter](../forms/in-presenter.md). We can utilize the pre-existing `HomePresenter`. We'll add a component named `contactForm` to represent our form. We achieve this by adding a factory method `createComponentContactForm()` to the presenter's code, which will create the component:
+The simplest approach is to create the [form directly within the Presenter](../forms/in-presenter.md). We can utilize the pre-existing `HomePresenter`. We'll add a component named `contactForm` to represent our form. We achieve this by adding a factory method `createComponentContactForm()` to the presenter's code, which will create the component:
 
 ```php
 use Nette\Application\UI\Form;
@@ -41,7 +41,7 @@ class HomePresenter extends Presenter
 
 As you can see, we've created two methods. The first method, `createComponentContactForm()`, creates a new form instance. It includes fields for name, email, and message, added using the `addText()`, `addEmail()`, and `addTextArea()` methods respectively. We've also added a submit button. But what if the user leaves a field empty? In that case, we should inform them that the field is required. We achieved this using the `setRequired()` method. Finally, we attached an [event](../nette/glossary.md#events) handler to `onSuccess`, which is triggered upon successful form submission. In our case, it calls the `contactFormSucceeded` method, which will handle the processing of the submitted data. We'll implement this method shortly.
 
-Let's render the `contactForm` component in the `Home/default.latte` template:
+Let's render the `contactForm` component in the `Home/default.latte` template:
 
 ```latte
 {block content}
@@ -79,7 +79,7 @@ class ContactFacade
 
 The `sendMessage()` method creates and sends the email. It utilizes a mailer service for this, which it receives as a dependency via the constructor. Read more about [sending emails](../mail/index.md).
 
-Now, let's return to the presenter and complete the `contactFormSucceeded()` method. It will call the `sendMessage()` method of the `ContactFacade` class, passing the data submitted through the form. And how do we obtain the `ContactFacade` object? We'll request it via the constructor using dependency injection:
+Now, let's return to the presenter and complete the `contactFormSucceeded()` method. It will call the `sendMessage()` method of the `ContactFacade` class, passing the data submitted through the form. And how do we obtain the `ContactFacade` object? We'll request it via the constructor using dependency injection:
 
 ```php
 use App\Model\ContactFacade;
@@ -200,7 +200,7 @@ services:
 	- App\Model\ContactFacade(adminEmail: admin@example.com)
 ```
 
-And that's it. If the `services` section contains many items and the email address gets lost among them, we can turn it into a parameter. Modify the entry like this:
+And that's it. If the `services` section contains many items and the email address gets lost among them, we can turn it into a parameter. Modify the entry like this:
 
 ```neon
 services:
@@ -214,4 +214,4 @@ parameters:
 	adminEmail: admin@example.com
 ```
 
-And it's done!
+And it's done!

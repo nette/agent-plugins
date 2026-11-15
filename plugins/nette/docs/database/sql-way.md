@@ -168,7 +168,7 @@ $database->query('INSERT INTO users ?', [
 ]);
 ```
 
-A multi-record INSERT is much faster because only a single database query is executed, instead of many individual ones.
+A multi-record INSERT is much faster because only a single database query is executed, instead of many individual ones.
 
 **Security Note:** Never use unvalidated data as `$values`. Familiarize yourself with [possible risks](security.md#safe-work-with-columns).
 
@@ -222,7 +222,7 @@ $count = $database->query('DELETE FROM users WHERE id = ?', 1)
 
 ### SQL Construction Hints
 
-A hint is a special placeholder in an SQL query that specifies how the parameter value should be converted into an SQL expression:
+A hint is a special placeholder in an SQL query that specifies how the parameter value should be converted into an SQL expression:
 
 | Hint | Description | Automatically Used For |
 | --- | --- | --- |
@@ -323,7 +323,7 @@ $result = $database->query('SELECT * FROM users WHERE', [
 
 ### Shortcuts for SELECT Queries
 
-To simplify data retrieval, `Connection` offers several shortcuts that combine a `query()` call with a subsequent `fetch*()` call. These methods accept the same parameters as `query()`, i.e., an SQL query and optional parameters. A full description of the `fetch*()` methods can be found [below](#fetch-row).
+To simplify data retrieval, `Connection` offers several shortcuts that combine a `query()` call with a subsequent `fetch*()` call. These methods accept the same parameters as `query()`, i.e., an SQL query and optional parameters. A full description of the `fetch*()` methods can be found [below](#fetch-row).
 
 |  |  |
 | --- | --- |

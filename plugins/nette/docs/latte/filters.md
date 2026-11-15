@@ -213,7 +213,7 @@ This is a temporary tool. Once the migration is complete and migration warnings 
 
 ### `batch(int $length, mixed $rest=null): Generator`
 
-A filter that simplifies listing linear data in a table format. It returns a generator of arrays with the specified number of items. If you provide a second parameter, it will be used to fill in missing items in the last row.
+A filter that simplifies listing linear data in a table format. It returns a generator of arrays with the specified number of items. If you provide a second parameter, it will be used to fill in missing items in the last row.
 
 ```latte
 {var $items = ['a', 'b', 'c', 'd', 'e']}
@@ -338,7 +338,7 @@ If you pass `null` as the column key, it will reindex the array according to `$i
 
 ### `commas(?string $lastGlue=null)` (since 3.1.3)
 
-Joins array elements with a comma and space (`', '`). A convenient shortcut for listing items in a human-readable format.
+Joins array elements with a comma and space (`', '`). A convenient shortcut for listing items in a human-readable format.
 
 ```latte
 {var $items = ['apples', 'oranges', 'bananas']}
@@ -362,7 +362,7 @@ See also [implode](#implodestring-glue).
 
 Converts content to the data URI scheme. This allows embedding images into HTML or CSS without needing to link external files. If `$type` is `null`, the MIME type is detected automatically.
 
-Let's have an image in the variable `$img = Image::fromFile('image.gif')`, then
+Let's have an image in the variable `$img = Image::fromFile('image.gif')`, then
 
 ```latte
 <img src={$img|dataStream}>
@@ -580,7 +580,7 @@ The `format` parameter describes which time components should be displayed. It u
 | Minute | `m` / `mm` | `5` / `05` <small>(2 digits when combined with seconds)</small> |
 | Second | `s` / `ss` | `8` / `08` <small>(2 digits when combined with minutes)</small> |
 
-The order of codes in the format does not matter, as the order of components will be displayed according to the locale's conventions. Thus, the format is locale-independent. For example, the format `yyyyMMMMd` in the `en_US` locale outputs `April 15, 2024`, while in the `cs_CZ` locale it outputs `15. dubna 2024`:
+The order of codes in the format does not matter, as the order of components will be displayed according to the locale's conventions. Thus, the format is locale-independent. For example, the format `yyyyMMMMd` in the `en_US` locale outputs `April 15, 2024`, while in the `cs_CZ` locale it outputs `15. dubna 2024`:
 
 | locale: | cs_CZ | en_US |
 | --- | --- | --- |
@@ -607,7 +607,7 @@ The `date` and `time` parameters determine how detailed the date and time should
 | `time: long` | 8:30:59 SEČ | 8:30:59 AM GMT+1 |
 | `date: short, time: short` | 23.01.78 8:30 | 1/23/78, 8:30 AM |
 | `date: medium, time: short` | 23. 1. 1978 8:30 | Jan 23, 1978, 8:30 AM |
-| `date: long, time: short` | 23. ledna 1978 v 8:30 | January 23, 1978 at 8:30 AM |
+| `date: long, time: short` | 23. ledna 1978 v 8:30 | January 23, 1978 at 8:30 AM |
 
 For the date, you can also use the prefix `relative-` (e.g., `relative-short`), which for dates close to the present will display `yesterday`, `today`, or `tomorrow`; otherwise, it will display in the standard way.
 
@@ -694,14 +694,14 @@ Formats a number to a specified number of decimal places. If the [locale](develo
 
 The `format` parameter allows you to define the appearance of numbers exactly according to your needs. This requires the [locale](develop.md#locale-since-3018) to be set. The format consists of several special characters, a complete description of which can be found in the [DecimalFormat](https://unicode.org/reports/tr35/tr35-numbers.html#Number_Format_Patterns) documentation:
 
-- `0` mandatory digit, always displayed even if it's zero
+- `0` mandatory digit, always displayed even if it's zero
 - `#` optional digit, displayed only if the number actually has a digit in this place
 - `@` significant digit, helps display the number with a certain number of significant digits
 - `.` indicates where the decimal separator should be (dot or comma, depending on the country)
 - `,` serves to separate groups of digits, most often thousands
 - `%` multiplies the number by 100 and adds the percent sign
 
-Let's look at some examples. In the first example, two decimal places are mandatory; in the second, they are optional. The third example shows padding with zeros from the left and right, the fourth displays only existing digits:
+Let's look at some examples. In the first example, two decimal places are mandatory; in the second, they are optional. The third example shows padding with zeros from the left and right, the fourth displays only existing digits:
 
 ```latte
 {1234.5|number: '#,##0.00'}     {* 1,234.50 *}

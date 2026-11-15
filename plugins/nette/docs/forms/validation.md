@@ -189,7 +189,7 @@ Sometimes we encounter situations where the built-in validation rules in Nette a
 
 You can pass any callback as the first parameter to the `addRule()` or `addCondition()` methods. The callback accepts the control itself as the first parameter and returns a boolean value indicating whether the validation was successful. When adding a rule using `addRule()`, additional arguments can be provided, which are then passed as the second parameter.
 
-A custom set of validators can thus be created as a class with static methods:
+A custom set of validators can thus be created as a class with static methods:
 
 ```php
 class MyValidators
@@ -344,7 +344,7 @@ $form->addCheckbox('send_it')
 		->toggle('#address-container');
 ```
 
-This code states that when the condition is met (i.e., when the checkbox is checked), the HTML element `#address-container` will be visible, and vice versa. So, we place the form controls with the recipient's address in a container with this ID, and they will hide or show when the checkbox is clicked. This is handled by the `netteForms.js` script.
+This code states that when the condition is met (i.e., when the checkbox is checked), the HTML element `#address-container` will be visible, and vice versa. So, we place the form controls with the recipient's address in a container with this ID, and they will hide or show when the checkbox is clicked. This is handled by the `netteForms.js` script.
 
 Any selector can be passed as an argument to the `toggle()` method. For historical reasons, a string that begins with a letter, digit, or underscore and contains only letters, digits, underscores, hyphens, dots, and colons is treated as an element ID, just as if it were preceded by the `#` character. The second optional parameter allows reversing the behavior; for instance, if we used `toggle('#address-container', false)`, the element would be displayed only if the checkbox was *not* checked.
 

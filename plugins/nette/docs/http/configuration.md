@@ -104,7 +104,7 @@ The default value `auto` for the `cookieSecure` attribute means that if the webs
 
 ### HTTP Proxy
 
-If the site runs behind an HTTP proxy, enter the proxy's IP address so that HTTPS connection detection and the client's IP address work correctly. That is, so that [Nette\Http\Request::getRemoteAddress()](request.md#getremoteaddress-string) and [isSecured()](request.md#issecured-bool) return the correct values, and links are generated with the `https:` protocol in templates.
+If the site runs behind an HTTP proxy, enter the proxy's IP address so that HTTPS connection detection and the client's IP address work correctly. That is, so that [Nette\Http\Request::getRemoteAddress()](request.md#getremoteaddress-string) and [isSecured()](request.md#issecured-bool) return the correct values, and links are generated with the `https:` protocol in templates.
 
 ```neon
 http:
@@ -120,7 +120,7 @@ http:
 	proxyHeaders: forwarded  # (string) defaults to xForwarded
 ```
 
-Trust only the headers your proxy really sets. A header the proxy merely passes through can be written by the client itself, who could then fake their IP address. With `both`, Nette prefers the `Forwarded` header and falls back to `X-Forwarded-*` when it is missing.
+Trust only the headers your proxy really sets. A header the proxy merely passes through can be written by the client itself, who could then fake their IP address. With `both`, Nette prefers the `Forwarded` header and falls back to `X-Forwarded-*` when it is missing.
 
 ### Force HTTPS (since 3.3.4)
 

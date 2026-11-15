@@ -17,7 +17,7 @@ Contents:
   - [Modern Key Notation in Arrays](#modern-key-notation-in-arrays)
   - [Filters](#filters-1)
   - [Operator `in`](#operator-in)
-  - [A Window into History](#awindow-into-history)
+  - [A Window into History](#a-window-into-history)
 - [PHP Limitations in Latte](#php-limitations-in-latte)
 
 
@@ -34,11 +34,11 @@ Below is a minimal template that illustrates several basic elements: tags, n:att
 </ul>
 ```
 
-Let's take a closer look at these important elements and how they can help you create an amazing template.
+Let's take a closer look at these important elements and how they can help you create an amazing template.
 
 ## Tags
 
-A template contains tags that control the template logic (for example, *foreach* loops) or output expressions. A single delimiter `{ ... }` is used for both, so you don't have to think about which delimiter to use in which situation, unlike other systems. If the `{` character is immediately followed by whitespace, a quote, or another `{` or `}`, Latte does not consider it the beginning of a tag, allowing you to use JavaScript constructs, JSON, or CSS rules in your templates without problems.
+A template contains tags that control the template logic (for example, *foreach* loops) or output expressions. A single delimiter `{ ... }` is used for both, so you don't have to think about which delimiter to use in which situation, unlike other systems. If the `{` character is immediately followed by whitespace, a quote, or another `{` or `}`, Latte does not consider it the beginning of a tag, allowing you to use JavaScript constructs, JSON, or CSS rules in your templates without problems.
 
 See the [overview of all tags](tags.md). Additionally, you can create your own [custom tags](custom-tags.md). You can also change the `{ }` delimiters or turn them off entirely (using `{syntax double}`, `{syntax off}`, or the `n:syntax` attribute); see [changing the syntax](tags.md#syntax).
 
@@ -122,7 +122,7 @@ Which outputs, depending on the variable `$url`:
 <p><a href="https://nette.org">Title</a></p>
 ```
 
-However, n:attributes are not only a shortcut for pair tags; there are some pure n:attributes as well, for example the coder's best friend [n:class](tags.md#nclass) or the very handy [n:href](../application/creating-links.md#in-the-presenter-template).
+However, n:attributes are not only a shortcut for pair tags; there are some pure n:attributes as well, for example the coder's best friend [n:class](tags.md#nclass) or the very handy [n:href](../application/creating-links.md#in-the-presenter-template).
 
 In addition to the syntax using quotes `<div n:if="$foo">`, you can use alternative syntax with curly braces `<div n:if={$foo}>`. The main advantage is that you can freely use both single and double quotes inside `{...}`:
 
@@ -319,7 +319,7 @@ The `in` operator can replace the `in_array()` function. The comparison is alway
 {/if}
 ```
 
-### A Window into History
+### A Window into History
 
 Over its history, Latte introduced several syntactic sugar features that appeared in PHP itself a few years later. For example, in Latte, it was possible to write arrays as `[1, 2, 3]` instead of `array(1, 2, 3)` or use the nullsafe operator `$obj?->foo` long before it was possible in PHP itself. Latte also introduced the array expansion operator `(expand) $arr`, which is equivalent to today's `...$arr` operator from PHP.
 
@@ -327,4 +327,4 @@ Over its history, Latte introduced several syntactic sugar features that appeare
 
 Only PHP expressions can be written in Latte. That is, statements ending with a semicolon cannot be used. You cannot declare classes or use [control structures](https://www.php.net/manual/en/language.control-structures.php), such as `if`, `foreach`, `switch`, `return`, `try`, `throw`, and others, for which Latte offers its [tags](tags.md). You also cannot use [attributes](https://www.php.net/manual/en/language.attributes.php), [backticks](https://www.php.net/manual/en/language.operators.execution.php), or some [magic constants](https://www.php.net/manual/en/language.constants.magic.php). You cannot use `unset`, `echo`, `include`, `require`, `exit`, `eval` either, because they are not functions but special PHP language constructs, and thus not expressions. Only multi-line comments `/* ... */` are supported.
 
-However, these limitations can be bypassed by activating the [RawPhpExtension](develop.md#any-code-in-template-php-) extension, which allows you to use any PHP code within the `{php ...}` tag at the template author's responsibility.
+However, these limitations can be bypassed by activating the [RawPhpExtension](develop.md#any-code-in-template-php-) extension, which allows you to use any PHP code within the `{php ...}` tag at the template author's responsibility.

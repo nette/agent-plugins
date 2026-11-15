@@ -55,14 +55,14 @@ The `{block}` tag is used to define reusable code blocks that can be customized 
 
 ## `{define}`
 
-The `{define}` tag is used to create blocks that are rendered only when called using `{include}`. The variables available inside these blocks depend on whether parameters are declared in the definition. A block with declared parameters has access both to those parameters and to all input variables of the template where it is defined. A block without parameters has access to those input variables as well. In neither case are the surrounding variables available.
+The `{define}` tag is used to create blocks that are rendered only when called using `{include}`. The variables available inside these blocks depend on whether parameters are declared in the definition. A block with declared parameters has access both to those parameters and to all input variables of the template where it is defined. A block without parameters has access to those input variables as well. In neither case are the surrounding variables available.
 
 ```latte
 {define hello}
 	{* has access to all input variables of the template *}
 {/define}
 
-{define hello $name}
+{define hello, $name}
 	{* has access to the $name parameter and input variables *}
 {/define}
 ```

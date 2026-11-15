@@ -97,7 +97,7 @@ $latte->enablePhpLinter('/path/to/php');
 
 Beyond the tags, functions, methods, and properties you allow, the sandbox unconditionally forbids several constructs regardless of the policy: the `new` operator, the `$this` variable, variable variables (`$$var`), and the `|noescape` filter.
 
-Reading all of an object's properties at once is guarded as well. Casting an object to an array with `(array)` is always forbidden, because it would reveal even its private properties. And `{foreach}` over an ordinary object (one that doesn't implement `Traversable`) works only if the policy allows all of its public properties.
+Reading all of an object's properties at once is guarded as well. Casting an object to an array with `(array)` is always forbidden, because it would reveal even its private properties. And `{foreach}` over an ordinary object (one that doesn't implement `Traversable`) works only if the policy allows all of its public properties.
 
 The sandbox reliably guards *explicit* operations: calls to functions, methods, and filters, as well as access to object properties. There is one thing its checks cannot reach, however, and it is worth knowing about.
 
@@ -110,7 +110,7 @@ When you print an object or use it in any string context, PHP automatically call
 {$obj|upper}        {* same (through a filter) *}
 ```
 
-The purpose of `__toString()` is to produce a text representation of the object, so its reachability usually does no harm. A problem arises only when `__toString()` has side effects (such as writing to or querying a database) or when it returns sensitive data.
+The purpose of `__toString()` is to produce a text representation of the object, so its reachability usually does no harm. A problem arises only when `__toString()` has side effects (such as writing to or querying a database) or when it returns sensitive data.
 
 Latte could catch these most direct cases, but not reliably in all of them. Converting an object to a string is not a method call but a built-in language operation that occurs in many places within an expression. In some of them (for example, comparing an object with a string, or inside a called function or filter) it could not be intercepted reliably without also blocking legitimate use. That is why you need to count on `__toString()` being reachable.
 

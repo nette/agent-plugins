@@ -11,7 +11,7 @@ Contents:
 - [What Next?](#what-next)
 
 
-You are currently reading the foundational chapter of the Nette documentation. You will learn the complete principles behind how web applications work, from A to Z, from the moment a request is born until the PHP script completes execution. After reading, you will understand:
+You are currently reading the foundational chapter of the Nette documentation. You will learn the complete principles behind how web applications work, from A to Z, from the moment a request is born until the PHP script completes execution. After reading, you will understand:
 
 - how it all works
 - what Bootstrap, Presenter, and the DI container are
@@ -51,7 +51,7 @@ web-project/
 └── .htaccess                 ← prohibits access to all directories except www
 ```
 
-You can change the directory structure in any way, rename or move folders; it is completely flexible. Nette also features smart autodetection and automatically recognizes the application's location, including its URL base.
+You can change the directory structure in any way, rename or move folders; it is completely flexible. Nette also features smart autodetection and automatically recognizes the application's location, including its URL base.
 
 For slightly larger applications, we can organize presenter and template folders into [subdirectories](directory-structure.md#presenters-and-templates) and group classes into namespaces, which we call modules.
 
@@ -69,7 +69,7 @@ The WebProject application is ready to run; there is no need to configure anythi
 
 ## HTTP Request
 
-Everything starts when a user opens a page in their browser. The browser sends an HTTP request to the server. This request targets a single PHP file located in the public directory `www/`, which is `index.php`. Let's assume the request is for the address `https://example.com/product/123`. Thanks to appropriate [server configuration](../nette/troubleshooting.md#how-to-configure-a-server-for-nice-urls), even this URL is mapped to the `index.php` file, which is then executed.
+Everything starts when a user opens a page in their browser. The browser sends an HTTP request to the server. This request targets a single PHP file located in the public directory `www/`, which is `index.php`. Let's assume the request is for the address `https://example.com/product/123`. Thanks to appropriate [server configuration](../nette/troubleshooting.md#how-to-configure-a-server-for-nice-urls), even this URL is mapped to the `index.php` file, which is then executed.
 
 Its task is to:
 
@@ -83,7 +83,7 @@ By ‘environment initialization’, we mean, for example, activating [Tracy](ht
 
 The third point (yes, we skipped the second, but we'll return to it) is launching the application. Handling HTTP requests in Nette is the responsibility of the `Nette\Application\Application` class (hereafter `Application`). So, when we say run the application, we specifically mean calling the aptly named `run()` method on an object of this class.
 
-Nette acts as a mentor, guiding you to write clean applications according to proven methodologies. One of the most established of these is **dependency injection**, abbreviated as DI. We don't want to burden you with explaining DI right now; there's a [dedicated chapter](../dependency-injection/introduction.md) for that. The essential consequence is that key objects are typically created by an object factory known as the **DI container** (or DIC). Yes, this is the factory mentioned earlier. It also produces the `Application` object for us, which is why we need the container first. We obtain it using the `Configurator` class, let it create the `Application` object, call the `run()` method on it, and thus the Nette application starts. This is precisely what happens in the [index.php](bootstrapping.md#indexphp) file.
+Nette acts as a mentor, guiding you to write clean applications according to proven methodologies. One of the most established of these is **dependency injection**, abbreviated as DI. We don't want to burden you with explaining DI right now; there's a [dedicated chapter](../dependency-injection/introduction.md) for that. The essential consequence is that key objects are typically created by an object factory known as the **DI container** (or DIC). Yes, this is the factory mentioned earlier. It also produces the `Application` object for us, which is why we need the container first. We obtain it using the `Configurator` class, let it create the `Application` object, call the `run()` method on it, and thus the Nette application starts. This is precisely what happens in the [index.php](bootstrapping.md#indexphp) file.
 
 ## Nette Application
 
@@ -91,11 +91,11 @@ The `Application` class has a single task: to respond to the HTTP request.
 
 Applications written in Nette are divided into many so-called presenters (you might encounter the term ‘controller’ in other frameworks, which is essentially the same thing). These are classes, each representing a specific page of the website: e.g., the homepage, a product in an e-shop, a login form, a sitemap feed, etc. An application can have anywhere from one to thousands of presenters.
 
-The `Application` starts by asking the so-called router to decide which presenter should handle the current request. The router determines the responsibility. It examines the input URL `https://example.com/product/123` and, based on its configuration, decides that this task belongs, for example, to the `Product` **presenter**, which should perform the `show` **action** for the product with `id: 123`. It's good practice to write the presenter + action pair separated by a colon, like `Product:show`.
+The `Application` starts by asking the so-called router to decide which presenter should handle the current request. The router determines the responsibility. It examines the input URL `https://example.com/product/123` and, based on its configuration, decides that this task belongs, for example, to the `Product` **presenter**, which should perform the `show` **action** for the product with `id: 123`. It's good practice to write the presenter + action pair separated by a colon, like `Product:show`.
 
 Thus, the router transformed the URL into the pair `Presenter:action` + parameters, in our case `Product:show` + `id: 123`. You can see what such a router looks like in the file `app/Core/RouterFactory.php`, and we describe it in detail in the [Routing](routing.md) chapter.
 
-Let's move on. The `Application` now knows the name of the presenter and can proceed. It does this by creating an instance of the `ProductPresenter` class, which contains the code for the `Product` presenter. More precisely, it asks the DI container to create the presenter, because creating objects is its responsibility.
+Let's move on. The `Application` now knows the name of the presenter and can proceed. It does this by creating an instance of the `ProductPresenter` class, which contains the code for the `Product` presenter. More precisely, it asks the DI container to create the presenter, because creating objects is its responsibility.
 
 The presenter might look like this:
 
@@ -117,11 +117,11 @@ class ProductPresenter extends Nette\Application\UI\Presenter
 
 The presenter takes over handling the request. The task is clear: execute the `show` action with `id: 123`. In presenter terminology, this means the `renderShow()` method is called, receiving `123` in the `$id` parameter.
 
-A presenter can handle multiple actions, meaning it can have multiple `render<Action>()` methods. However, we recommend designing presenters with one or as few actions as possible.
+A presenter can handle multiple actions, meaning it can have multiple `render<Action>()` methods. However, we recommend designing presenters with one or as few actions as possible.
 
 So, the `renderShow(123)` method was called. Its code is a fictional example, but it demonstrates how data is passed to the template, specifically by writing to `$this->template`.
 
-Subsequently, the presenter returns a response. This could be an HTML page, an image, an XML document, sending a file from the disk, JSON, or perhaps a redirect to another page. Importantly, if we don't explicitly specify how to respond (which is the case with `ProductPresenter`), the response will be to render a template into an HTML page. Why? Because in 99% of cases, we want to render a template. Therefore, the presenter adopts this behavior as the default to simplify our work. That's the essence of Nette.
+Subsequently, the presenter returns a response. This could be an HTML page, an image, an XML document, sending a file from the disk, JSON, or perhaps a redirect to another page. Importantly, if we don't explicitly specify how to respond (which is the case with `ProductPresenter`), the response will be to render a template into an HTML page. Why? Because in 99% of cases, we want to render a template. Therefore, the presenter adopts this behavior as the default to simplify our work. That's the essence of Nette.
 
 We don't even need to specify which template to render; the framework deduces the path automatically. In the case of the `show` action, it simply attempts to load the `show.latte` template located in the same directory as the `ProductPresenter` class. It also tries to find the layout in the `@layout.latte` file (more details on [template lookup](templates.md#template-lookup)).
 
@@ -129,7 +129,7 @@ Then, the templates are rendered. This completes the task of the presenter and t
 
 ![](https://files.nette.org/git/application/4.x/request-flow.svg)
 
-To be sure, let's recap the entire process with a slightly different URL:
+To be sure, let's recap the entire process with a slightly different URL:
 
 1. The URL is `https://example.com`
 2. The application boots, the DI container is created, and `Application::run()` is executed.
@@ -142,12 +142,12 @@ You might have encountered many new concepts just now, but we believe they make 
 
 ## Templates
 
-Speaking of templates, Nette uses the [Latte](https://latte.nette.org/en) templating system. That's why template files have the `.latte` extension. Latte is used primarily because it's the most secure templating system for PHP, and also the most intuitive. You don't need to learn much new; knowledge of PHP and a few tags is sufficient. You'll find everything you need [in the documentation](templates.md).
+Speaking of templates, Nette uses the [Latte](https://latte.nette.org/en) templating system. That's why template files have the `.latte` extension. Latte is used primarily because it's the most secure templating system for PHP, and also the most intuitive. You don't need to learn much new; knowledge of PHP and a few tags is sufficient. You'll find everything you need [in the documentation](templates.md).
 
 In the template, you [create links](creating-links.md) to other presenters & actions like this:
 
 ```latte
-<a n:href="Product:show $productId">product detail</a>
+<a n:href="Product:show, $productId">product detail</a>
 ```
 
 Simply write the familiar `Presenter:action` pair instead of the actual URL and include any necessary parameters. The trick lies in `n:href`, which tells Nette to process this attribute. It will then generate:
@@ -170,22 +170,22 @@ Components fundamentally influence the approach to application development. They
 
 The DI container, or object factory, is the heart of the entire application.
 
-Don't worry, it's not some magical black box, as the preceding lines might suggest. In reality, it's a rather mundane PHP class generated by Nette and stored in the cache directory. It contains many methods named like `createServiceAbcd()`, each capable of creating and returning a specific object. Yes, there's also a `createServiceApplication__application()` method that produces the `Nette\Application\Application` instance we needed in `index.php` to run the application. There are also methods for creating individual presenters, and so on.
+Don't worry, it's not some magical black box, as the preceding lines might suggest. In reality, it's a rather mundane PHP class generated by Nette and stored in the cache directory. It contains many methods named like `createServiceAbcd()`, each capable of creating and returning a specific object. Yes, there's also a `createServiceApplication__application()` method that produces the `Nette\Application\Application` instance we needed in `index.php` to run the application. There are also methods for creating individual presenters, and so on.
 
 The objects created by the DI container are, for some reason, called services.
 
-What's truly special about this class is that you don't program it – the framework does. It actually generates the PHP code and saves it to disk. You simply provide instructions on which objects the container should be able to create and how exactly. These instructions are written in [configuration files](bootstrapping.md#di-container-configuration), which use the [NEON](../neon/format.md) format and thus have the `.neon` extension.
+What's truly special about this class is that you don't program it – the framework does. It actually generates the PHP code and saves it to disk. You simply provide instructions on which objects the container should be able to create and how exactly. These instructions are written in [configuration files](bootstrapping.md#di-container-configuration), which use the [NEON](../neon/format.md) format and thus have the `.neon` extension.
 
 Configuration files serve purely to instruct the DI container. So, for example, if you specify the `expiration: 14 days` option in the [session](../http/configuration.md#session) section, the DI container, when creating the `Nette\Http\Session` object representing the session, will call its `setExpiration('14 days')` method, thereby making the configuration a reality.
 
-There's an entire chapter prepared for you describing what can be [configured](../nette/configuring.md) and how to [define your own services](../dependency-injection/services.md).
+There's an entire chapter prepared for you describing what can be [configured](../nette/configuring.md) and how to [define your own services](../dependency-injection/services.md).
 
 Once you delve a bit into service creation, you'll encounter the term [autowiring](../dependency-injection/autowiring.md). This is a feature that will simplify your life incredibly. It can automatically pass objects where you need them (for example, in the constructors of your classes) without you having to do anything. You'll discover that the DI container in Nette is a small miracle.
 
 ## What Next?
 
-We've covered the fundamental principles of Nette applications. While it's been a surface-level overview so far, you'll soon delve deeper and, in time, create amazing web applications. Where to go next? Have you tried the [Create Your First Application](https://doc.nette.org/en/quickstart) tutorial yet?
+We've covered the fundamental principles of Nette applications. While it's been a surface-level overview so far, you'll soon delve deeper and, in time, create amazing web applications. Where to go next? Have you tried the [Create Your First Application](https://doc.nette.org/en/quickstart) tutorial yet?
 
-In addition to what's described above, Nette offers a whole arsenal of [useful classes](https://doc.nette.org/en/utils), a [database layer](../database/index.md), etc. Try clicking through the documentation. Or visit the [blog](https://blog.nette.org). You'll discover many interesting things.
+In addition to what's described above, Nette offers a whole arsenal of [useful classes](https://doc.nette.org/en/utils), a [database layer](../database/index.md), etc. Try clicking through the documentation. Or visit the [blog](https://blog.nette.org). You'll discover many interesting things.
 
 May the framework bring you much joy 💙

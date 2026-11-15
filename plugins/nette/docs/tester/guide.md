@@ -25,7 +25,7 @@ $result = $obj->process($input);
 var_dump($result);
 ```
 
-That is, have you printed out the result of a function call just to visually check if it returns what it should? You probably do this many times a day. Hand on heart: if everything works correctly, do you delete this code? Do you expect the class not to break in the future? Murphy's laws guarantee the opposite :-)
+That is, have you printed out the result of a function call just to visually check if it returns what it should? You probably do this many times a day. Hand on heart: if everything works correctly, do you delete this code? Do you expect the class not to break in the future? Murphy's laws guarantee the opposite :-)
 
 Basically, you wrote a test. It just needs a slight modification so that it does not require visual inspection but checks itself. And if you don't delete the test, you can run it at any time in the future to verify that everything still works as it should. Over time, you'll create a large number of such tests, so it would be useful to run them automatically.
 
@@ -37,7 +37,7 @@ Writing tests for Nette Tester is unique in that **each test is a standard PHP s
 
 So, when you write a test, you can simply run it and find out whether it contains, for example, a programming error and whether it works correctly. If not, you can easily step through it in your IDE and look for the bug. You can even open it in a browser.
 
-And most importantly – by running it, you perform the test. You immediately find out whether it passed or failed. How? Let's show it. We'll write a trivial test of working with a PHP array and save it to the file `ArrayTest.php`:
+And most importantly – by running it, you perform the test. You immediately find out whether it passed or failed. How? Let's show it. We'll write a trivial test of working with a PHP array and save it to the file `ArrayTest.php`:
 
 ```php
 <?php
@@ -80,7 +80,7 @@ We continue with writing tests in the [Writing Tests](writing-tests.md) chapter.
 
 ## Installation and Requirements
 
-The minimum PHP version required by Tester is 8.0 (more details in the table [Supported PHP versions](#supported-php-versions)). The preferred way of installation is using [Composer](https://doc.nette.org/en/best-practices/composer):
+The minimum PHP version required by Tester is 8.1 (more details in the table [Supported PHP versions](#supported-php-versions)). The preferred way of installation is using [Composer](https://doc.nette.org/en/best-practices/composer):
 
 ```
 composer require --dev nette/tester
@@ -94,7 +94,7 @@ vendor/bin/tester
 
 ## Running Tests
 
-As the application grows, the number of tests grows with it. It would not be practical to run tests one by one. Therefore, Tester has a bulk test runner, which we call from the command line. As a parameter, we specify the directory in which the tests are located. A dot means the current directory.
+As the application grows, the number of tests grows with it. It would not be practical to run tests one by one. Therefore, Tester has a bulk test runner, which we call from the command line. As a parameter, we specify the directory in which the tests are located. A dot means the current directory.
 
 ```
 vendor/bin/tester .
@@ -138,7 +138,7 @@ We continue in the [Running Tests](running-tests.md) chapter.
 
 Are you refactoring code? Or perhaps even developing according to the TDD (Test Driven Development) methodology? Then you'll like the watch mode. In this mode, Tester monitors the source code and automatically runs itself whenever it changes.
 
-During development, you have a terminal in the corner of your monitor where a green status bar shines at you, and when it suddenly changes to red, you know that you have just done something not quite right. It's actually a great game where you program and try to keep the color.
+During development, you have a terminal in the corner of your monitor where a green status bar shines at you, and when it suddenly changes to red, you know that you have just done something not quite right. It's actually a great game where you program and try to keep the color.
 
 Watch mode is started with the parameter [`--watch`](running-tests.md#-w----watch-path).
 
@@ -152,6 +152,7 @@ See a [sample HTML report](https://files.nette.org/assets/tester/coverage.html) 
 
 | Version | Compatible with PHP |
 | --- | --- |
+| Tester 2.7 | PHP 8.1 – 8.6 |
 | Tester 2.6 | PHP 8.0 – 8.5 |
 | Tester 2.5 | PHP 8.0 – 8.5 |
 | Tester 2.4 | PHP 7.2 – 8.2 |

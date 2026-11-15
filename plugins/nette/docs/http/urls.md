@@ -97,7 +97,7 @@ We can also work with individual query parameters using:
 
 ### `getDomain(int $level = 2): string`
 
-Returns the right or left part of the host. Here's how it works if the host is `www.nette.org`:
+Returns the right or left part of the host. Here's how it works if the host is `www.nette.org`:
 
 |  |  |
 | --- | --- |
@@ -123,7 +123,7 @@ Converts the URL to canonical form. This converts the hostname to lowercase and 
 
 ### `Url::isAbsolute(string $url): bool` (since 3.3.2)
 
-Checks if a URL is absolute. A URL is considered absolute if it begins with a scheme (e.g., http, https, ftp) followed by a colon.
+Checks if a URL is absolute. A URL is considered absolute if it begins with a scheme (e.g., http, https, ftp) followed by a colon.
 
 ```php
 Url::isAbsolute('https://nette.org');    // true
@@ -196,7 +196,7 @@ We can also work with individual query parameters using:
 
 ### `getDomain(int $level = 2): string`
 
-Returns the right or left part of the host. Here's how it works if the host is `www.nette.org`:
+Returns the right or left part of the host. Here's how it works if the host is `www.nette.org`:
 
 |  |  |
 | --- | --- |
@@ -234,7 +234,7 @@ $url->isEqual('https://nette.org');
 
 ## UrlScript
 
-The [Nette\Http\UrlScript](https://api.nette.org/http/master/Nette/Http/UrlScript.html) class is a descendant of [UrlImmutable](#urlimmutable) and extends it with additional virtual URL components, such as the project's root directory, etc. Like its parent class, it is an immutable object.
+The [Nette\Http\UrlScript](https://api.nette.org/http/master/Nette/Http/UrlScript.html) class is a descendant of [UrlImmutable](#urlimmutable) and extends it with additional virtual URL components, such as the project's root directory, etc. Like its parent class, it is an immutable object.
 
 The following diagram shows the components that UrlScript recognizes:
 
@@ -248,8 +248,8 @@ http://nette.org/admin/script.php/pathinfo/?name=param#footer
                   scriptPath       pathInfo
 ```
 
-- `baseUrl` is the base URL of the application, including the domain and the path part to the application's root directory
-- `basePath` is the path part to the application's root directory
+- `baseUrl` is the base URL of the application, including the domain and the path part to the application's root directory
+- `basePath` is the path part to the application's root directory
 - `scriptPath` is the path to the current script
 - `relativePath` is the script name (and possibly additional path segments) relative to `basePath`
 - `relativeUrl` is the entire part of the URL after `baseUrl`, including the query string and fragment

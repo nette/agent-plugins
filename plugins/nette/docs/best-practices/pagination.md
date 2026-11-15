@@ -3,7 +3,7 @@
 
 When developing web applications, you often encounter the requirement to limit the number of listed items per page, a technique known as pagination.
 
-Let's start from a state where we list all data without pagination. For selecting data from the database, we have an `ArticleRepository` class. Besides the constructor, it contains a `findPublishedArticles` method that returns all published articles sorted descending by publication date.
+Let's start from a state where we list all data without pagination. For selecting data from the database, we have an `ArticleRepository` class. Besides the constructor, it contains a `findPublishedArticles` method that returns all published articles sorted descending by publication date.
 
 ```php
 namespace App\Model;
@@ -106,7 +106,7 @@ class ArticleRepository
 }
 ```
 
-Next, let's modify the presenter. We'll pass the current page number to the `renderDefault` method. If this number isn't part of the URL, we'll set a default value of 1 (the first page).
+Next, let's modify the presenter. We'll pass the current page number to the `renderDefault` method. If this number isn't part of the URL, we'll set a default value of 1 (the first page).
 
 We'll also extend the render method to create and configure a Paginator instance and select the appropriate articles for display in the template. The modified `HomePresenter` will look like this:
 

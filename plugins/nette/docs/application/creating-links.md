@@ -21,7 +21,7 @@ Creating links in Nette is as simple as pointing a finger. Just aim, and the fra
 - how to distinguish a link to the current page
 - what to do with invalid links
 
-Thanks to [bidirectional routing](routing.md), you will never have to hardcode URLs of your application into templates or code, which might change later or be complicated to assemble. In the link, just specify the presenter and action, pass any parameters, and the framework will generate the URL itself. Actually, it's very similar to calling a function. You'll like this.
+Thanks to [bidirectional routing](routing.md), you will never have to hardcode URLs of your application into templates or code, which might change later or be complicated to assemble. In the link, just specify the presenter and action, pass any parameters, and the framework will generate the URL itself. Actually, it's very similar to calling a function. You'll like this.
 
 ## In the Presenter Template
 
@@ -36,16 +36,16 @@ Notice that instead of the HTML attribute `href`, we used the [n:attribute](../l
 Clicking on a link is, simply put, something like calling the `ProductPresenter::renderShow()` method. And if it has parameters in its signature, we can call it with arguments:
 
 ```latte
-<a n:href="Product:show $product->id, $product->slug">product detail</a>
+<a n:href="Product:show, $product->id, $product->slug">product detail</a>
 ```
 
 It is also possible to pass named parameters. The following link passes the parameter `lang` with the value `en`:
 
 ```latte
-<a n:href="Product:show $product->id, lang: en">product detail</a>
+<a n:href="Product:show, $product->id, lang: en">product detail</a>
 ```
 
-If the `ProductPresenter::renderShow()` method does not have `$lang` in its signature, it can retrieve the parameter's value using `$lang = $this->getParameter('lang')` or from a [property](presenters.md#request-parameters-since-3114).
+If the `ProductPresenter::renderShow()` method does not have `$lang` in its signature, it can retrieve the parameter's value using `$lang = $this->getParameter('lang')` or from a [property](presenters.md#request-parameters-since-3114).
 
 If the parameters are stored in an array, they can be expanded using the `...` operator:
 
@@ -121,7 +121,7 @@ Links can also point to other [modules](directory-structure.md#presenters-and-te
 <a n:href=":Admin:Product:show">link to Admin:Product:show</a>
 ```
 
-A special case is a link [to itself](#link-to-current-page), where we specify `this` as the target.
+A special case is a link [to itself](#link-to-current-page), where we specify `this` as the target.
 
 ```latte
 <a n:href="this">refresh</a>
@@ -160,7 +160,7 @@ At the same time, all parameters specified in the signature of the `action<Actio
 Of course, it is possible to specify parameters directly:
 
 ```latte
-<a n:href="this refresh: 1">refresh</a>
+<a n:href="this, refresh: 1">refresh</a>
 ```
 
 The `isLinkCurrent()` function checks if the link target is identical to the current page. This can be used, for example, in a template to distinguish links, etc.
@@ -295,7 +295,7 @@ application:
 
 ## LinkGenerator
 
-How to create links with similar convenience to the `link()` method, but without the presence of a presenter? That's what [Nette\Application\LinkGenerator](https://api.nette.org/application/master/Nette/Application/LinkGenerator.html) is for.
+How to create links with similar convenience to the `link()` method, but without the presence of a presenter? That's what [Nette\Application\LinkGenerator](https://api.nette.org/application/master/Nette/Application/LinkGenerator.html) is for.
 
 LinkGenerator is a service that you can have passed via the constructor and then create links using its `link()` method.
 

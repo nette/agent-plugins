@@ -187,7 +187,7 @@ if (version_compare(Latte\Engine::VERSION, '3', '<')) {
 }
 ```
 
-As an example, let's try rewriting the following code intended for Latte 2 into a form for Latte 3:
+As an example, let's try rewriting the following code intended for Latte 2 into a form for Latte 3:
 
 ```php
 // old code for Latte 2
@@ -197,7 +197,7 @@ $this->latte->onCompile[] = function (Latte\Engine $latte) {
 };
 ```
 
-Latte 3 is extended using [extensions](../extending-latte.md). A trivial extension adding the `foo` tag would look like this:
+Latte 3 is extended using [extensions](../extending-latte.md). A trivial extension adding the `foo` tag would look like this:
 
 ```php
 // new code for Latte 3

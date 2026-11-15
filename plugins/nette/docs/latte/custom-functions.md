@@ -31,7 +31,7 @@ Latte functions allow you to extend the set of functions callable within templat
 
 **Override Native Functions (Optional):** You can even define a Latte function with the same name as a native PHP function. Within the template, your custom version will be called instead. This can be useful for providing template-specific behavior or ensuring consistent handling (e.g., making `strlen` always multibyte-safe). Use this feature with caution to avoid confusion.
 
-By default, Latte allows calling *all* native PHP functions (unless restricted by the [Sandbox](sandbox.md)). Custom functions augment this built-in library with your project's specific needs.
+By default, Latte allows calling *all* native PHP functions (unless restricted by the [Sandbox](sandbox.md)). Custom functions augment this built-in library with your project's specific needs.
 
 If you are transforming a single value, a [custom filter](custom-filters.md) might be more idiomatic.
 
@@ -99,7 +99,7 @@ $latte = new Latte\Engine;
 $latte->addExtension($extension);
 ```
 
-This approach clearly demonstrates how functions defined in Latte can be backed by object methods which, in turn, can have their own dependencies managed by your application's dependency injection container or factory. This keeps your template logic connected to your application's core while maintaining organization.
+This approach clearly demonstrates how functions defined in Latte can be backed by object methods which, in turn, can have their own dependencies managed by your application's dependency injection container or factory. This keeps your template logic connected to your application's core while maintaining organization.
 
 ### Functions Using a Class with Attributes
 

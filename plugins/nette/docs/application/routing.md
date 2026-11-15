@@ -35,7 +35,7 @@ The router handles everything related to URL addresses, so you don't have to thi
 - discuss SEO and redirection
 - and demonstrate how to write a custom router
 
-More human-friendly URLs (also known as cool or pretty URLs) are more usable, memorable, and contribute positively to SEO. Nette keeps this in mind and fully caters to developers' needs. You can design the exact URL structure you want for your application. You can even design it when the application is already finished, as it requires no changes to code or templates. It's defined elegantly in [a single place](#integration), the router, rather than being scattered as annotations throughout all presenters.
+More human-friendly URLs (also known as cool or pretty URLs) are more usable, memorable, and contribute positively to SEO. Nette keeps this in mind and fully caters to developers' needs. You can design the exact URL structure you want for your application. You can even design it when the application is already finished, as it requires no changes to code or templates. It's defined elegantly in [a single place](#integration), the router, rather than being scattered as annotations throughout all presenters.
 
 The router in Nette is exceptional because it is **bidirectional.** It can both decode URLs from HTTP requests and create links. Thus, it plays a crucial role in [Nette Application](how-it-works.md#nette-application), as it not only decides which presenter and action will execute the current request but is also used for [generating URLs](creating-links.md) in templates, etc.
 
@@ -84,7 +84,7 @@ We won't hide from you that correctly assembling routes requires some skill. Unt
 
 ### Mask and Parameters
 
-The mask describes the relative path from the website's root directory. The simplest mask is a static URL:
+The mask describes the relative path from the website's root directory. The simplest mask is a static URL:
 
 ```php
 $router->addRoute('products', 'Products:default');
@@ -116,7 +116,7 @@ The specified route accepts, for example, URLs in the form `/article/edit` or `/
 
 At the same time, it gives the parameters `presenter` and `action` default values `Home` and `default`, making them optional as well. Thus, the route also accepts a URL like `/article` and understands it as `Article:default`. Or conversely, a link to `Product:default` generates the path `/product`, and a link to the default `Home:default` generates the path `/`.
 
-The mask can describe not only the relative path from the website's root directory but also an absolute path if it starts with a slash, or even the entire absolute URL if it starts with two slashes:
+The mask can describe not only the relative path from the website's root directory but also an absolute path if it starts with a slash, or even the entire absolute URL if it starts with two slashes:
 
 ```php
 // relative to the document root
@@ -134,7 +134,7 @@ $router->addRoute('https://<lang>.example.com/<presenter>/<action>', /* ... */);
 
 ### Validation Expressions
 
-A validation condition can be specified for each parameter using a [regular expression](https://www.php.net/manual/en/reference.pcre.pattern.syntax.php). For example, for the parameter `id`, we specify that it can only contain digits using the regex `\d+`:
+A validation condition can be specified for each parameter using a [regular expression](https://www.php.net/manual/en/reference.pcre.pattern.syntax.php). For example, for the parameter `id`, we specify that it can only contain digits using the regex `\d+`:
 
 ```php
 $router->addRoute('<presenter>/<action>[/<id \d+>]', /* ... */);
@@ -265,7 +265,7 @@ $router->addRoute('tos', [
 
 ### Filters and Translations
 
-We write the application's source code in English, but if the website needs to have Czech URLs, then simple routing like:
+We write the application's source code in English, but if the website needs to have Czech URLs, then simple routing like:
 
 ```php
 $router->addRoute('<presenter>/<action>', 'Home:default');
@@ -336,7 +336,7 @@ $router->addRoute('<presenter>/<action>', [
 ]);
 ```
 
-General filters provide the ability to modify the route's behavior in absolutely any way. We can use them, for example, to modify parameters based on other parameters. For instance, translating `<presenter>` and `<action>` based on the current value of the `<lang>` parameter.
+General filters provide the ability to modify the route's behavior in absolutely any way. We can use them, for example, to modify parameters based on other parameters. For instance, translating `<presenter>` and `<action>` based on the current value of the `<lang>` parameter.
 
 If a parameter has its own filter defined and a general filter also exists, the custom `FilterIn` is executed before the general one, and conversely, the general `FilterOut` is executed before the custom one. Thus, inside the general filter, the values of the parameters `presenter` and `action` are written in PascalCase or camelCase style, respectively.
 
@@ -466,7 +466,7 @@ $router = (new RouteList)
 
 ### Query Parameters
 
-Masks can also contain query parameters (parameters after the question mark in the URL). A validation expression cannot be defined for these, but the name under which they are passed to the presenter can be changed:
+Masks can also contain query parameters (parameters after the question mark in the URL). A validation expression cannot be defined for these, but the name under which they are passed to the presenter can be changed:
 
 ```php
 // we want to use the query parameter 'cat' under the name 'categoryId' in the application
@@ -489,7 +489,7 @@ $router->addRoute('index<?.html \.html?|\.php|>', /* ... */);
 
 ## Integration
 
-To integrate the created router into the application, we need to tell the DI container about it. The easiest way is to prepare a factory that will create the router object and tell the container in the configuration to use it. Let's say we write the method `App\Core\RouterFactory::createRouter()` for this purpose:
+To integrate the created router into the application, we need to tell the DI container about it. The easiest way is to prepare a factory that will create the router object and tell the container in the configuration to use it. Let's say we write the method `App\Core\RouterFactory::createRouter()` for this purpose:
 
 ```php
 namespace App\Core;
@@ -525,7 +525,7 @@ public static function createRouter(Nette\Database\Connection $db): RouteList
 
 ## SimpleRouter
 
-A much simpler router than the route collection is [SimpleRouter](https://api.nette.org/application/master/Nette/Application/Routers/SimpleRouter.html). We use it when we don't have special requirements for the URL format, if `mod_rewrite` (or its alternatives) is not available, or if we don't want to deal with pretty URLs yet.
+A much simpler router than the route collection is [SimpleRouter](https://api.nette.org/application/master/Nette/Application/Routers/SimpleRouter.html). We use it when we don't have special requirements for the URL format, if `mod_rewrite` (or its alternatives) is not available, or if we don't want to deal with pretty URLs yet.
 
 It generates addresses roughly in this form:
 
@@ -593,7 +593,7 @@ The green bar with the symbol ✓ represents the route that processed the curren
 
 At the same time, if an unexpected redirect occurs due to [canonization](#seo-and-canonization), it is useful to look at the panel in the *redirect* bar, where you can find out how the router originally understood the URL and why it redirected.
 
-When debugging the router, we recommend opening Developer Tools in the browser (Ctrl+Shift+I or Cmd+Option+I) and disabling the cache in the Network panel so that redirects are not stored in it.
+When debugging the router, we recommend opening Developer Tools in the browser (Ctrl+Shift+I or Cmd+Option+I) and disabling the cache in the Network panel so that redirects are not stored in it.
 
 ## Performance
 
@@ -650,7 +650,7 @@ $router->addRoute(/* ... */);
 
 ## Standalone Usage
 
-By standalone usage, we mean utilizing the router's capabilities in an application that does not use Nette Application and presenters. Almost everything we have shown in this chapter applies to it, with these differences:
+By standalone usage, we mean utilizing the router's capabilities in an application that does not use Nette Application and presenters. Almost everything we have shown in this chapter applies to it, with these differences:
 
 - for route collections, we use the [Nette\Routing\RouteList](https://api.nette.org/routing/master/Nette/Routing/RouteList.html) class
 - as a simple router, the [Nette\Routing\SimpleRouter](https://api.nette.org/routing/master/Nette/Routing/SimpleRouter.html) class

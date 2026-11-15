@@ -46,7 +46,7 @@ class AdminPresenter extends Nette\Application\UI\Presenter
 
 Why should you use POST instead of GET for state-changing actions and how to do it? [Read the guide](post-links.md).
 
-You can specify a method or an array of methods. A special case is the value `'*'`, which allows all methods, something presenters [do not allow by default for security reasons](../application/presenters.md#http-method-check).
+You can specify a method or an array of methods. A special case is the value `'*'`, which allows all methods, something presenters [do not allow by default for security reasons](../application/presenters.md#http-method-check).
 
 ## AJAX Calls
 
@@ -125,7 +125,7 @@ class EditDeletePresenter extends Nette\Application\UI\Presenter
 }
 ```
 
-In the case of a single action, there's no need to write an array: `#[Requires(actions: 'default')]`
+In the case of a single action, there's no need to write an array: `#[Requires(actions: 'default')]`
 
 ## Custom Attributes
 

@@ -7,7 +7,7 @@ Contents:
   - [`@dataProvider`](#dataprovider)
 
 
-In simple tests, assertions can follow one after another. However, sometimes it's advantageous to wrap assertions in a test class to structure them.
+In simple tests, assertions can follow one after another. However, sometimes it's advantageous to wrap assertions in a test class to structure them.
 
 The class must extend `Tester\TestCase`, and we refer to it simply as a **TestCase**. The class must contain test methods starting with `test`. These methods will be executed as tests:
 
@@ -31,7 +31,7 @@ class RectangleTest extends Tester\TestCase
 (new RectangleTest)->run();
 ```
 
-A TestCase written this way can be further enhanced with `setUp()` and `tearDown()` methods. They are called before and after each test method, respectively:
+A TestCase written this way can be further enhanced with `setUp()` and `tearDown()` methods. They are called before and after each test method, respectively:
 
 ```php
 use Tester\Assert;
@@ -92,9 +92,32 @@ We recommend writing the [@testCase](test-annotations.md#testcase) annotation at
 
 Several annotations are available for test methods to facilitate testing. Write them above the test method.
 
+(since 2.7.0) Since version 2.7, you can also write them as PHP attributes from the `Tester\Attributes` namespace. They work exactly like the annotations, but your IDE completes them and checks the class names you use in them. If a method has both, the attribute applies. The examples below show the attribute first and then the same thing as an annotation.
+
 ### `@throws`
 
 It is equivalent to using `Assert::exception()` inside the test method, but the notation is clearer:
+
+```php
+use Tester\Attributes\Throws;
+
+#[Throws(RuntimeException::class)]
+public function testOne()
+{
+	// ...
+}
+
+
+#[Throws(LogicException::class, 'Wrong argument order')]
+public function testTwo()
+{
+	// ...
+}
+```
+
+The optional second argument is a pattern that the exception message must match, just like in [Assert::exception()](assertions.md#assertexceptioncallable-callable-string-class-string-messagenull-codenull). Instead of an exception class, the attribute also accepts an `E_*` constant, so the test can expect a PHP error, for example a warning: `#[Throws(E_WARNING)]`.
+
+The same written as annotations:
 
 ```php
 /**
@@ -119,9 +142,11 @@ public function testTwo()
 
 This annotation is useful when you want to run the test method multiple times with different parameters. (Do not confuse it with the annotation of the same name for [test files](test-annotations.md#dataprovider).)
 
-After it, specify the name of a method that returns the arguments for the test method. This method must return an array or a Traversable object. A simple example:
+After it, specify the name of a method that returns the arguments for the test method. This method must return an array or a Traversable object. A simple example:
 
 ```php
+use Tester\Attributes\DataProvider;
+
 public function getLoopArgs()
 {
 	return [
@@ -132,6 +157,16 @@ public function getLoopArgs()
 }
 
 
+#[DataProvider('getLoopArgs')]
+public function testLoop($a, $b, $c)
+{
+	// ...
+}
+```
+
+The same written as an annotation:
+
+```php
 /**
  * @dataProvider getLoopArgs
  */
@@ -140,6 +175,8 @@ public function testLoop($a, $b, $c)
 	// ...
 }
 ```
+
+(since 2.7.0) If the provider returns no data sets at all, the test fails. An empty provider is almost always a mistake, such as an empty file or a filter that matches nothing, and a test method that silently didn't run would look as if it had passed.
 
 The second variation of the **@dataProvider** annotation accepts a path to an INI file (relative to the test file) as a parameter. The method is called as many times as there are sections in the INI file. File `loop-args.ini`:
 
@@ -163,14 +200,14 @@ c=9
 and the method that uses the INI file:
 
 ```php
-/**
- * @dataProvider loop-args.ini
- */
+#[DataProvider('loop-args.ini')]
 public function testLoop($a, $b, $c)
 {
 	// ...
 }
 ```
+
+As an annotation, write `@dataProvider loop-args.ini`.
 
 Similarly, instead of an INI file, you can reference a PHP script. It must return an array or a Traversable object. File `loop-args.php`:
 
@@ -182,4 +219,6 @@ return [
 ];
 ```
 
-As with the [data provider for test files](test-annotations.md#dataprovider), you can append a filtering query after the file name to run the method only for the matching sections.
+As with the [data provider for test files](test-annotations.md#dataprovider), you can append a filtering query after the file name to run the method only for the matching sections. With the attribute, pass the query as the second argument, for example `#[DataProvider('loop-args.ini', 'one')]`.
+
+A method can also have several data providers, written as several attributes or annotations. It then runs with the data sets of all of them, one after another.

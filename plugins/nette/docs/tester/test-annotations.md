@@ -8,6 +8,7 @@ Contents:
 - [`@phpExtension`](#phpextension)
 - [`@dataProvider`](#dataprovider)
 - [`@multiple`](#multiple)
+- [`@timeout` (since 2.7.0)](#timeout-since-270)
 - [`@testCase`](#testcase)
 - [`@exitCode`](#exitcode)
 - [`@httpCode`](#httpcode)
@@ -99,7 +100,7 @@ The test will run three times, and `$args` will contain the values from the `mys
 
 There is another variation where you write the annotation with a question mark: `@dataProvider? file.ini`. In this case, the test is skipped if the INI file does not exist.
 
-The possibilities of this annotation don't end here. You can specify conditions after the INI file name that determine whether the test runs for a specific section. Let's extend the INI file:
+The possibilities of this annotation don't end here. You can specify conditions after the INI file name that determine whether the test runs for a specific section. Let's extend the INI file:
 
 ```ini
 [mysql]
@@ -150,6 +151,10 @@ return [
 ## `@multiple`
 
 Write it as `@multiple N`, where `N` is an integer. The test will run exactly N times.
+
+## `@timeout` (since 2.7.0)
+
+Sets a time limit in seconds for the test, for example `@timeout 5`. If the test runs longer, the runner terminates it and reports it as failed. The annotation takes precedence over the [–timeout](running-tests.md#--timeout-seconds-since-270) option, so you can give a slow test more time than the rest of the suite, or switch the limit off for it with `@timeout 0`.
 
 ## `@testCase`
 

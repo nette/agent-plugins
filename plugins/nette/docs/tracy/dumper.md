@@ -7,7 +7,7 @@ Contents:
 - [Custom Object Rendering](#custom-object-rendering)
 
 
-Every debugger is familiar with the [var_dump](https://php.net/var_dump) function, which prints detailed information about a variable. Unfortunately, its output lacks HTML formatting and merges into a single line, not to mention HTML escaping issues. In practice, it's necessary to replace `var_dump` with a more convenient function. That function is `dump()`.
+Every debugger is familiar with the [var_dump](https://php.net/var_dump) function, which prints detailed information about a variable. Unfortunately, its output lacks HTML formatting and merges into a single line, not to mention HTML escaping issues. In practice, it's necessary to replace `var_dump` with a more convenient function. That function is `dump()`.
 
 ```php
 $arr = [10, 20.2, true, null, 'hello'];
@@ -90,7 +90,7 @@ The output is controlled by an options array passed to all of the methods above
 | `Dumper::LOCATION` | show the location; `true`/`false`, or `Dumper::LOCATION_CLASS` (only where classes are defined) or `Dumper::LOCATION_SOURCE` (also the call site) | off |
 | `Dumper::THEME` | color theme, `light` or `dark` | `light` |
 | `Dumper::HASH` | show object IDs (the `#` marker) and references (the `&` marker)? | `true` |
-| `Dumper::DEBUGINFO` | use the object's magic method `__debugInfo()`? | `false` |
+| `Dumper::DEBUGINFO` | use the object's magic method `__debugInfo()`? | `false` |
 | `Dumper::KEYS_TO_HIDE` | array of key names whose values are hidden as `*****` | `[]` |
 | `Dumper::SCRUBBER` | callback `fn(string $key, mixed $value, ?string $class): bool` returning `true` for sensitive values | none |
 | `Dumper::OBJECT_EXPORTERS` | custom rendering of objects, see below | `[]` |

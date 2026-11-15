@@ -36,7 +36,7 @@ You can incorporate any number of components into the presenter. And you can emb
 
 How are components inserted into the presenter and subsequently used? Usually via factory methods.
 
-A component factory is an elegant way to create components only when they are actually needed (lazy / on demand). The whole magic lies in implementing a method named `createComponent<Name>()`, where `<Name>` is the name of the component being created, which creates and returns the component.
+A component factory is an elegant way to create components only when they are actually needed (lazy / on demand). The whole magic lies in implementing a method named `createComponent<Name>()`, where `<Name>` is the name of the component being created, which creates and returns the component.
 
 ```php
 class DefaultPresenter extends Nette\Application\UI\Presenter
@@ -78,7 +78,7 @@ Factory methods `createComponent<Name>()` don't work only in presenters. You can
 
 ## Hollywood Style
 
-Components commonly use a fresh technique we like to call the Hollywood style. You surely know the cliché often heard by participants in film auditions: “Don't call us, we'll call you.” And that's precisely what it's about.
+Components commonly use a fresh technique we like to call the Hollywood style. You surely know the cliché often heard by participants in film auditions: “Don't call us, we'll call you.” And that's precisely what it's about.
 
 In Nette, instead of constantly having to ask questions (“was the form submitted?”, “was it valid?”, or “did the user press this button?”), you tell the framework “when this happens, call this method” and leave further work to it. If you program in JavaScript, you are intimately familiar with this style of programming. You write functions that are called when a certain event occurs. And the language passes the appropriate parameters to them.
 
@@ -113,7 +113,7 @@ public function render(): void
 The `{control}` tag allows passing parameters to the `render()` method:
 
 ```latte
-{control poll $id, $message}
+{control poll, $id, $message}
 ```
 
 ```php
@@ -138,11 +138,11 @@ And in the template, we then invoke it using:
 {control poll:paginator}
 ```
 
-For a better understanding, it's good to know how this tag translates into PHP code.
+For a better understanding, it's good to know how this tag translates into PHP code.
 
 ```latte
 {control poll}
-{control poll:paginator 123, 'hello'}
+{control poll:paginator, 123, 'hello'}
 ```
 
 translates to:
@@ -201,13 +201,13 @@ public function handleClick(int $x, int $y): void
 }
 ```
 
-A link that calls a signal is created in the usual way, i.e., in the template with the `n:href` attribute or the `{link}` tag, in the code with the `link()` method. More in the chapter [Creating URL Links](creating-links.md#links-to-signal).
+A link that calls a signal is created in the usual way, i.e., in the template with the `n:href` attribute or the `{link}` tag, in the code with the `link()` method. More in the chapter [Creating URL Links](creating-links.md#links-to-signal).
 
 ```latte
-<a n:href="click! $x, $y">click here</a>
+<a n:href="click!, $x, $y">click here</a>
 ```
 
-A signal is always called on the current presenter and action; it is not possible to invoke it on another presenter or action.
+A signal is always called on the current presenter and action; it is not possible to invoke it on another presenter or action.
 
 Thus, a signal causes the page to reload just like the original request, but additionally calls the signal handling method with the appropriate parameters. If the method does not exist, an [Nette\Application\UI\BadSignalException](https://api.nette.org/application/master/Nette/Application/UI/BadSignalException.html) exception is thrown, which is displayed to the user as a 403 Forbidden error page.
 
@@ -217,7 +217,7 @@ Signals might remind you a bit of AJAX: handlers that are invoked on the current
 
 ## Flash Messages
 
-A component has its own storage for flash messages, independent of the presenter. These are messages that, for example, inform about the result of an operation. An important feature of flash messages is that they are available in the template even after redirection. Even after being displayed, they remain active for another 30 seconds – for example, in case the user refreshes the page due to a transmission error – the message won't disappear immediately.
+A component has its own storage for flash messages, independent of the presenter. These are messages that, for example, inform about the result of an operation. An important feature of flash messages is that they are available in the template even after redirection. Even after being displayed, they remain active for another 30 seconds – for example, in case the user refreshes the page due to a transmission error – the message won't disappear immediately.
 
 Sending is handled by the [flashMessage](https://api.nette.org/application/master/Nette/Application/UI/Control.html#method_flashMessage) method. The first parameter is the message text (`string`, `Stringable`) or an `stdClass` object representing the message. The optional second parameter is its type (error, warning, info, etc.). The `flashMessage()` method returns an instance of the flash message as an `stdClass` object, to which further information can be added.
 
@@ -236,7 +236,7 @@ These messages are available to the template in the `$flashes` variable as `stdC
 
 ## Redirection After Processing a Signal
 
-Processing a component's signal is often followed by a redirect. This is similar to forms – after submitting them, we also redirect to prevent data resubmission if the page is refreshed in the browser.
+Processing a component's signal is often followed by a redirect. This is similar to forms – after submitting them, we also redirect to prevent data resubmission if the page is refreshed in the browser.
 
 ```php
 $this->redirect('this'); // redirects to the current presenter and action
@@ -277,13 +277,13 @@ We recommend specifying the data type for the property (e.g., `int`), and you ca
 When creating a link, the value of a persistent parameter can be changed:
 
 ```latte
-<a n:href="this page: $page + 1">next</a>
+<a n:href="this, page: $page + 1">next</a>
 ```
 
 Or it can be *reset*, i.e., removed from the URL. It will then assume its default value:
 
 ```latte
-<a n:href="this page: null">reset</a>
+<a n:href="this, page: null">reset</a>
 ```
 
 ## Persistent Components
@@ -316,7 +316,7 @@ class DefaultPresenter extends Nette\Application\UI\Presenter
 
 How to create components with dependencies without “cluttering” the presenters that will use them? Thanks to the smart features of the DI container in Nette, similar to using classic services, most of the work can be left to the framework.
 
-Let's take an example of a component that has a dependency on the `PollFacade` service:
+Let's take an example of a component that has a dependency on the `PollFacade` service:
 
 ```php
 class PollControl extends Control
@@ -381,7 +381,7 @@ class PollPresenter extends Nette\Application\UI\Presenter
 }
 ```
 
-What's great is that Nette DI can [generate](../dependency-injection/factory.md) such simple factories, so instead of writing its entire code, you just need to write its interface:
+What's great is that Nette DI can [generate](../dependency-injection/factory.md) such simple factories, so instead of writing its entire code, you just need to write its interface:
 
 ```php
 interface PollControlFactory
@@ -390,7 +390,7 @@ interface PollControlFactory
 }
 ```
 
-And that's all. Nette internally implements this interface and injects it into the presenter, where we can use it. It magically adds the `$id` parameter and an instance of the `PollFacade` class to our component.
+And that's all. Nette internally implements this interface and injects it into the presenter, where we can use it. It magically adds the `$id` parameter and an instance of the `PollFacade` class to our component.
 
 ## Components in Depth
 
@@ -426,7 +426,7 @@ Nette\ComponentModel\Component  { IComponent }
 
 The values of [persistent parameters](#persistent-parameters) received from URLs are written to properties by the `loadState()` method. It also checks whether the data type specified for the property matches; otherwise, it responds with a 404 error and the page is not displayed.
 
-Never blindly trust persistent parameters, as they can be easily overwritten by the user in the URL. This is how we check, for example, if the page number `$this->page` is greater than 0. A suitable way is to override the mentioned `loadState()` method:
+Never blindly trust persistent parameters, as they can be easily overwritten by the user in the URL. This is how we check, for example, if the page number `$this->page` is greater than 0. A suitable way is to override the mentioned `loadState()` method:
 
 ```php
 class PaginatingControl extends Control
@@ -459,15 +459,15 @@ $control->onAnchor[] = function ($control): void {
 
 ### Signals in Depth
 
-A signal causes the page to reload exactly like the original request (except when called via AJAX) and invokes the `signalReceived($signal)` method, whose default implementation in the `Nette\Application\UI\Component` class attempts to call a method composed of the words `handle<Signal>`. Further processing is up to the given object. Objects inheriting from `Component` (i.e., `Control` and `Presenter`) react by trying to call the `handle<Signal>` method with the appropriate parameters.
+A signal causes the page to reload exactly like the original request (except when called via AJAX) and invokes the `signalReceived($signal)` method, whose default implementation in the `Nette\Application\UI\Component` class attempts to call a method composed of the words `handle<Signal>`. Further processing is up to the given object. Objects inheriting from `Component` (i.e., `Control` and `Presenter`) react by trying to call the `handle<Signal>` method with the appropriate parameters.
 
 In other words: the definition of the `handle<Signal>` function is taken, along with all parameters that came with the request, and parameters from the URL are assigned to the arguments by name, and an attempt is made to call the method. For example, the value from the `id` parameter in the URL is passed as the `$id` argument, `something` from the URL is passed as `$something`, etc. And if the method does not exist, the `signalReceived` method throws an [exception](https://api.nette.org/application/master/Nette/Application/UI/BadSignalException.html).
 
 Besides the parameters from the URL, a signal also reads the parameters sent in the **POST body of the request**. This comes in handy because signals are often invoked via JavaScript, where it is natural to send data using the POST method. However, if a parameter of the same name arrives both from the URL and from the POST body, the value **from the URL takes precedence**. Therefore, avoid giving a POST field the same name as a URL or route parameter, otherwise the URL value would silently override it. The signal parameters share a common space with the action and persistent parameters, see [Shared Parameter Space](presenters.md#shared-parameter-space).
 
-A signal can be received by any component, presenter, or object that implements the `SignalReceiver` interface and is connected to the component tree.
+A signal can be received by any component, presenter, or object that implements the `SignalReceiver` interface and is connected to the component tree.
 
-The main recipients of signals will be `Presenters` and visual components inheriting from `Control`. A signal is intended to serve as a sign for an object that it should do something – a poll should count a vote from the user, a news block should expand and display twice as many news items, a form has been submitted and should process data, and so on.
+The main recipients of signals will be `Presenters` and visual components inheriting from `Control`. A signal is intended to serve as a sign for an object that it should do something – a poll should count a vote from the user, a news block should expand and display twice as many news items, a form has been submitted and should process data, and so on.
 
 The URL for a signal is created using the [Component::link()](https://api.nette.org/application/master/Nette/Application/UI/Component.html#method_link) method. As the `$destination` parameter, we pass the string `{signal}!` and as `$args`, an array of arguments we want to pass to the signal. The signal is always called on the current presenter and action with the current parameters; the signal parameters are just added. Additionally, the **parameter `?do` which specifies the signal** is added.
 

@@ -24,7 +24,7 @@ In the examples, we will use an object of the class [Nette\Security\User](https:
 
 ## Authentication
 
-Authentication means **user login**, i.e., the process during which a user's identity is verified. The user usually identifies themselves using a username and password. Verification is done by the so-called [authenticator](#authenticator). If the login fails, a `Nette\Security\AuthenticationException` is thrown.
+Authentication means **user login**, i.e., the process during which a user's identity is verified. The user usually identifies themselves using a username and password. Verification is done by the so-called [authenticator](#authenticator). If the login fails, a `Nette\Security\AuthenticationException` is thrown.
 
 ```php
 try {
@@ -76,7 +76,7 @@ The `$user->getLogoutReason()` method reveals whether the user was logged out be
 
 ## Authenticator
 
-This is an object that verifies login credentials, typically a username and password. A trivial form is the class [Nette\Security\SimpleAuthenticator](https://api.nette.org/security/master/Nette/Security/SimpleAuthenticator.html), which can be defined in the [configuration](configuration.md):
+This is an object that verifies login credentials, typically a username and password. A trivial form is the class [Nette\Security\SimpleAuthenticator](https://api.nette.org/security/master/Nette/Security/SimpleAuthenticator.html), which can be defined in the [configuration](configuration.md):
 
 ```neon
 security:
@@ -127,7 +127,7 @@ class MyAuthenticator implements Nette\Security\Authenticator
 }
 ```
 
-The `MyAuthenticator` class communicates with the database via [Nette Database Explorer](../database/explorer.md) and works with the `users` table, where the `username` column contains the user's login name and the `password` column contains the [password hash](passwords.md). After verifying the name and password, it returns the identity containing the user's ID, their role (the `role` column in the table), which we will discuss more [later](authorization.md#roles), and an array with additional data (in our case, the username).
+The `MyAuthenticator` class communicates with the database via [Nette Database Explorer](../database/explorer.md) and works with the `users` table, where the `username` column contains the user's login name and the `password` column contains the [password hash](passwords.md). After verifying the name and password, it returns the identity containing the user's ID, their role (the `role` column in the table), which we will discuss more [later](authorization.md#roles), and an array with additional data (in our case, the username).
 
 We will add the authenticator to the configuration [as a service](../dependency-injection/services.md) of the DI container:
 
@@ -161,7 +161,7 @@ $user->getIdentity()->getRoles();
 $user->getIdentity()->name;
 ```
 
-What's important is that when logging out using `$user->logout()`, **the identity is not deleted** and it is still available. So, even if a user has an identity, they do not have to be logged in. If we want to delete the identity explicitly, we log the user out by calling `logout(true)`.
+What's important is that when logging out using `$user->logout()`, **the identity is not deleted** and it is still available. So, even if a user has an identity, they do not have to be logged in. If we want to delete the identity explicitly, we log the user out by calling `logout(true)`.
 
 Thanks to this, you can still assume which user is at the computer and, for example, display personalized offers in an e-shop, but you can only display their personal information after they log in.
 
@@ -173,9 +173,9 @@ An identity is an object implementing the [Nette\Security\IIdentity](https://api
 
 The two basic pieces of information about the user, namely whether they are logged in and their [identity](#identity), are usually transmitted in the session, which can be changed. An object implementing the `Nette\Security\UserStorage` interface is responsible for storing this information. Two standard implementations are available: `Nette\Bridges\SecurityHttp\SessionStorage`, which transmits data in the session, and `CookieStorage`, which transmits data in a cookie. You can choose the storage and configure it very conveniently in the [security › authentication](configuration.md#user-storage) configuration.
 
-Furthermore, you can influence how exactly the identity saving (*sleep*) and restoring (*wakeup*) will proceed. All that is needed is for the authenticator to implement the `Nette\Security\IdentityHandler` interface. The `sleepIdentity()` method is called before the identity is written to storage, and `wakeupIdentity()` after it's read. These methods can modify the identity content, or replace it with a new object that they return. The `wakeupIdentity()` method can even return `null`, which logs the user out. The interface also declares the `getGuestIdentity()` method, see [Guest Identity](#guest-identity-since-324).
+Furthermore, you can influence how exactly the identity saving (*sleep*) and restoring (*wakeup*) will proceed. All that is needed is for the authenticator to implement the `Nette\Security\IdentityHandler` interface. The `sleepIdentity()` method is called before the identity is written to storage, and `wakeupIdentity()` after it's read. These methods can modify the identity content, or replace it with a new object that they return. The `wakeupIdentity()` method can even return `null`, which logs the user out. The interface also declares the `getGuestIdentity()` method, see [Guest Identity](#guest-identity-since-324).
 
-As an example, let's show a solution to the frequent question of how to update roles in the identity right after loading from the session. In the `wakeupIdentity()` method, we pass the current roles, e.g., from a database, into the identity:
+As an example, let's show a solution to the frequent question of how to update roles in the identity right after loading from the session. In the `wakeupIdentity()` method, we pass the current roles, e.g., from a database, into the identity:
 
 ```php
 final class Authenticator implements
@@ -203,7 +203,7 @@ final class Authenticator implements
 	}
 ```
 
-Now let's return to storage based on cookies. It allows you to create a website where users can log in while not needing sessions. Thus, it does not need to write to the disk. This is how the website you are currently reading works, including the forum. In this case, the implementation of `IdentityHandler` is a necessity. We will only store a random token representing the logged-in user in the cookie.
+Now let's return to storage based on cookies. It allows you to create a website where users can log in while not needing sessions. Thus, it does not need to write to the disk. This is how the website you are currently reading works, including the forum. In this case, the implementation of `IdentityHandler` is a necessity. We will only store a random token representing the logged-in user in the cookie.
 
 First, set the required storage in the configuration using `security › authentication › storage: cookie`.
 
@@ -266,7 +266,7 @@ It is possible to have multiple independent users logging in within one website 
 $user->getStorage()->setNamespace('backend');
 ```
 
-It's important to remember to always set the namespace in all places belonging to the respective part. If we use presenters, we set the namespace in the common ancestor for that part – usually BasePresenter. We do this by extending the [checkRequirements()](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html#method_checkRequirements) method:
+It's important to remember to always set the namespace in all places belonging to the respective part. If we use presenters, we set the namespace in the common ancestor for that part – usually BasePresenter. We do this by extending the [checkRequirements()](https://api.nette.org/application/master/Nette/Application/UI/Presenter.html#method_checkRequirements) method:
 
 ```php
 public function checkRequirements($element): void

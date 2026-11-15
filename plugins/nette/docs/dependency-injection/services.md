@@ -16,7 +16,7 @@ Contents:
 
 Configuration is where we instruct the DI container how to create individual services and how to connect them with their dependencies. Nette offers a very clear and elegant way to achieve this.
 
-The `services` section in the NEON configuration file is where we define our own services and their configurations. Let's look at a simple example defining a service named `database`, which represents an instance of the `PDO` class:
+The `services` section in the NEON configuration file is where we define our own services and their configurations. Let's look at a simple example defining a service named `database`, which represents an instance of the `PDO` class:
 
 ```neon
 services:
@@ -32,7 +32,7 @@ public function createServiceDatabase(): PDO
 }
 ```
 
-Service names enable referencing them in other parts of the configuration file, using the `@serviceName` format. If there's no need to assign a name to the service, we can simply use a bullet point (`-`):
+Service names enable referencing them in other parts of the configuration file, using the `@serviceName` format. If there's no need to assign a name to the service, we can simply use a bullet point (`-`):
 
 ```neon
 services:
@@ -108,7 +108,7 @@ services:
 
 ## Arguments
 
-We pass arguments to constructors and methods in a way very similar to how it's done in PHP itself:
+We pass arguments to constructors and methods in a way very similar to how it's done in PHP itself:
 
 ```neon
 services:
@@ -270,7 +270,7 @@ FilesystemIterator::SKIP_DOTS
 ::constant(\PHP_VERSION)
 ```
 
-Access a service's public properties and constants via `@service::member`. Whether the name resolves to a property or to a constant is decided by its first letter – a lowercase initial means a public property, an uppercase one means a constant:
+Access a service's public properties and constants via `@service::member`. Whether the name resolves to a property or to a constant is decided by its first letter – a lowercase initial means a public property, an uppercase one means a constant:
 
 ```neon
 # public property of a service (starts with a lowercase letter)
@@ -364,7 +364,7 @@ When a service is defined as lazy, upon requesting it from the DI container, we 
 
 Keep in mind that because the service is created later, errors in its configuration also manifest themselves later. For example, incorrect database credentials will not reveal themselves when the application starts, but only upon the first query.
 
-Lazy creation also mitigates circular dependencies, i.e., a situation where service A requires service B and B at the same time requires A. Without it, the container reports the error `Circular reference detected`. With a lazy proxy, service A receives only a proxy of service B, which initializes itself when it is actually used, at a moment when A already exists. Nevertheless, a circular dependency signals a flawed design, and it is better to get rid of it.
+Lazy creation also mitigates circular dependencies, i.e., a situation where service A requires service B and B at the same time requires A. Without it, the container reports the error `Circular reference detected`. With a lazy proxy, service A receives only a proxy of service B, which initializes itself when it is actually used, at a moment when A already exists. Nevertheless, a circular dependency signals a flawed design, and it is better to get rid of it.
 
 Lazy loading requires PHP 8.4 or newer and works only for services created by directly instantiating a class (e.g. `create: Foo`), not for those created by a factory method. It also cannot be used for classes that ultimately extend an internal PHP class. When lazy loading cannot be applied, the `lazy: true` flag is silently ignored.
 

@@ -19,20 +19,20 @@ We'll show it on a practical example: a control for entering a date using three 
 
 ## When to Write a Custom Control and When Not To
 
-A custom control is the most powerful tool that forms offer. And like every powerful tool, it should be the last choice, not the first. Many situations can be solved by simpler means:
+A custom control is the most powerful tool that forms offer. And like every powerful tool, it should be the last choice, not the first. Many situations can be solved by simpler means:
 
-- **Modifying a value** is handled by [addFilter()](validation.md#modifying-input-values). Want to tolerate spaces in a ZIP code or lowercase letters in a code? A filter is a few lines.
+- **Modifying a value** is handled by [addFilter()](validation.md#modifying-input-values). Want to tolerate spaces in a ZIP code or lowercase letters in a code? A filter is a few lines.
 - **Repeated configuration** is wrapped by a custom adding method. Adding a ZIP code field with the same validation in ten places? Create a named shortcut for them, [we'll show it at the end](#custom-adding-method).
-- **A group of related fields** is served by a [container](controls.md#addcontainerstringint-name-container). An address composed of street, city, and ZIP code doesn't need a custom control, a container with three text fields is enough.
-- **A different look** is achieved with [setHtmlType()](controls.md#addtextstring-name-labelnull-int-colsnull-int-maxlengthnull-textinput) and HTML attributes, or [prototypes](rendering.md#prototypes).
+- **A group of related fields** is served by a [container](controls.md#addcontainerstringint-name-container). An address composed of street, city, and ZIP code doesn't need a custom control, a container with three text fields is enough.
+- **A different look** is achieved with [setHtmlType()](controls.md#addtextstring-name-labelnull-int-colsnull-int-maxlengthnull-textinput) and HTML attributes, or [prototypes](rendering.md#prototypes).
 
-A custom control makes sense the moment you need a **custom value**: a control that acts as a single field with a single value on the outside, but internally consists of several inputs or stores the value differently than it displays it. A date from three fields. Coordinates picked by clicking on a map. A tag input with autocomplete.
+A custom control makes sense the moment you need a **custom value**: a control that acts as a single field with a single value on the outside, but internally consists of several inputs or stores the value differently than it displays it. A date from three fields. Coordinates picked by clicking on a map. A tag input with autocomplete.
 
 ## Anatomy of a Control
 
 Every custom control inherits from the abstract class [Nette\Forms\Controls\BaseControl](https://api.nette.org/forms/master/Nette/Forms/Controls/BaseControl.html). From it, it inherits a huge amount of ready-made functionality: value storage, validation rules and conditions, error messages, translations, HTML attributes, the label, and the connection to rendering. You write only what makes your control different.
 
-A minimal working control is surprisingly short:
+A minimal working control is surprisingly short:
 
 ```php
 use Nette\Forms\Form;
@@ -69,9 +69,9 @@ $form['nickname'] = new SimpleInput('Nickname:');
 
 ## Life Cycle of a Control
 
-Before we get to a more interesting control, it's good to know what happens to a control and when. The form and its controls are [components](../component-model/index.md) forming a tree. This has one pleasant consequence: the control doesn't have to find out anything on its own, the framework takes care of everything important at the right moment:
+Before we get to a more interesting control, it's good to know what happens to a control and when. The form and its controls are [components](../component-model/index.md) forming a tree. This has one pleasant consequence: the control doesn't have to find out anything on its own, the framework takes care of everything important at the right moment:
 
-1. The moment you attach the control to a submitted form, the form itself calls `loadHttpData()` on it. In it, the control reads its submitted value, as we'll show in a moment. It never works directly with `$_POST` and doesn't have to care at all whether it's nested in containers.
+1. The moment you attach the control to a submitted form, the form itself calls `loadHttpData()` on it. In it, the control reads its submitted value, as we'll show in a moment. It never works directly with `$_POST` and doesn't have to care at all whether it's nested in containers.
 2. When the form is submitted, validation takes place: the rules added via `addRule()` are evaluated, working with the value from `getValue()`.
 3. Whoever then calls `$form->getValues()` or `getValue()` on the control gets a clean, typed value – such as a `DateTimeImmutable` object, not a triple of strings from the form.
 
@@ -89,7 +89,7 @@ In the `loadHttpData()` method, the control asks for its submitted value using t
 
 No matter how hard an attacker tries, the result is always a valid UTF-8 string without control characters (or an upload object or `null`). This is exactly why we never read the value directly from `$_POST` – we'd lose all these guarantees.
 
-A control consisting of several inputs, like our date, passes a part of the HTML name as the second parameter and reads its individual sub-values this way. It stores them in its own properties `$day`, `$month`, and `$year` of type string:
+A control consisting of several inputs, like our date, passes a part of the HTML name as the second parameter and reads its individual sub-values this way. It stores them in its own properties `$day`, `$month`, and `$year` of type string:
 
 ```php
 public function loadHttpData(): void
@@ -106,7 +106,7 @@ If the HTML name ends with `[]`, an array of values is returned. By combining wi
 $tags = $this->getHttpData(Form::DataLine, '[tags][]');
 ```
 
-A missing value is `null` (an empty array for arrays). The request doesn't have to contain the control's data at all, nothing prevents an attacker from sending whatever they like – that's why we add `?? ''` in the example and why you should always account for this variant.
+A missing value is `null` (an empty array for arrays). The request doesn't have to contain the control's data at all, nothing prevents an attacker from sending whatever they like – that's why we add `?? ''` in the example and why you should always account for this variant.
 
 ## Value of the Control
 
@@ -140,7 +140,7 @@ public function getValue(): ?DateTimeImmutable
 }
 ```
 
-And the `isFilled()` method says whether the user has filled in the control – it's used by the `setRequired()` rule. The default implementation (a non-empty value) often suffices, but for a composite control, override it according to its logic:
+And the `isFilled()` method says whether the user has filled in the control – it's used by the `setRequired()` rule. The default implementation (a non-empty value) often suffices, but for a composite control, override it according to its logic:
 
 ```php
 public function isFilled(): bool
@@ -215,7 +215,7 @@ The built-in validation rules work with a custom control right away – they op
 
 ## Custom Adding Method
 
-We add built-in controls with the convenient methods `$form->addText()` and friends. A custom control has no such method, so you add it by plain assignment – it works the same in a form and in a container, and editors and static analysis understand it:
+We add built-in controls with the convenient methods `$form->addText()` and friends. A custom control has no such method, so you add it by plain assignment – it works the same in a form and in a container, and editors and static analysis understand it:
 
 ```php
 $form['birthdate'] = new DateInput('Date of birth:');

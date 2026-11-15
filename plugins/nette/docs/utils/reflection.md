@@ -136,7 +136,7 @@ Reflection::getUseStatements($class);
 
 ## `isBuiltinType(string $type): bool` (deprecated)
 
-Checks if `$type` is a PHP built-in type. Otherwise, it's considered a class name.
+Checks if `$type` is a PHP built-in type. Otherwise, it's considered a class name.
 
 ```php
 Reflection::isBuiltinType('string'); // true

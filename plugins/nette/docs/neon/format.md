@@ -2,7 +2,6 @@
 
 Contents:
 
-- [Integration](#integration)
 - [Syntax](#syntax)
   - [Mappings](#mappings)
   - [Sequences](#sequences)
@@ -22,30 +21,15 @@ NEON is a human-readable structured data format. In Nette, it is used for config
 
 NEON stands for *Nette Object Notation*. It is less complex and cumbersome than XML or JSON, but provides similar capabilities. It is very similar to YAML. The main advantage is that NEON has so-called [entities](#entities), thanks to which the configuration of DI services is [so sexy](https://gist.github.com/dg/26baf3ce8f29d0f751e9dddfaa06504f). And it allows tabs for indentation.
 
-NEON is built from the ground up to be easy to use.
-
-## Integration
-
-- NetBeans (has built-in support)
-- PhpStorm ([plugin](https://plugins.jetbrains.com/plugin/28338-neon))
-- Visual Studio Code ([Nette Latte + Neon](https://marketplace.visualstudio.com/items?itemName=Kasik96.latte) or [Nette for VS Code](https://marketplace.visualstudio.com/items?itemName=franken-ui.nette-for-vscode))
-- Sublime Text 3 ([plugin](https://github.com/FilipStryk/Nette-Latte-Neon-for-Sublime-Text-3))
-- Sublime Text 2 ([plugin](https://github.com/Michal-Mikolas/Nette-package-for-Sublime-Text-2))
-- VIM ([plugin](https://github.com/fpob/nette.vim))
-- Emacs ([plugin](https://github.com/Fuco1/neon-mode))
-- Prism.js ([integrated language](https://prismjs.com/#supported-languages))
-
-- [NEON for PHP](index.md)
-- [NEON for JavaScript](https://github.com/matej21/neon-js)
-- [NEON for Python](https://github.com/paveldedik/neon-py).
+NEON is built from the ground up to be easy to use. Libraries for PHP, JavaScript and Python, support in editors and the specification of the format are on the page [Tools and Libraries](https://doc.nette.org/en/neon/tools).
 
 ## Syntax
 
-A file written in NEON usually represents a sequence or a mapping.
+A file written in NEON usually represents a sequence or a mapping.
 
 ### Mappings
 
-A mapping is a set of key-value pairs; in PHP, it would be called an associative array. Each pair is written as `key: value`, a space after `:` is required. The value can be anything: string, number, boolean, null, sequence, or another mapping.
+A mapping is a set of key-value pairs; in PHP, it would be called an associative array. Each pair is written as `key: value`, a space after `:` is required. The value can be anything: string, number, boolean, null, sequence, or another mapping.
 
 ```neon
 street: 742 Evergreen Terrace
@@ -75,6 +59,15 @@ The same written on multiple lines (indentation does not matter):
 {
 	street: 742 Evergreen Terrace
 		city: Springfield, country: USA
+}
+```
+
+(since 4.0.1) A value may also stand on the line after its key, as in JSON:
+
+```neon
+{
+	street:
+		742 Evergreen Terrace
 }
 ```
 
@@ -169,7 +162,7 @@ item: [
 ]
 ```
 
-In the previous case, we wrote a mapping whose elements were sequences. Now, let's try it the other way around and create a sequence containing mappings:
+In the previous case, we wrote a mapping whose elements were sequences. Now, let's try it the other way around and create a sequence containing mappings:
 
 ```neon
 -
@@ -180,7 +173,7 @@ In the previous case, we wrote a mapping whose elements were sequences. Now, let
 	age: 28
 ```
 
-It's not necessary for the hyphens to be on separate lines; they can also be placed like this:
+It's not necessary for the hyphens to be on separate lines; they can also be placed like this:
 
 ```neon
 - name: John
@@ -189,7 +182,7 @@ It's not necessary for the hyphens to be on separate lines; they can also be pl
   age: 28
 ```
 
-It's up to you whether you align the keys in a column using spaces or use a tab character.
+It's up to you whether you align the keys in a column using spaces or use a tab character.
 
 Because PHP uses the same structure for mappings and sequences (i.e., arrays), both can be merged. The indentation is the same this time:
 
@@ -208,6 +201,8 @@ In PHP, the same structure would be written as:
 	'Goldfish',
 ]
 ```
+
+An item without a key gets an integer key one greater than the greatest integer key before it, as in PHP. So `{5: Cat, Dog}` gives `Dog` the key 6.
 
 ### Strings
 
@@ -240,7 +235,7 @@ There are other cases where you need to enclose strings in quotes:
 
 ### Multiline Strings
 
-A multiline string begins and ends with triple quotes on separate lines. The indentation of the first line is ignored for all lines:
+A multiline string begins and ends with triple quotes on separate lines. The indentation of the first non-empty line is removed from all lines:
 
 ```neon
 '''
@@ -256,6 +251,8 @@ In PHP, we would write the same as:
 "first line\n\tsecond line\nthird line" // PHP
 ```
 
+A line indented less than the first non-empty line keeps its indentation whole. A line of spaces or tabs only is not empty, so when it comes first, it sets the indentation.
+
 Escape sequences work only for strings enclosed in double quotes instead of apostrophes:
 
 ```neon
@@ -263,6 +260,8 @@ Escape sequences work only for strings enclosed in double quotes instead of apos
 	Copyright \u00A9
 """
 ```
+
+A backslash at the end of a line does not join it with the next one, it stays in the string.
 
 ### Numbers
 
@@ -277,6 +276,8 @@ NEON understands numbers written in scientific notation and also numbers in bina
 - 0o666      # octal number
 - 0x7A       # hexadecimal number
 ```
+
+The prefixes `0b`, `0o` and `0x` are written in lowercase and without a sign, so `0X10` and `-0x1` are strings. Leading zeros do not mean an octal number: `0777` is 777. Underscores between digits are not allowed, `1_000` is a string.
 
 ### Nulls
 
@@ -295,9 +296,11 @@ Boolean values are expressed in NEON using `true` / `false` or `yes` / `no`. Var
 [true, TRUE, True, false, yes, no]
 ```
 
+The words `on` and `off`, which YAML 1.1 reads as booleans, are ordinary strings in NEON.
+
 ### Dates
 
-NEON uses the following formats to express dates and automatically converts them to `DateTimeImmutable` objects:
+NEON uses the following formats to express dates, and the PHP library converts them to `DateTimeImmutable` objects:
 
 ```neon
 - 2016-06-03                  # date
@@ -305,7 +308,10 @@ NEON uses the following formats to express dates and automatically converts them
 - 2016-06-03 19:00:00.1234    # date & microtime
 - 2016-06-03 19:00:00 +0200   # date & time & timezone
 - 2016-06-03 19:00:00 +02:00  # date & time & timezone
+- 2016-06-03T19:00:00Z        # ISO 8601 with T and the UTC zone
 ```
+
+A literal that looks like a date but is not a valid one, such as `2024-02-30`, is not converted and stays a string.
 
 ### Entities
 
@@ -338,6 +344,8 @@ new Nette\Neon\Entity(Nette\Neon\Neon::Chain, [
 ])
 ```
 
+The value of `Neon::Chain` is `!!chain`, so this name is reserved and cannot be used for an entity of your own.
+
 Inside the parentheses, the rules for inline notation used for mappings and sequences apply, so it can be multiline, and commas are not necessary:
 
 ```neon
@@ -360,7 +368,7 @@ country: USA
 
 ## NEON versus JSON
 
-JSON is a subset of NEON. Therefore, any JSON can be parsed as NEON:
+JSON is almost a subset of NEON, so practically any JSON can be parsed as NEON. The only exception is a colon at the start of a line glued to its value, such as `"a"` followed by a line with `:1`, which NEON reads as the string `:1`:
 
 ```neon
 {

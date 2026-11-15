@@ -36,7 +36,7 @@ security:
 		johndoe: '$2y$12$8aeofxuRALu4iNeaBHyLpuxf3xxKQdEreSaNLkQUiIfUmAv6cRHLa'
 ```
 
-Furthermore, you can define roles and resources to create a basis for an [authorizer](authorization.md) (`Nette\Security\Permission`):
+Furthermore, you can define roles and resources to create a basis for the [ACL](acl.md) (`Nette\Security\Permission`):
 
 ```neon
 security:
@@ -64,7 +64,7 @@ security:
 			- [banned, comment, add]
 ```
 
-If you need more complex rules, such as conditions verified by a callback (assertions), register your own authorizator as shown in [Authorization](authorization.md). When you do, define the roles, resources, and rules in that authorizator rather than here, otherwise you would end up with two competing `Nette\Security\Permission` services.
+If you need more complex rules, such as conditions verified by a callback (assertions), register your own authorizator as shown in [ACL](acl.md#adding-as-a-service). When you do, define the roles, resources, and rules in that authorizator rather than here, otherwise you would end up with two competing `Nette\Security\Permission` services.
 
 ## User Storage
 

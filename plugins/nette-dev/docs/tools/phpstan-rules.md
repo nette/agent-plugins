@@ -19,7 +19,7 @@ Contents:
 
 [PHPStan Rules](https://github.com/nette/phpstan-rules) teach PHPStan to understand Nette code, so static analysis infers precise types and reports fewer false positives.
 
-Just install the extension and [PHPStan](https://phpstan.org) will, for example, recognize a component's type where it previously saw only an error:
+Just install the extension and [PHPStan](https://phpstan.org) will, for example, recognize a component's type where it previously saw only an error:
 
 ```php
 class HomePresenter extends Presenter
@@ -88,7 +88,7 @@ The full list is in [extension-php.neon](https://github.com/nette/phpstan-rules/
 
 ### Runtime type validation closures
 
-A common PHP idiom for runtime checking that an array contains items of a declared type uses a typed variadic closure called with the spread operator:
+A common PHP idiom for runtime checking that an array contains items of a declared type uses a typed variadic closure called with the spread operator:
 
 ```php
 /** @param string[] $items */
@@ -216,7 +216,7 @@ If no matching `addXxx()` call is found, the extension falls back to `createComp
 
 ### Event-handler properties
 
-Forms coerce the data to the type declared in the callback's parameter, be it `stdClass`, `array`, or a custom DTO. So a callback whose data parameter is narrower than the declared `array|object` union is valid at runtime:
+Forms coerce the data to the type declared in the callback's parameter, be it `stdClass`, `array`, or a custom DTO. So a callback whose data parameter is narrower than the declared `array|object` union is valid at runtime:
 
 ```php
 $form->onSuccess[] = function (Form $form, MyDto $data): void {

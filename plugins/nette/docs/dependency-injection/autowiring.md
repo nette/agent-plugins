@@ -70,7 +70,7 @@ The `articles` service will not throw an exception about two matching `PDO` serv
 
 Autowiring can also be disabled globally for entire types using the [`di › excluded`](configuration.md#di) configuration option, which lists the types (and their descendants) that should never be autowired.
 
-Autowiring configuration in Nette differs from Symfony. In Symfony, `autowire: false` means autowiring shouldn't be used for the service's constructor arguments. In Nette, autowiring applies to constructor arguments and any other methods invoked via the container (like setter injection). The `autowired: false` option prevents the container from automatically passing this service instance as a dependency to other services.
+Autowiring configuration in Nette differs from Symfony. In Symfony, `autowire: false` means autowiring shouldn't be used for the service's constructor arguments. In Nette, autowiring applies to constructor arguments and any other methods invoked via the container (like setter injection). The `autowired: false` option prevents the container from automatically passing this service instance as a dependency to other services.
 
 ## Autowiring Preference
 
@@ -156,7 +156,7 @@ For individual services, autowiring can be narrowed down to specific classes or 
 
 Normally, autowiring passes a service to every method parameter whose type the service matches. Narrowing means we establish conditions that the types specified for the method parameters must meet for the service to be passed to them.
 
-Let's take an example:
+Let's take an example:
 
 ```php
 class ParentClass
@@ -203,7 +203,7 @@ services:
 	childDep: ChildDependent    # autowiring passes the child service to the constructor
 ```
 
-Now, the `parent` service is passed to the `parentDep` service's constructor, as it is now the only matching object. The `child` service is no longer passed there by autowiring. Yes, the `child` service is still of type `ParentClass`, but the narrowing condition `autowired: ChildClass` means it will only be passed to parameters explicitly typed as `ChildClass` (or its subtypes). Since `ParentDependent` requires `ParentClass`, the `child` service is no longer considered a candidate for autowiring there.
+Now, the `parent` service is passed to the `parentDep` service's constructor, as it is now the only matching object. The `child` service is no longer passed there by autowiring. Yes, the `child` service is still of type `ParentClass`, but the narrowing condition `autowired: ChildClass` means it will only be passed to parameters explicitly typed as `ChildClass` (or its subtypes). Since `ParentDependent` requires `ParentClass`, the `child` service is no longer considered a candidate for autowiring there.
 
 For the `child` service, `autowired: ChildClass` could also be written as `autowired: self`, since `self` is a placeholder for the current service's class.
 
@@ -213,7 +213,7 @@ In the `autowired` key, it is also possible to specify multiple classes or inter
 autowired: [ParentClass, FooInterface]
 ```
 
-Let's try to add interfaces to the example:
+Let's try to add interfaces to the example:
 
 ```php
 interface FooInterface

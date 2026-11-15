@@ -66,7 +66,7 @@ In the presenter, just use `getSession()` with a parameter:
 $section = $this->getSession('unique name');
 ```
 
-The existence of a section can be checked using the `$session->hasSection('unique name')` method. A list of the names of all existing sections is returned by `$session->getSectionNames()`.
+The existence of a section can be checked using the `$session->hasSection('unique name')` method. A list of the names of all existing sections is returned by `$session->getSectionNames()`.
 
 Working with the section itself is then very easy using the `set()`, `get()`, and `remove()` methods:
 
@@ -91,7 +91,7 @@ foreach ($section as $key => $val) {
 
 ### How to Set Expiration
 
-Expiration can be set for individual sections or even individual variables. We can let a user's login expire after 20 minutes, while still remembering the contents of the shopping cart.
+Expiration can be set for individual sections or even individual variables. We can let a user's login expire after 20 minutes, while still remembering the contents of the shopping cart.
 
 ```php
 // section expires after 20 minutes

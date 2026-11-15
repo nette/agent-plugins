@@ -32,7 +32,7 @@ class MyPresenter extends BasePresenter
 }
 ```
 
-A presenter can have any number of `inject*()` methods, and each can accept any number of parameters. This approach is also well-suited for cases where a presenter is [composed of traits](presenter-traits.md), and each trait requires its own dependencies.
+A presenter can have any number of `inject*()` methods, and each can accept any number of parameters. This approach is also well-suited for cases where a presenter is [composed of traits](presenter-traits.md), and each trait requires its own dependencies.
 
 ## `Inject` Attributes
 
@@ -52,4 +52,4 @@ class MyPresenter extends Nette\Application\UI\Presenter
 
 The advantage of this dependency passing method was its very concise syntax. However, with the introduction of [constructor property promotion](https://blog.nette.org/en/php-8-0-complete-overview-of-news#toc-constructor-property-promotion), using the constructor often appears simpler.
 
-Conversely, this method suffers from the same drawbacks as property injection in general: we lack control over changes to the variable, and the variable becomes part of the class's public interface, which is generally undesirable.
+Conversely, this method suffers from the same drawbacks as property injection in general: we lack control over changes to the variable, and the variable becomes part of the class's public interface, which is generally undesirable.

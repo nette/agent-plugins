@@ -50,7 +50,7 @@ Nette encapsulates the HTTP request into objects with a clear API while providin
 
 The HTTP request is represented by the [Nette\Http\Request](https://api.nette.org/http/master/Nette/Http/Request.html) object. If you are working with Nette, this object is automatically created by the framework, and you can have it passed to you using [dependency injection](../dependency-injection/passing-dependencies.md). In presenters, simply call the `$this->getHttpRequest()` method. If you are working outside the Nette Framework, you can create the object using [RequestFactory](#requestfactory).
 
-A major advantage of Nette is that when creating the object, it automatically sanitizes all input parameters (GET, POST, COOKIE) as well as the URL, removing control characters and invalid UTF-8 sequences. You can then safely work with this data. The sanitized data is subsequently used in presenters and forms.
+A major advantage of Nette is that when creating the object, it automatically sanitizes all input parameters (GET, POST, COOKIE) as well as the URL, removing control characters and invalid UTF-8 sequences. You can then safely work with this data. The sanitized data is subsequently used in presenters and forms.
 
 → [Installation and requirements](https://doc.nette.org/en/http#toc-installation)
 
@@ -180,7 +180,7 @@ Did the request come from the same site? Since version 3.4 it is replaced by th
 
 ### `isFrom(FetchSite|array $site, FetchDest|array|null $dest=null, ?bool $user=null): bool` (since 3.4.0)
 
-Tells you where the request came from and how the browser made it, based on the `Sec-Fetch-*` headers (so-called [Fetch Metadata](https://developer.mozilla.org/en-US/docs/Glossary/Fetch_metadata_request_header)) that the browser sets itself and a page running in the victim's browser can neither forge nor remove. Nette uses it internally to automatically protect forms and signals against [Cross-Site Request Forgery](../nette/glossary.md#cross-site-request-forgery-csrf) (CSRF). It is useful when you want to guard your own sensitive actions, such as API endpoints or destructive links.
+Tells you where the request came from and how the browser made it, based on the `Sec-Fetch-*` headers (so-called [Fetch Metadata](https://developer.mozilla.org/en-US/docs/Glossary/Fetch_metadata_request_header)) that the browser sets itself and a page running in the victim's browser can neither forge nor remove. Nette uses it internally to automatically protect forms and signals against [Cross-Site Request Forgery](../nette/glossary.md#cross-site-request-forgery-csrf) (CSRF). It is useful when you want to guard your own sensitive actions, such as API endpoints or destructive links.
 
 The method returns `true` only when the request matches **all** the conditions you provide. The first parameter `$site` describes the relationship between the page that initiated the request and your site (the `Sec-Fetch-Site` header). It accepts a single value or a list of these `FetchSite` cases:
 
@@ -198,7 +198,7 @@ if (!$httpRequest->isFrom([FetchSite::SameOrigin, FetchSite::SameSite])) {
 
 The optional `$dest` parameter (the `Sec-Fetch-Dest` header) says what kind of resource the browser is fetching, e.g. `FetchDest::Document` for a top-level navigation or `FetchDest::Empty` for a request made from JavaScript. The optional `$user` parameter (the `Sec-Fetch-User` header) indicates whether the navigation was triggered by a genuine user action such as clicking a link or submitting a form; pass `true` to require it.
 
-A check that an action is reachable only from your own pages and only through a real user action then looks like this:
+A check that an action is reachable only from your own pages and only through a real user action then looks like this:
 
 ```php
 if (!$httpRequest->isFrom(FetchSite::SameOrigin, FetchDest::Document, user: true)) {
@@ -206,7 +206,7 @@ if (!$httpRequest->isFrom(FetchSite::SameOrigin, FetchDest::Document, user: true
 }
 ```
 
-Older browsers (Safari before 16.4) do not send the `Sec-Fetch-*` headers. For them Nette falls back to a `SameSite=Strict` cookie that only proves the request is not cross-site. A check that additionally requires `$dest` or `$user` cannot be verified this way and returns `false` in those browsers – if that is too strict, test only `$site`.
+Older browsers (Safari before 16.4) do not send the `Sec-Fetch-*` headers. For them Nette falls back to a `SameSite=Strict` cookie that only proves the request is not cross-site. A check that additionally requires `$dest` or `$user` cannot be verified this way and returns `false` in those browsers – if that is too strict, test only `$site`.
 
 ### `isAjax(): bool`
 
@@ -214,7 +214,7 @@ Is it an AJAX request?
 
 ### `getRemoteAddress(): ?string`
 
-Returns the user's IP address. Proper functionality might require [setting up a proxy](configuration.md#http-proxy).
+Returns the user's IP address. Proper functionality might require [setting up a proxy](configuration.md#http-proxy).
 
 ### `getRemoteHost(): ?string` (deprecated)
 
@@ -262,7 +262,7 @@ Unlike the `Referer` header, `Origin` contains only the scheme, host, and port 
 
 ### `detectLanguage(array $langs): ?string`
 
-Detects the language. Pass an array of languages supported by the application as the `$langs` parameter, and it will return the one preferred by the visitor's browser. It's not magic; it just uses the `Accept-Language` header. If no match is found, it returns `null`.
+Detects the language. Pass an array of languages supported by the application as the `$langs` parameter, and it will return the one preferred by the visitor's browser. It's not magic; it just uses the `Accept-Language` header. If no match is found, it returns `null`.
 
 ```php
 // Browser sends e.g., Accept-Language: cs,en-us;q=0.8,en;q=0.5,sl;q=0.3
@@ -285,7 +285,7 @@ The `fromGlobals()` method creates the request object based on the current PHP g
 RequestFactory can be configured before calling `fromGlobals()`:
 
 - using the `$factory->setBinary()` method disables the automatic removal of control characters and invalid UTF-8 sequences from input parameters.
-- using the `$factory->setProxy(...)` method specifies the IP address of the [proxy server](configuration.md#http-proxy), which is necessary for correct detection of the user's IP address. Its optional parameters `$forwarded` and `$xForwarded` choose which headers from the proxy to trust.
+- using the `$factory->setProxy(...)` method specifies the IP address of the [proxy server](configuration.md#http-proxy), which is necessary for correct detection of the user's IP address. Its optional parameters `$forwarded` and `$xForwarded` choose which headers from the proxy to trust.
 - using the `$factory->setForceHttps()` .{data-version:3.3.4} method forces the request scheme to HTTPS regardless of the server environment.
 - using the `$factory->setBaseUrl()` .{data-version:3.4.1} method sets the [base URL of the application](configuration.md#application-base-url-since-341), which is used when the address cannot be detected from the environment, typically on the command line.
 
@@ -417,7 +417,7 @@ Detects the MIME content type of the uploaded file based on its signature. If th
 Returns the original file name as submitted by the browser.
 
 > [!CAUTION]
-> Do not trust the value returned by this method. A client could send a malicious filename with the intention to corrupt or hack your application.
+> Do not trust the value returned by this method. A client could send a malicious filename with the intention to corrupt or hack your application.
 
 ### `getSanitizedName(): string`
 
@@ -438,7 +438,7 @@ Returns the appropriate file extension (without the dot) corresponding to the de
 Returns the original file path as submitted by the browser during directory upload. The full path is only available in PHP 8.1 and later. In previous versions, this method returns the original file name.
 
 > [!CAUTION]
-> Do not trust the value returned by this method. A client could send a malicious filename with the intention to corrupt or hack your application.
+> Do not trust the value returned by this method. A client could send a malicious filename with the intention to corrupt or hack your application.
 
 ### `getSize(): int`
 

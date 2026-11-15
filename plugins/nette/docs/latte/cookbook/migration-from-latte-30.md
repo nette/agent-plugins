@@ -75,7 +75,7 @@ This change prevents ambiguity and allows you to use unquoted strings more freel
 
 ## Removed and Deprecated Features
 
-**Reserved Variables:** Variables starting with `$__` (double underscore) and the variable `$this` are reserved for Latte's internal use. By default, using them still works but triggers a deprecation warning; only with strict parsing enabled does it throw a compile error. The internal variables `$ʟ_…` and `$GLOBALS` are always forbidden.
+**Reserved Variables:** Variables starting with `$__` (double underscore) and the variable `$this` are reserved for Latte's internal use. By default, using them still works but triggers a deprecation warning; only with strict parsing enabled does it throw a compile error. The internal variables `$ʟ_…` and `$GLOBALS` are always forbidden.
 
 **Undefined-safe Operator:** The `??->` operator, which was a Latte-specific feature created before PHP 8, has been removed. It is a historical relic. Please use the standard PHP nullsafe operator `?->`.
 

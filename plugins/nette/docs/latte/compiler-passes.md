@@ -33,9 +33,9 @@ Compiler passes provide a powerful mechanism to analyze and modify Latte templat
 
 ## What is a Compiler Pass?
 
-To understand the role of compiler passes, see [Latte's compilation process](custom-tags.md#understanding-the-compilation-process). As you can see, compiler passes operate at a crucial stage, allowing deep intervention between the initial parsing and the final code output.
+To understand the role of compiler passes, see [Latte's compilation process](custom-tags.md#understanding-the-compilation-process). As you can see, compiler passes operate at a crucial stage, allowing deep intervention between the initial parsing and the final code output.
 
-At its core, a compiler pass is simply a PHP callable (like a function, a static method, or an instance method) that accepts one argument: the root node of the template's AST, which is always an instance of `Latte\Compiler\Nodes\TemplateNode`.
+At its core, a compiler pass is simply a PHP callable (like a function, a static method, or an instance method) that accepts one argument: the root node of the template's AST, which is always an instance of `Latte\Compiler\Nodes\TemplateNode`.
 
 The primary goal of a compiler pass is usually one or both of the following:
 
@@ -67,7 +67,7 @@ class MyExtension extends Extension
 }
 ```
 
-Passes registered by Latte's core extensions and your custom extensions run sequentially. The order can be important, especially if one pass relies on the results or modifications of another. Latte provides a helper mechanism to control this order if needed; see the documentation for [`Extension::getPasses()`](extending-latte.md#getpasses-array) for details.
+Passes registered by Latte's core extensions and your custom extensions run sequentially. The order can be important, especially if one pass relies on the results or modifications of another. Latte provides a helper mechanism to control this order if needed; see the documentation for [`Extension::getPasses()`](extending-latte.md#getpasses-array) for details.
 
 ## Example of AST
 
@@ -148,13 +148,13 @@ use Latte\Compiler\Nodes;
 
 You can provide only the `enter` visitor, only the `leave` visitor, or both, depending on your needs.
 
-**`enter(Node $node)`:** This function is executed for each node **before** the traverser visits any of that node's children. It's useful for:
+**`enter(Node $node)`:** This function is executed for each node **before** the traverser visits any of that node's children. It's useful for:
 
 - Collecting information as you descend the tree.
 - Making decisions *before* processing children (like deciding to skip them, see [Optimizing Traversal](#optimizing-traversal)).
 - Potentially modifying the node before children are visited (less common).
 
-**`leave(Node $node)`:** This function is executed for each node **after** all of its children (and their entire subtrees) have been fully visited (both entered and left). It's the most common place for:
+**`leave(Node $node)`:** This function is executed for each node **after** all of its children (and their entire subtrees) have been fully visited (both entered and left). It's the most common place for:
 
 - Replacing a node after its children have been processed.
 - Removing nodes from the AST.
@@ -166,7 +166,7 @@ Both `enter` and `leave` visitors can optionally return a value to influence the
 
 The `NodeTraverser` internally uses the `getIterator()` method that every `Node` class must implement (as discussed in [Creating Custom Tags](custom-tags.md#implementing-getiterator-for-subnodes)). It iterates over the children yielded by `getIterator()`, recursively calls `traverse()` on them, ensuring that the `enter` and `leave` visitors are called in the correct depth-first order for every node in the tree accessible via iterators. This highlights again why a correctly implemented `getIterator()` in your custom tag nodes is absolutely essential for compiler passes to function correctly.
 
-Let's write a simple pass that counts how many times the `{do}` tag (represented by `Latte\Essential\Nodes\DoNode`) is used in the template.
+Let's write a simple pass that counts how many times the `{do}` tag (represented by `Latte\Essential\Nodes\DoNode`) is used in the template.
 
 ```php
 use Latte\Compiler\Node;
@@ -209,7 +209,7 @@ One of the main purposes of compiler passes is to modify the Abstract Syntax Tre
 
 The simplest way to modify the tree is by directly changing the **public properties** of the nodes encountered during traversal. All nodes store their parsed arguments, content, or attributes in public properties.
 
-**Example:** Let's create a pass that finds all static text nodes (`TextNode`, representing plain HTML or text outside Latte tags) and converts their content to uppercase *directly within the AST*.
+**Example:** Let's create a pass that finds all static text nodes (`TextNode`, representing plain HTML or text outside Latte tags) and converts their content to uppercase *directly within the AST*.
 
 ```php
 use Latte\Compiler\Node;
@@ -240,9 +240,9 @@ Effect: If the template contained `<p>Hello</p>{= $var }<span>World</span>`, aft
 
 ### Replacing Nodes
 
-A more powerful modification technique is to completely replace a node with a different one. This is done by **returning the new `Node` instance** from the `enter` or `leave` visitor. The `NodeTraverser` will then substitute the original node with the returned one in the parent node's structure.
+A more powerful modification technique is to completely replace a node with a different one. This is done by **returning the new `Node` instance** from the `enter` or `leave` visitor. The `NodeTraverser` will then substitute the original node with the returned one in the parent node's structure.
 
-**Example:** Let's create a pass that finds all usages of the `PHP_VERSION` constant (represented by `ConstantFetchNode`) and replaces them directly with a string literal (`StringNode`) containing the *actual* PHP version detected *during compilation*. This is a form of compile-time optimization.
+**Example:** Let's create a pass that finds all usages of the `PHP_VERSION` constant (represented by `ConstantFetchNode`) and replaces them directly with a string literal (`StringNode`) containing the *actual* PHP version detected *during compilation*. This is a form of compile-time optimization.
 
 ```php
 use Latte\Compiler\Node;
@@ -289,7 +289,7 @@ Effect: If the template contained `{= PHP_VERSION }` and compilation runs on PHP
 
 You can remove a node entirely from the AST by returning the special constant `NodeTraverser::RemoveNode` from a visitor.
 
-**Example:** Let's remove all HTML comments (`<!-- ... -->`) from the output. Latte comments `{* ... *}` cannot be targeted this way, because the parser discards their content and replaces them with an empty `NopNode` rather than a dedicated comment node, but HTML comments are preserved as `Html\CommentNode` nodes, so we can strip them here.
+**Example:** Let's remove all HTML comments (`<!-- ... -->`) from the output. Latte comments `{* ... *}` cannot be targeted this way, because the parser discards their content and replaces them with an empty `NopNode` rather than a dedicated comment node, but HTML comments are preserved as `Html\CommentNode` nodes, so we can strip them here.
 
 ```php
 use Latte\Compiler\Node;
@@ -312,7 +312,7 @@ function removeHtmlComments(TemplateNode $templateNode): void
 }
 ```
 
-**Caution:** Use `RemoveNode` with care. Removing a node that contains essential content or affects structure (like removing the content node of a loop) can lead to broken templates or invalid generated code. It's safest for nodes that are truly optional or self-contained (like comments or debug tags) or for empty structural nodes (e.g., an empty `FragmentNode` might be safely removed in some contexts by a cleanup pass).
+**Caution:** Use `RemoveNode` with care. Removing a node that contains essential content or affects structure (like removing the content node of a loop) can lead to broken templates or invalid generated code. It's safest for nodes that are truly optional or self-contained (like comments or debug tags) or for empty structural nodes (e.g., an empty `FragmentNode` might be safely removed in some contexts by a cleanup pass).
 
 These three methods – modifying properties, replacing nodes, and removing nodes – provide the fundamental tools for manipulating the AST within your compiler passes.
 
@@ -351,7 +351,7 @@ function findAllVariables(TemplateNode $templateNode): array
 }
 ```
 
-A callback comes in handy when the condition is more complex, e.g. `fn($node) => $node instanceof VariableNode && $node->name === 'user'`.
+A callback comes in handy when the condition is more complex, e.g. `fn($node) => $node instanceof VariableNode && $node->name === 'user'`.
 
 ### `findFirst(Node $startNode, string|callable $filter): ?Node`
 
@@ -375,7 +375,7 @@ function findParametersNodeHelper(TemplateNode $templateNode): ?ParametersNode
 
 ### `clone(Latte\Compiler\Node $node): Node`
 
-This static method creates a **deep copy** of a node and its entire subtree. It's useful when you need to duplicate a branch of the AST, for example inserting a modified copy of a node while leaving the original untouched.
+This static method creates a **deep copy** of a node and its entire subtree. It's useful when you need to duplicate a branch of the AST, for example inserting a modified copy of a node while leaving the original untouched.
 
 ```php
 use Latte\Compiler\NodeHelpers;
@@ -396,7 +396,7 @@ This static method is useful for extracting the plain text content from simple n
 - `NopNode`: Returns an empty string.
 - Other node types: Returns `null`.
 
-**Use Case:** Getting the static text content of an HTML attribute's value or a simple HTML element for analysis during a compiler pass.
+**Use Case:** Getting the static text content of an HTML attribute's value or a simple HTML element for analysis during a compiler pass.
 
 ```php
 use Latte\Compiler\NodeHelpers;
@@ -445,11 +445,11 @@ function getStaticStringArgument(ExpressionNode $argumentNode): ?string
 
 ## Practical Examples
 
-Let's apply the concepts of AST traversal and modification to solve some practical problems. These examples demonstrate common patterns used in compiler passes.
+Let's apply the concepts of AST traversal and modification to solve some practical problems. These examples demonstrate common patterns used in compiler passes.
 
 ### Auto-Adding `loading="lazy"` to `<img>`
 
-Modern browsers support native lazy loading for images via the `loading="lazy"` attribute. Let's create a pass that automatically adds this attribute to all `<img>` tags that don't already have a `loading` attribute.
+Modern browsers support native lazy loading for images via the `loading="lazy"` attribute. Let's create a pass that automatically adds this attribute to all `<img>` tags that don't already have a `loading` attribute.
 
 ```php
 use Latte\Compiler\Node;
@@ -502,7 +502,7 @@ Explanation:
 
 ### Checking Function Calls
 
-Compiler passes are the foundation of Latte's Sandbox. While the real Sandbox is sophisticated, we can demonstrate the basic principle of checking for forbidden function calls.
+Compiler passes are the foundation of Latte's Sandbox. While the real Sandbox is sophisticated, we can demonstrate the basic principle of checking for forbidden function calls.
 
 **Goal:** Prevent the use of the potentially dangerous `shell_exec` function within template expressions.
 
@@ -542,7 +542,7 @@ Explanation:
 - If the function name (`$node->name`) is a static `NameNode`, we check its lowercase string representation against our forbidden list.
 - If a forbidden function is found, we throw a `Latte\SecurityViolationException`, which clearly indicates a security rule violation and halts compilation.
 
-These examples show how compiler passes, using `NodeTraverser`, can be employed for analysis, automated modifications, and enforcing security constraints by interacting directly with the template's AST structure.
+These examples show how compiler passes, using `NodeTraverser`, can be employed for analysis, automated modifications, and enforcing security constraints by interacting directly with the template's AST structure.
 
 ## Best Practices
 
@@ -555,4 +555,4 @@ When writing compiler passes, keep these guidelines in mind to create robust, ma
 - **Error Handling:** If your pass detects an error or an invalid state in the template AST, throw a `Latte\CompileException` (or `Latte\SecurityViolationException` for security issues) with a clear message and the relevant `Position` object (usually `$node->position`). This provides helpful feedback to the template developer.
 - **Idempotency (If Possible):** Ideally, running your pass multiple times on the same AST should produce the same result as running it once. This isn't always feasible, but it simplifies debugging and reasoning about pass interactions if achieved. For example, ensure your modification pass checks if the modification has already been applied before applying it again.
 
-By adhering to these practices, you can effectively leverage compiler passes to extend Latte's capabilities in powerful and reliable ways, contributing to safer, more optimized, or feature-rich template processing.
+By adhering to these practices, you can effectively leverage compiler passes to extend Latte's capabilities in powerful and reliable ways, contributing to safer, more optimized, or feature-rich template processing.

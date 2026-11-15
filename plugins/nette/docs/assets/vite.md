@@ -36,7 +36,7 @@ Nette Assets integrates seamlessly with Vite, so you get all these benefits whil
 
 ## Setting Up Vite
 
-Let's set up Vite step by step. Don't worry if you're new to build tools – we'll explain everything!
+Let's set up Vite step by step. Don't worry if you're new to build tools – we'll explain everything!
 
 ### Step 1: Install Vite
 
@@ -164,6 +164,8 @@ In the template you can insert an entry point as follows:
 
 Nette Assets automatically generates all necessary HTML tags – JavaScript, CSS, and any other dependencies.
 
+(since 1.0.8) For entry points, use the `{asset}` tag, not the `n:asset` attribute. An attribute can fill in only the `<script>` element itself, not the stylesheets and other files the entry loads. That's why `<script n:asset="app.js">` throws an exception whenever the entry has any dependencies, and in development mode it always has them, because of the `@vite/client` script.
+
 ### Multiple Entry Points
 
 Larger applications often need separate entry points:
@@ -201,7 +203,7 @@ nette({
 
 ### Important: Source vs Compiled Files
 
-It's crucial to understand that in production you can only load files that Vite makes available – either through its manifest, or by copying them unchanged from the public folder:
+It's crucial to understand that in production you can only load files that Vite makes available – either through its manifest, or by copying them unchanged from the public folder:
 
 1. **Entry points** defined in `entry` (including modules they dynamically import) and **assets referenced from JavaScript or CSS** (images, fonts, …) – all of these are recorded in the manifest
 2. **Files from the `assets/public/` directory** – these are *not* in the manifest; they're copied as-is and `{asset}` locates them through a filesystem fallback
@@ -253,9 +255,11 @@ The result:
 
 ```latte
 {asset 'app.js'}
-{* In development: <script src="http://localhost:5173/@vite/client" type="module"></script>
-                   <script src="http://localhost:5173/app.js" type="module"></script> *}
-{* In production: <script src="/assets/app-4f3a2b1c.js" type="module" crossorigin></script> *}
+{* In development: <script src="http://localhost:5173/app.js" type="module"></script>
+                   <script src="http://localhost:5173/@vite/client" type="module"></script> *}
+{* In production:  <script src="/assets/app-4f3a2b1c.js" type="module" crossorigin></script>
+                   <link rel="modulepreload" href="/assets/vendor-8c4b5e6d.js" crossorigin>
+                   <link rel="stylesheet" href="/assets/app-7d8e9f2a.css" crossorigin> *}
 ```
 
 No configuration needed – it just works! To disable the detection or set the dev server URL manually, see the [devServer option](configuration.md#vite-mapper).
@@ -264,7 +268,7 @@ The signal file lives at `www/assets/.vite/nette.json` (right next to the produc
 
 ### Auto-Reloading on Template Changes
 
-Vite's HMR only watches files in its own module graph – your JavaScript, CSS, and what they import. Latte templates and PHP files are outside it, so editing them normally does nothing in the browser until you reload by hand.
+Vite's HMR only watches files in its own module graph – your JavaScript, CSS, and what they import. Latte templates and PHP files are outside it, so editing them normally does nothing in the browser until you reload by hand.
 
 The `refresh` option fixes that. Give it glob patterns; whenever a matching file changes, the plugin triggers a full page reload:
 
@@ -281,7 +285,7 @@ You can also pass an array of patterns. They are matched against the whole proje
 
 If your development server runs on something other than `localhost` (like `myapp.local`), you might encounter CORS (Cross-Origin Resource Sharing) issues. CORS is a security feature in web browsers that blocks requests between different domains by default. When your PHP application runs on `myapp.local` but Vite runs on `localhost:5173`, the browser sees these as different domains and blocks the requests.
 
-The cleanest fix is to tell the plugin where your PHP application lives via the `appUrl` option. The plugin then allows that origin (over http or https, on any port) in the dev server's CORS, so the browser never blocks the requests:
+The cleanest fix is to tell the plugin where your PHP application lives via the `appUrl` option. The plugin then allows that origin (over http or https, on any port) in the dev server's CORS, so the browser never blocks the requests:
 
 ```js
 nette({
@@ -332,7 +336,7 @@ If you develop on HTTPS, you need certificates for your Vite development server.
 npm install -D vite-plugin-mkcert
 ```
 
-Here's how to configure it in `vite.config.ts`:
+Here's how to configure it in `vite.config.ts`:
 
 ```js
 import mkcert from 'vite-plugin-mkcert';
@@ -395,7 +399,7 @@ For more complex setups – for example when Vite runs behind a reverse proxy w
 
 ### Testing on Other Devices
 
-To open the running app on your phone or another device on the same network, set the plugin's `host` option to `'network'`. The plugin binds Vite to all interfaces and writes your machine's LAN IP (instead of `localhost`) into `nette.json`, so assets and HMR load from the other device:
+To open the running app on your phone or another device on the same network, set the plugin's `host` option to `'network'`. The plugin binds Vite to all interfaces and writes your machine's LAN IP (instead of `localhost`) into `nette.json`, so assets and HMR load from the other device:
 
 ```js
 nette({
@@ -473,7 +477,7 @@ In the `vite.config.ts` configuration you can change the public folder using the
 
 ## Dynamic Imports
 
-Vite automatically splits code for optimal loading. Dynamic imports allow you to load code only when it's actually needed, reducing the initial bundle size:
+Vite automatically splits code for optimal loading. Dynamic imports allow you to load code only when it's actually needed, reducing the initial bundle size:
 
 ```js
 // Load heavy components on demand
@@ -483,7 +487,7 @@ button.addEventListener('click', async () => {
 })
 ```
 
-Dynamic imports create separate chunks that are loaded only when needed. This is called “code splitting” and it's one of Vite's most powerful features. When you use dynamic imports, Vite automatically creates separate JavaScript files for each dynamically imported module.
+Dynamic imports create separate chunks that are loaded only when needed. This is called “code splitting” and it's one of Vite's most powerful features. When you use dynamic imports, Vite automatically creates separate JavaScript files for each dynamically imported module.
 
 The `{asset 'app.js'}` tag does **not** automatically preload these dynamic chunks. This is intentional behavior – we don't want to download code that might never be used. The chunks are downloaded only when the dynamic import is executed.
 
@@ -497,7 +501,7 @@ However, if you know that certain dynamic imports are critical and will be neede
 {preload 'components/chart.js'}
 ```
 
-This tells the browser to download the chart component in the background, so it's ready immediately when needed.
+This tells the browser to download the chart component in the background, so it's ready immediately when needed.
 
 ## TypeScript Support
 
@@ -590,4 +594,4 @@ export default defineConfig({
 > [!WARNING]
 > Watch out for the entry paths in `rollupOptions.input` above: Rollup resolves relative paths against the current working directory (your project root), **not** against `root: 'assets'`. So a bare `'app.js'` won't exist at build time. Either use the plugin's `entry` option (which resolves entry paths relative to `root`), or write the paths relative to the project root, e.g. `'assets/app.js'`.
 
-That's it! You now have a modern build system integrated with Nette Assets.
+That's it! You now have a modern build system integrated with Nette Assets.

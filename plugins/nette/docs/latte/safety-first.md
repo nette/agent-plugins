@@ -25,9 +25,9 @@ Latte is the only PHP templating system with effective protection against the cr
 
 ## Cross-site Scripting (XSS)
 
-Cross-site Scripting (XSS for short) is one of the most common and dangerous vulnerabilities in websites. It allows an attacker to inject a malicious script (malware) into someone else's page, which then runs in the browser of an unsuspecting user.
+Cross-site Scripting (XSS for short) is one of the most common and dangerous vulnerabilities in websites. It allows an attacker to inject a malicious script (malware) into someone else's page, which then runs in the browser of an unsuspecting user.
 
-What can such a script do? For example, it can send any content from the compromised page to the attacker, including sensitive data displayed after login. It can modify the page or perform other requests on behalf of the user. If it were webmail, for instance, it could read sensitive messages, modify the displayed content, or reconfigure settings, e.g., enable forwarding copies of all messages to the attacker's address to gain access to future emails.
+What can such a script do? For example, it can send any content from the compromised page to the attacker, including sensitive data displayed after login. It can modify the page or perform other requests on behalf of the user. If it were webmail, for instance, it could read sensitive messages, modify the displayed content, or reconfigure settings, e.g., enable forwarding copies of all messages to the attacker's address to gain access to future emails.
 
 This is why XSS consistently ranks among the most dangerous vulnerabilities. If a vulnerability appears on a website, it must be removed as soon as possible to prevent exploitation.
 
@@ -47,19 +47,19 @@ An attacker can enter any string into the search box, and thus into the `$search
 
 Instead of displaying the search string, the browser executes the JavaScript. And thus, the attacker takes control of the page.
 
-You might argue that inserting code into a variable executes JavaScript, but only in the attacker's browser. How does it reach the victim? From this perspective, we distinguish several types of XSS. In our search example, we are talking about *reflected XSS*. Here, the victim needs to be tricked into clicking a link containing the malicious code in a parameter:
+You might argue that inserting code into a variable executes JavaScript, but only in the attacker's browser. How does it reach the victim? From this perspective, we distinguish several types of XSS. In our search example, we are talking about *reflected XSS*. Here, the victim needs to be tricked into clicking a link containing the malicious code in a parameter:
 
 ```
 https://example.com/?search=<script>alert("Hacked!")</script>
 ```
 
-Guiding the user to click the link requires some social engineering, but it's not overly complicated. Users click on links, whether in emails or on social media, without much thought. The fact that the address contains something suspicious can be masked using a URL shortener; the user then only sees `bit.ly/xxx`.
+Guiding the user to click the link requires some social engineering, but it's not overly complicated. Users click on links, whether in emails or on social media, without much thought. The fact that the address contains something suspicious can be masked using a URL shortener; the user then only sees `bit.ly/xxx`.
 
 However, there is a second, much more dangerous form of attack known as *stored XSS* or *persistent XSS*, where the attacker manages to save malicious code on the server so that it is automatically inserted into certain pages.
 
 An example is pages where users write comments. An attacker submits a post containing code, and it gets saved on the server. If the pages are not sufficiently secured, the code will then run in the browser of every visitor.
 
-It might seem that the core of the attack lies in getting the string `<script>` into the page. In reality, [there are many ways to insert JavaScript](https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html). Let's show an example using an HTML attribute. Consider a photo gallery where captions can be added to images, which are displayed in the `alt` attribute:
+It might seem that the core of the attack lies in getting the string `<script>` into the page. In reality, [there are many ways to insert JavaScript](https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html). Let's show an example using an HTML attribute. Consider a photo gallery where captions can be added to images, which are displayed in the `alt` attribute:
 
 ```php
 echo '<img src="' . $imageFile . '" alt="' . $imageAlt . '">';
@@ -77,11 +77,11 @@ The injected `onload` attribute now becomes part of the page. The browser execut
 
 Any attempts to detect attacks using blacklists, such as blocking the string `<script>`, are insufficient. The foundation of a functional defense is **consistent sanitization of all data printed within the page.**
 
-Primarily, this involves replacing all characters with special meanings with their corresponding sequences, colloquially known as **escaping** (the first character of the sequence is called the escape character, hence the name). For example, in HTML text, the character `<` has a special meaning; if it's not meant to be interpreted as the start of a tag, we must replace it with a visually corresponding sequence, the HTML entity `&lt;`. The browser then displays the less-than sign.
+Primarily, this involves replacing all characters with special meanings with their corresponding sequences, colloquially known as **escaping** (the first character of the sequence is called the escape character, hence the name). For example, in HTML text, the character `<` has a special meaning; if it's not meant to be interpreted as the start of a tag, we must replace it with a visually corresponding sequence, the HTML entity `&lt;`. The browser then displays the less-than sign.
 
 **It is crucial to distinguish the context in which data is printed.** Because strings are sanitized differently in different contexts. Different characters have special meanings in different contexts. For example, escaping differs in HTML text, HTML attributes, inside certain special elements, etc. We will discuss this in detail shortly.
 
-Sanitization is best performed right when the string is printed on the page, ensuring it is actually done and done exactly once. It's best if the sanitization is handled **automatically** by the templating system itself. Because if sanitization is not automatic, the programmer might forget it. And a single oversight means the website is vulnerable.
+Sanitization is best performed right when the string is printed on the page, ensuring it is actually done and done exactly once. It's best if the sanitization is handled **automatically** by the templating system itself. Because if sanitization is not automatic, the programmer might forget it. And a single oversight means the website is vulnerable.
 
 However, XSS is not only about printing data in templates but also concerns other parts of the application that must handle untrusted data correctly. For instance, JavaScript in your application must use `innerText` or `textContent` in connection with untrusted data, not `innerHTML`. Special attention must be paid to functions that evaluate strings as JavaScript, such as `eval()`, but also `setTimeout()`, or the use of `setAttribute()` with event attributes like `onload`, etc. This, however, goes beyond the scope covered by templates.
 
@@ -93,7 +93,7 @@ However, XSS is not only about printing data in templates but also concerns othe
 
 ## Context-Aware Escaping
 
-What exactly is meant by the word context? It's a location within the document with its own rules for handling the data being printed. It depends on the document type (HTML, XML, CSS, JavaScript, plain text, …) and can differ in specific parts. For example, in an HTML document, there are many places (contexts) where very different rules apply. You might be surprised how many there are. Here are the first four:
+What exactly is meant by the word context? It's a location within the document with its own rules for handling the data being printed. It depends on the document type (HTML, XML, CSS, JavaScript, plain text, …) and can differ in specific parts. For example, in an HTML document, there are many places (contexts) where very different rules apply. You might be surprised how many there are. Here are the first four:
 
 ```latte
 <p>#text</p>
@@ -104,9 +104,9 @@ What exactly is meant by the word context? It's a location within the document 
 
 The default and basic context of an HTML page is HTML text. What are the rules here? The characters `<` and `&` have special meanings, representing the start of a tag or entity, so we must escape them by replacing them with HTML entities (`<` becomes `&lt;`, `&` becomes `&amp;`).
 
-The second most common context is the value of an HTML attribute. It differs from text in that the quotation mark `"` or `'`, which delimits the attribute, has a special meaning here. It needs to be written as an entity so it's not interpreted as the end of the attribute. Conversely, the `<` character can be used safely within an attribute because it has no special meaning there; it cannot be interpreted as the start of a tag or comment. But beware, in HTML, attribute values can also be written without quotes, in which case a whole range of characters have special meanings, making it another separate context.
+The second most common context is the value of an HTML attribute. It differs from text in that the quotation mark `"` or `'`, which delimits the attribute, has a special meaning here. It needs to be written as an entity so it's not interpreted as the end of the attribute. Conversely, the `<` character can be used safely within an attribute because it has no special meaning there; it cannot be interpreted as the start of a tag or comment. But beware, in HTML, attribute values can also be written without quotes, in which case a whole range of characters have special meanings, making it another separate context.
 
-You might be surprised, but special rules apply inside the `<textarea>` and `<title>` elements, where the `<` character doesn't need to be (but can be) escaped unless followed by `/`. But that's more of a minor detail.
+You might be surprised, but special rules apply inside the `<textarea>` and `<title>` elements, where the `<` character doesn't need to be (but can be) escaped unless followed by `/`. But that's more of a minor detail.
 
 It gets interesting inside HTML comments. Here, HTML entities are not used for escaping. In fact, no specification states how escaping should be done in comments. You just need to follow somewhat [curious rules](https://html.spec.whatwg.org/multipage/syntax.html#comments) and avoid certain character combinations within them.
 
@@ -130,7 +130,7 @@ Phew… As you can see, HTML is a very complex document where contexts are layer
 
 ### Want an Example?
 
-Let's take the string `Rock'n'Roll`.
+Let's take the string `Rock'n'Roll`.
 
 If you print it in HTML text, in this particular case, no replacement is needed because the string does not contain any characters with special meaning. The situation changes if you print it inside an HTML attribute enclosed in single quotes. In that case, you need to escape the quotes into HTML entities:
 
@@ -138,9 +138,9 @@ If you print it in HTML text, in this particular case, no replacement is needed 
 <div title='Rock&apos;n&apos;Roll'></div>
 ```
 
-That was simple. A much more interesting situation arises when contexts are layered, for example, if the string is part of JavaScript.
+That was simple. A much more interesting situation arises when contexts are layered, for example, if the string is part of JavaScript.
 
-First, let's print it within the JavaScript itself. That is, we wrap it in quotes and simultaneously escape the quotes contained within it using the `\` character:
+First, let's print it within the JavaScript itself. That is, we wrap it in quotes and simultaneously escape the quotes contained within it using the `\` character:
 
 ```js
 'Rock\'n\'Roll'
@@ -269,8 +269,6 @@ On the left, you see the template in Latte; on the right is the generated HTML c
 - <!-- Rock'n'Roll -->
 ```
 
- 
-
 Isn't that great! Latte performs context-aware escaping automatically, so the programmer:
 
 - doesn't need to think about or know how to escape where
@@ -285,7 +283,7 @@ Using several practical examples, we will show how important context differentia
 
 ### Attribute Vulnerability
 
-Let's try to inject malicious code into the page using an HTML attribute, as we [showed above](#how-does-the-vulnerability-arise). Let's have a template in Twig rendering an image:
+Let's try to inject malicious code into the page using an HTML attribute, as we [showed above](#how-does-the-vulnerability-arise). Let's have a template in Twig rendering an image:
 
 ```twig
 <img src={{ imageFile }} alt={{ imageAlt }}>
@@ -299,11 +297,11 @@ An attacker inserts a cleverly crafted string `foo onload=alert('Hacked!')` as t
 <img src=photo0145.webp alt=foo onload=alert(&#039;Hacked!&#039;)>
 ```
 
-**A security hole has been created!**
+**A security hole has been created!**
 
-A forged `onload` attribute has become part of the page, and the browser executes it immediately after downloading the image.
+A forged `onload` attribute has become part of the page, and the browser executes it immediately after downloading the image.
 
-Now let's see how Latte handles the same template:
+Now let's see how Latte handles the same template:
 
 ```latte
 <img src={$imageFile} alt={$imageAlt}>
@@ -335,7 +333,7 @@ If the variable `$movie` contains the string `'Amarcord & 8 1/2'`, the following
 <script>var movie = "Amarcord & 8 1/2";</script>
 ```
 
-Latte also takes the `type` attribute of `<script>` into account. A template for a client-side framework in `<script type="text/x-template">` or `<script type="text/html">` is HTML, so values in it are escaped as in HTML. A plain data type such as `text/csv` is printed as text. Everything else is treated as JavaScript: a script without `type`, `type="module"`, `type="importmap"`, and also JSON types such as `application/ld+json`. Escaping something as JavaScript that turns out to be data does no harm, while the opposite mistake would open the door to XSS.
+Latte also takes the `type` attribute of `<script>` into account. A template for a client-side framework in `<script type="text/x-template">` or `<script type="text/html">` is HTML, so values in it are escaped as in HTML. A plain data type such as `text/csv` is printed as text. Everything else is treated as JavaScript: a script without `type`, `type="module"`, `type="importmap"`, and also JSON types such as `application/ld+json`. Escaping something as JavaScript that turns out to be data does no harm, while the opposite mistake would open the door to XSS.
 
 ### Link Checking
 
@@ -377,7 +375,7 @@ The protection works automatically and requires no configuration.
 
 ## Limits of Latte
 
-Latte is not a complete XSS protection for the entire application. We would be unhappy if you stopped thinking about security when using Latte. Latte's goal is to ensure that an attacker cannot alter the page structure or forge HTML elements or attributes. But it does not check the content correctness of the printed data. Nor the correctness of JavaScript behavior. That goes beyond the competence of the templating system. Verifying the correctness of data, especially data entered by the user and therefore untrusted, is an important task for the programmer.
+Latte is not a complete XSS protection for the entire application. We would be unhappy if you stopped thinking about security when using Latte. Latte's goal is to ensure that an attacker cannot alter the page structure or forge HTML elements or attributes. But it does not check the content correctness of the printed data. Nor the correctness of JavaScript behavior. That goes beyond the competence of the templating system. Verifying the correctness of data, especially data entered by the user and therefore untrusted, is an important task for the programmer.
 
 > [!TIP]
 > Do you want to test your knowledge of escaping in individual contexts? Try the [XSS vulnerability quiz](https://blog.nette.org/en/quiz-can-you-defend-against-xss-vulnerability).

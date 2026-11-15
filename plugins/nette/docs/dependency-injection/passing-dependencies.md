@@ -17,7 +17,7 @@ Arguments, or ‘dependencies’ in DI terminology, can be passed to classes in 
 - Property injection
 - Using the `inject*()` method or the `#[Inject]` attribute
 
-Let's demonstrate each variant with specific examples.
+Let's demonstrate each variant with specific examples.
 
 ## Constructor Injection
 
@@ -52,7 +52,7 @@ class MyClass
 }
 ```
 
-Since PHP 8.1, a property can be marked with the `readonly` flag, which declares that the property's value will not change after initialization:
+Since PHP 8.1, a property can be marked with the `readonly` flag, which declares that the property's value will not change after initialization:
 
 ```php
 // PHP 8.1
@@ -69,7 +69,7 @@ The DI container passes dependencies to the constructor automatically using [aut
 
 ### Constructor Hell
 
-The term *constructor hell* describes a situation where a child class inherits from a parent class whose constructor requires dependencies, and the child class also requires dependencies. It must then accept and pass on the parent's dependencies as well:
+The term *constructor hell* describes a situation where a child class inherits from a parent class whose constructor requires dependencies, and the child class also requires dependencies. It must then accept and pass on the parent's dependencies as well:
 
 ```php
 abstract class BaseClass
@@ -144,7 +144,7 @@ $obj = new MyClass;
 $obj->setCache($cache);
 ```
 
-This approach is suitable for optional dependencies that are not essential for the class's operation, as it's not guaranteed that the object will actually receive the dependency (i.e., that the caller will invoke the method).
+This approach is suitable for optional dependencies that are not essential for the class's operation, as it's not guaranteed that the object will actually receive the dependency (i.e., that the caller will invoke the method).
 
 At the same time, this method allows the setter to be called repeatedly to change the dependency. If this is undesirable, add a check within the method, or since PHP 8.1, mark the `$cache` property with the `readonly` flag.
 
@@ -186,7 +186,7 @@ $obj = new MyClass;
 $obj->cache = $cache;
 ```
 
-This method is considered inappropriate because the member property must be declared as `public`. Consequently, we lose control over ensuring the passed dependency is actually of the required type (this was particularly true before PHP 7.4 introduced type hinting for properties), and we lose the ability to react to a newly assigned dependency with custom logic, for example, to prevent subsequent modification. At the same time, the property becomes part of the class's public API, which might not be intended.
+This method is considered inappropriate because the member property must be declared as `public`. Consequently, we lose control over ensuring the passed dependency is actually of the required type (this was particularly true before PHP 7.4 introduced type hinting for properties), and we lose the ability to react to a newly assigned dependency with custom logic, for example, to prevent subsequent modification. At the same time, the property becomes part of the class's public API, which might not be intended.
 
 Property assignment is defined in the DI container configuration in the [setup section](services.md#setup):
 
