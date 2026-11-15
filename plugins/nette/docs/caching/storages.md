@@ -1,0 +1,218 @@
+# Storages
+
+Contents:
+
+- [Choosing a Storage](#choosing-a-storage)
+- [Configuration](#configuration)
+  - [Turning Off the Cache](#turning-off-the-cache)
+- [FileStorage](#filestorage)
+- [RedisStorage](#redisstorage)
+- [MemcachedStorage](#memcachedstorage)
+- [SQLiteStorage](#sqlitestorage)
+- [MemoryStorage](#memorystorage)
+- [Psr16Storage](#psr16storage)
+- [DevNullStorage](#devnullstorage)
+- [Journal](#journal)
+- [Using a Storage as a PSR-16 Cache](#using-a-storage-as-a-psr-16cache)
+- [Writing Your Own Storage](#writing-your-own-storage)
+
+
+The storage decides where cached data physically lives: in files on disk, on a Redis or Memcached server, in an SQLite database or in the PSR-16 cache of another framework. You can switch it without touching the code that uses the cache. This page helps you:
+
+- choose the right storage and see what each one supports
+- configure it in a Nette application, or turn the cache off
+- use a Nette storage as a PSR-16 cache, and the other way round
+- write a storage of your own
+
+## Choosing a Storage
+
+If you are not sure, keep the default `FileStorage`. It needs nothing but a directory, it is safe when many requests read and write at once, and it supports every kind of dependency.
+
+Reach for `RedisStorage` when your application runs on several servers. With files, each server would have its own cache, and deleting an article by its tag on one server would leave the stale copies on the others. A Redis server is shared by all of them.
+
+The storages differ in which [dependencies](expiration.md) they can honor:
+
+| Storage | Tags, priorities | Files, constants, callbacks | Other items | Sliding | Cleaning namespaces | Stampede protection |
+| --- | --- | --- | --- | --- | --- | --- |
+| [FileStorage](#filestorage) | with [journal](#journal) | yes | yes | yes | yes | yes |
+| [RedisStorage](#redisstorage) | yes | yes | no | yes | yes | yes |
+| [MemcachedStorage](#memcachedstorage) | with [journal](#journal) | yes | no | yes | no | no |
+| [SQLiteStorage](#sqlitestorage) | tags only | no | no | yes | yes | no |
+| [MemoryStorage](#memorystorage) | yes | ignored | ignored | yes | yes | no |
+| [Psr16Storage](#psr16storage) | with [journal](#journal) | yes | no | no | no | no |
+| [DevNullStorage](#devnullstorage) | stores nothing |   |   |   |   |   |
+
+A storage that cannot honor a dependency throws `Nette\NotSupportedException` instead of silently ignoring it, so you find out right away, not from stale data. The only exception is `MemoryStorage`, which ignores what it cannot do.
+
+Stampede protection means that when many requests ask for a missing item at once, only the first one runs the generator of `load()` and the others wait for its result. Without it, all of them compute the value at the same time.
+
+## Configuration
+
+In a Nette application, the DI container provides a `FileStorage` that stores data in the `cache` subdirectory of the directory for [temporary files](../application/bootstrapping.md#temporary-files), together with a journal. You get it via [dependency injection](../dependency-injection/passing-dependencies.md) by asking for the type `Nette\Caching\Storage`.
+
+To use another storage, replace the service `cache.storage` in the configuration:
+
+```neon
+services:
+	cache.storage: Nette\Caching\Storages\RedisStorage('10.0.0.5')
+```
+
+The container holds these two services:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `cache.storage` | [Nette\Caching\Storage](https://api.nette.org/caching/master/Nette/Caching/Storage.html) | the storage |
+| `cache.journal` | [Nette\Caching\Storages\Journal](https://api.nette.org/caching/master/Nette/Caching/Storages/Journal.html) | the [journal](#journal) for tags and priorities |
+
+### Turning Off the Cache
+
+To turn the cache off, for example in tests, use [DevNullStorage](#devnullstorage), which stores nothing:
+
+```neon
+services:
+	cache.storage: Nette\Caching\Storages\DevNullStorage
+```
+
+This does not affect the caches of Latte templates and of the DI container, which are separate and do not use this storage. They [do not need to be turned off](../nette/troubleshooting.md#how-to-disable-cache-during-development) during development either.
+
+## FileStorage
+
+`Nette\Caching\Storages\FileStorage` writes each item into a file in the given directory, which must exist. Tags and priorities need a [journal](#journal):
+
+```php
+$journal = new Nette\Caching\Storages\SQLiteJournal('/path/to/temp/journal.s3db');
+$storage = new Nette\Caching\Storages\FileStorage('/path/to/temp', $journal);
+```
+
+All operations are atomic. You can never read a file another request has not finished writing yet, and nobody can delete it while you are reading it. That makes the storage safe even under heavy load.
+
+It also protects against the [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede). When many requests ask for a missing item at once, for example right after a deployment, the first one locks the file and runs the generator. The others wait for the lock and then read the fresh value instead of computing it again.
+
+Expired files are removed gradually. Now and then, the constructor spends at most 20 ms deleting them, so even a large cache does not noticeably slow down a request. To remove all expired files at once, call `$storage->clean([])`.
+
+Data is stored with PHP's `serialize()`. If you prefer another format, create a subclass and override the methods `serializeData()` and `unserializeData()`.
+
+## RedisStorage
+
+`Nette\Caching\Storages\RedisStorage` stores data on a [Redis](https://redis.io) server. It keeps tags and priorities itself, so it needs no journal, and it protects against the cache stampede just like `FileStorage`.
+
+> [!CAUTION]
+> Requires the `redis` PHP extension.
+
+```neon
+services:
+	cache.storage: Nette\Caching\Storages\RedisStorage('10.0.0.5')
+```
+
+The constructor takes the host and the port, 6379 by default. If you already have a connected `Redis` object, pass it instead of the host.
+
+All keys get the prefix `nette.cache:`, so the database can be shared with other data; the parameter `prefix` changes it. An empty prefix means that the whole database belongs to the cache, and clearing the cache then empties the database.
+
+While one process generates a missing item, the others wait for it, at most for 30 seconds by default (the parameter `lockTimeout`). A generator that takes longer only means that another process computes the same value too, never that a wrong value is stored.
+
+The storage does not support the dependency on other items.
+
+## MemcachedStorage
+
+`Nette\Caching\Storages\MemcachedStorage` stores data on a [Memcached](https://memcached.org) server. The constructor takes the host and the port, 11211 by default. Tags and priorities need a [journal](#journal).
+
+> [!CAUTION]
+> Requires the `memcached` PHP extension.
+
+```neon
+services:
+	cache.storage: Nette\Caching\Storages\MemcachedStorage('10.0.0.5')
+```
+
+Memcached cannot list its keys, so the storage cannot clean namespaces. It does not support the dependency on other items either. Clearing the whole cache empties the entire Memcached server, including the data of other applications.
+
+When Memcached refuses to store an item, typically one larger than its size limit, the storage triggers a warning.
+
+## SQLiteStorage
+
+`Nette\Caching\Storages\SQLiteStorage` keeps the whole cache in a single SQLite database file. It stores tags in its own table, so it needs no journal.
+
+> [!CAUTION]
+> Requires the `pdo` and `pdo_sqlite` PHP extensions.
+
+```neon
+services:
+	cache.storage: Nette\Caching\Storages\SQLiteStorage('%tempDir%/cache.db')
+```
+
+The database runs in the WAL mode, in which reading does not wait for writing. SQLite then creates two more files next to the database, so PHP must be able to write to its directory.
+
+The storage supports expiration, sliding expiration, tags and cleaning namespaces. It does not support priorities, nor dependencies on files, constants, callbacks and other items.
+
+## MemoryStorage
+
+`Nette\Caching\Storages\MemoryStorage` keeps data in a PHP array, so it is lost when the request ends. It is handy in tests and for caching within a single request.
+
+It honors expiration, sliding expiration, tags, priorities and cleaning namespaces. Dependencies on files, constants, callbacks and other items are silently ignored. Keep that in mind when you use it in tests instead of a real storage: an item that would expire there stays here.
+
+## Psr16Storage
+
+`Nette\Bridges\Psr\Psr16Storage` lets you use any [PSR-16](https://www.php-fig.org/psr/psr-16/) cache as a Nette storage, for example the cache of another framework your application already uses. Tags and priorities need a [journal](#journal):
+
+```php
+// $simpleCache is any Psr\SimpleCache\CacheInterface
+$storage = new Nette\Bridges\Psr\Psr16Storage($simpleCache, journal: $journal);
+```
+
+PSR-16 allows only some characters in keys, so the storage turns every key into a hash. The parameter `prefix`, at most 32 letters, digits, underscores and dots, is put in front of each of them.
+
+PSR-16 can neither extend the validity of an item nor list keys, so the storage does not support sliding expiration and cleaning namespaces. It does not support the dependency on other items either. Clearing the whole cache calls `clear()` on the PSR-16 cache, so it also removes the data of anyone else sharing it, whatever the prefix.
+
+## DevNullStorage
+
+`Nette\Caching\Storages\DevNullStorage` stores nothing, so every `load()` calls the generator. Use it to [turn the cache off](#turning-off-the-cache).
+
+## Journal
+
+`FileStorage`, `MemcachedStorage` and `Psr16Storage` cannot search their items by tag or priority, so they keep a separate index, the so-called journal. The built-in `Nette\Caching\Storages\SQLiteJournal` stores it in an SQLite database:
+
+```php
+$journal = new Nette\Caching\Storages\SQLiteJournal('/path/to/temp/journal.s3db');
+```
+
+> [!CAUTION]
+> Requires the `pdo` and `pdo_sqlite` PHP extensions.
+
+In a Nette application, the journal is created for you as the service `cache.journal` in the file `journal.s3db` and passed to the storage automatically. Your own implementation of the interface `Nette\Caching\Storages\Journal` can replace it:
+
+```neon
+services:
+	cache.journal: MyJournal
+```
+
+Without a journal, these storages work too, but storing an item with tags or a priority throws an exception.
+
+## Using a Storage as a PSR-16 Cache
+
+Some libraries expect a [PSR-16](https://www.php-fig.org/psr/psr-16/) cache. The adapter `Nette\Bridges\Psr\PsrCacheAdapter` gives them one on top of any Nette storage:
+
+```php
+$psrCache = new Nette\Bridges\Psr\PsrCacheAdapter($storage);
+
+$psrCache->set('key', 'value', 3600); // stores the value for 1 hour
+$value = $psrCache->get('key', 'default');
+```
+
+The adapter supports all methods of PSR-16, including `getMultiple()`, `setMultiple()` and `deleteMultiple()`. As PSR-16 requires, it rejects an empty key and a key containing any of the characters `{}()/\@:`, such as `user:1`.
+
+The opposite direction, a PSR-16 cache used as a Nette storage, is covered by [Psr16Storage](#psr16storage).
+
+## Writing Your Own Storage
+
+A storage is a class implementing the interface `Nette\Caching\Storage` with four methods:
+
+- `read(string $key): mixed` returns the stored value, or `null` when the item does not exist or has expired
+- `write(string $key, mixed $data, array $dependencies): void` stores the value
+- `remove(string $key): void` deletes the item
+- `clean(array $conditions): void` deletes items by the conditions of [clean()](expiration.md#deleting-items); an empty array means removing the expired items
+
+The dependencies arrive as an array with `Cache::*` keys, already simplified by `Cache`: the expiration is a number of seconds from now, files and constants have become callbacks, and other items are given by their storage keys. When reading an item, check its callbacks with `Nette\Caching\Cache::checkCallbacks()`. Throw `Nette\NotSupportedException` for a dependency or condition your storage cannot honor.
+
+Optional interfaces add more. `Nette\Caching\BulkReader` and `Nette\Caching\BulkWriter` let the storage read and write several items in one round trip. `Nette\Caching\LockingReader` adds the method `readOrGenerate()`, which protects against the cache stampede: it gets the generator of `load()` as a function and has to run it under a lock. The function stores the result itself, through `write()` or `remove()` of the same storage, so these methods must work while the lock is held.
+
+A short complete example is the source code of [SQLiteStorage](https://github.com/nette/caching/blob/master/src/Caching/Storages/SQLiteStorage.php).

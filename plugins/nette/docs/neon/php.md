@@ -1,0 +1,169 @@
+# NEON for PHP
+
+Contents:
+
+- [Installation](#installation)
+- [Decoding](#decoding)
+- [Encoding](#encoding)
+- [Errors](#errors)
+- [Your Own Values: Evaluator](#your-own-values-evaluator)
+- [Checking Files: neon-lint](#checking-files-neon-lint)
+- [What's Next](#whats-next)
+
+
+The package `nette/neon` reads and writes NEON in PHP. With it you:
+
+- decode a configuration file into PHP values and encode values back to NEON
+- [edit a file](https://doc.nette.org/en/neon/editing) while every comment and space you did not touch stays where it was
+- give some values a meaning of your own, such as constants or parameters
+- check files with `neon-lint` in your editor, in CI or after an AI agent
+
+## Installation
+
+Download and install the package using [Composer](https://doc.nette.org/en/best-practices/composer):
+
+```shell
+composer require nette/neon
+```
+
+It requires PHP 8.4 up to 8.6 with the `json` and `mbstring` extensions.
+
+## Decoding
+
+Let's say your application keeps its settings in the file `config.neon`:
+
+```neon
+# database connection
+database:
+	host: localhost
+	port: 3306
+
+services:
+	- App\Model\ArticleFacade
+```
+
+The static class [Nette\Neon\Neon](https://api.nette.org/neon/master/Nette/Neon/Neon.html) reads it into an ordinary PHP array:
+
+```php
+use Nette\Neon\Neon;
+
+$config = Neon::decodeFile('config.neon');
+// ['database' => ['host' => 'localhost', 'port' => 3306], 'services' => ['App\Model\ArticleFacade']]
+```
+
+The method `decode()` does the same for a string:
+
+```php
+$value = Neon::decode('hello: world'); // ['hello' => 'world']
+```
+
+The values of the [format](format.md) become these PHP values:
+
+| NEON | PHP |
+| --- | --- |
+| `null`, `true`, `yes` … | `null`, `bool` |
+| integer | `int`; beyond `PHP_INT_MAX` a `string` of its digits |
+| float | `float` |
+| string | `string` |
+| [date](format.md#dates) | `DateTimeImmutable` |
+| [entity](format.md#entities), chain | [Nette\Neon\Entity](https://api.nette.org/neon/master/Nette/Neon/Entity.html) |
+| sequence, mapping | `array` |
+
+PHP keeps both sequences and mappings in arrays, so an empty `[]` and an empty `{}` both become `[]`. A date without a time zone gets the default time zone of PHP.
+
+## Encoding
+
+The method `encode()` writes a PHP value as NEON. By default it writes everything on one line; pass `true` as the second argument to get blocks:
+
+```php
+Neon::encode(['roles' => ['guest', 'admin']]);
+// '{roles: [guest, admin]}'
+
+Neon::encode(['roles' => ['guest', 'admin']], true);
+// "roles:\n\t- guest\n\t- admin\n\n"
+```
+
+Instead of `true` you can pass a function that decides for each array. It gets the array and the list of keys on the way to it, and returns `true` for a block. This one writes blocks for the first level only:
+
+```php
+Neon::encode($config, fn($value, $path) => !$path);
+// "database: {host: localhost, port: 3306}\nservices: [App\\Model\\ArticleFacade]\n"
+```
+
+The third argument sets the indentation, a tab by default. A string gets quotes only when it needs them, and a multiline string is written as a [multiline string](format.md#multiline-strings).
+
+Some values cannot be written as NEON without loss: a string that is not valid UTF-8, `INF` and `NAN`, a resource, a closure or a structure that contains itself. For them, `encode()` throws `Nette\Neon\Exception`.
+
+## Errors
+
+When the input is not valid NEON, `decode()` and `decodeFile()` throw `Nette\Neon\Exception` with the position of the problem:
+
+```php
+try {
+	$config = Neon::decode("database:\n\thost: localhost\n\thost: db");
+} catch (Nette\Neon\Exception $e) {
+	echo $e->getMessage();     // Duplicated key 'host' on line 3 at column 2
+	echo $e->getDescription(); // Duplicated key 'host'
+}
+```
+
+The column counts characters, not bytes. When you show the error your own way, for example next to a field of a form, `getDescription()` gives the message without the position.
+
+## Your Own Values: Evaluator
+
+`Neon::decode()` turns the [syntax tree](https://doc.nette.org/en/neon/editing#toc-the-tree) into values with the class `Nette\Neon\Evaluator`. A subclass of it can give some values a meaning of their own. This one turns the names of PHP constants into their values:
+
+```php
+use Nette\Neon\Evaluator;
+use Nette\Neon\Neon;
+use Nette\Neon\Nodes\LiteralNode;
+use Nette\Neon\Place;
+
+final class ConstantEvaluator extends Evaluator
+{
+	protected function evaluateLiteral(LiteralNode $node, Place $place): mixed
+	{
+		$value = parent::evaluateLiteral($node, $place);
+		return $place === Place::Value && is_string($value) && defined($value)
+			? constant($value)
+			: $value;
+	}
+}
+
+$doc = Neon::parse('errorLevel: E_ALL');
+$config = new ConstantEvaluator()->evaluate($doc->value);
+// ['errorLevel' => 30719]
+```
+
+The hooks are `evaluateLiteral()`, `evaluateString()`, `evaluateEntity()`, `evaluateChain()` and `evaluateItem()`. The `Place` says where the value stands: as a value, as a key, as the name of an entity or as a link of a chain. Thanks to it, the example above leaves a key spelled like a constant alone. This is how the [DI container](https://doc.nette.org/en/dependency-injection) of Nette reads its configuration.
+
+## Checking Files: neon-lint
+
+The package comes with the command `neon-lint`. Give it files or directories, and it prints one line for each problem:
+
+```shell
+vendor/bin/neon-lint config/
+```
+
+```
+config/local.neon:3:2: Duplicated key 'user'
+```
+
+When all files are valid, it prints nothing. A directory is searched for `*.neon` files, skipping `vendor`, `node_modules` and hidden directories, and `-` reads the standard input. These options change what it does:
+
+| Option | Effect |
+| --- | --- |
+| `--check` | also verifies that the file reads back byte for byte |
+| `--json` | prints the findings as JSON, for tools |
+| `--quiet` | prints nothing, only sets the exit code |
+| `--verbose` | prints the number of files when all are valid |
+
+The exit code is 0 when all files are valid, 1 when there is a finding, and 2 for a wrong invocation. The command, its output and its exit codes are the same in the [JavaScript](https://doc.nette.org/en/neon/javascript) and [Python](https://doc.nette.org/en/neon/python) libraries, so whatever runs it works with all of them.
+
+That makes it a handy check for AI agents: when an agent runs it after every change of a `.neon` file, it learns about a broken file right away and fixes it before it goes on. The [Nette plugins for AI agents](https://doc.nette.org/ai/neon/agent-plugins) do this for you.
+
+## What's Next
+
+- [NEON Format](format.md) – the syntax of the format
+- [Editing Files](https://doc.nette.org/en/neon/editing) – changing a file while keeping its formatting, and the syntax tree
+- [Upgrading](upgrading.md) – what changed in version 4.0

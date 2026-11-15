@@ -309,4 +309,9 @@ $createUserSchema = Expect::structure([
 
 The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Schema](../../docs/schema/index.md) – every Expect method and the Processor
+- [Schema](../../docs/schema/index.md) – overview and the Processor
+- [Data Types](../../docs/schema/types.md) – every Expect method: types, defaults, ranges, structures, tuples
+- [Validation and Normalization](../../docs/schema/normalization.md) – `assert()`, `transform()`, `castTo()`, `before()`, `from()`, errors
+- [Merging Configurations](../../docs/schema/merging.md) – `processMultiple()`, `mergeMode()`, `mergeWith()`
+- [Exporting to JSON Schema](../../docs/schema/json-schema.md) – export and its differences from validation
+- [Custom Elements](../../docs/schema/custom-elements.md) – implementing the Schema interface

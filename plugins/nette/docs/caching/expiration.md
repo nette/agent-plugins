@@ -1,0 +1,223 @@
+# Expiration and Invalidation
+
+Contents:
+
+- [Setting Dependencies](#setting-dependencies)
+- [Expiration by Time](#expiration-by-time)
+- [When a File Changes](#when-a-file-changes)
+- [When a Constant Changes](#when-a-constant-changes)
+- [When Another Item Changes](#when-another-item-changes)
+- [Custom Condition](#custom-condition)
+- [Combining Conditions](#combining-conditions)
+- [Tags](#tags)
+- [Priority](#priority)
+- [Deleting Items](#deleting-items)
+- [What Each Storage Supports](#what-each-storage-supports)
+- [Bulk Reading and Writing](#bulk-reading-and-writing)
+
+
+A cache is only useful as long as it does not serve outdated data. This page shows every way to tell Nette Caching when an item stops being valid:
+
+- after a period of time, or when nobody has read it for a while
+- when a file, a PHP constant or another item in the cache changes
+- when your own function says so
+- or right away, when you delete it by tag, priority or namespace
+
+The examples continue the blog from the [overview](index.md): `$cache` is a cache in the namespace `articles`, `$id` is the ID of an article, and `renderArticle()` stands for the expensive work of loading an article and turning it into HTML.
+
+## Setting Dependencies
+
+**Dependencies** describe when an item expires. They are an object `Nette\Caching\Dependencies`. The most convenient way is to let the generator fill it in. Declare its parameter with the type `Dependencies`, and `load()` passes it an empty object:
+
+```php
+use Nette\Caching\Dependencies;
+
+$html = $cache->load("article/$id", function (Dependencies $dp) use ($id) {
+	$dp->expire = '1 hour';
+	return renderArticle($id);
+});
+```
+
+The advantage is that the generator can decide based on what it computed. An article that is still being drafted can expire sooner than a published one, for example.
+
+When the dependencies are known in advance, you can pass them as the third argument of `load()` instead, or of `save()`, which stores a value directly without a generator. The constructor takes all the properties as named arguments:
+
+```php
+$html = $cache->load("article/$id", fn() => renderArticle($id), new Dependencies(expire: '1 hour'));
+
+$cache->save("article/$id", $html, new Dependencies(expire: '1 hour', tags: ["article/$id"]));
+```
+
+Prefer `load()` with a generator to `save()`. When several requests ask for a missing item at once, `FileStorage` and `RedisStorage` let only one of them run the generator; with `save()`, they would all compute the value.
+
+Dependencies can also be written as an array with `Cache::*` keys, such as `[Cache::Expire => '1 hour', Cache::Tags => ["article/$id"]]`. A generator whose parameter is not typed `Dependencies` receives this array by reference and adds to it: `function (&$dependencies)`. An unknown key or a value of a wrong type in the array throws an exception, so a typo such as `'expir'` does not silently leave the item without expiration.
+
+## Expiration by Time
+
+The property `expire` sets when the item expires. It accepts a relative time as a string, a number of seconds, a UNIX timestamp or a `DateTimeInterface` object:
+
+```php
+$dp->expire = '20 minutes';
+$dp->expire = 3600; // one hour
+$dp->expire = new DateTimeImmutable('tomorrow');
+```
+
+With **sliding expiration**, every read moves the expiration further. An article that visitors keep reading then stays in the cache, while one nobody opens for 20 minutes is dropped:
+
+```php
+$dp->expire = '20 minutes';
+$dp->sliding = true;
+```
+
+Keep in mind that every read then also updates the item in the storage, which adds some overhead.
+
+## When a File Changes
+
+Data computed from a file should expire when the file changes. Let's say the blog reads its list of categories from the file `categories.neon`. The cached list then depends on that file:
+
+```php
+$categories = $cache->load('categories', function (Dependencies $dp) {
+	$dp->files[] = __DIR__ . '/categories.neon';
+	return loadCategories(); // reads and processes categories.neon
+});
+```
+
+As soon as you edit `categories.neon`, the cache notices on the next read and calls the generator again. Use absolute paths. An item can depend on several files: `$dp->files = [$file1, $file2]`.
+
+## When a Constant Changes
+
+Similarly, an item can expire when the value of a PHP constant changes. That is handy for a version number you set at deployment, for example, so that every new version starts with a fresh cache:
+
+```php
+$dp->constants[] = 'APP_VERSION';
+```
+
+## When Another Item Changes
+
+An item can depend on other items in the cache. Let's say the article and its comments are cached separately, under the keys `article/$id` and `comments/$id`, and the whole page put together from them is cached as well. The page must expire whenever one of its parts does:
+
+```php
+$page = $cache->load("page/$id", function (Dependencies $dp) use ($id) {
+	$dp->items = ["article/$id", "comments/$id"];
+	return renderPage($id); // puts together the article and its comments
+});
+```
+
+When the comments are saved again or removed, the page expires as well.
+
+## Custom Condition
+
+When none of the above fits, write your own function. It is called on every read with the arguments you stored, and when it returns `false`, the item expires. Let's say the rendered HTML must not survive an upgrade of PHP:
+
+```php
+function checkPhpVersion(int $version): bool
+{
+	return $version === PHP_VERSION_ID;
+}
+
+$dp->callbacks[] = ['checkPhpVersion', PHP_VERSION_ID];
+```
+
+Each entry is an array: the function, or a static method written as `[ClassName::class, 'method']`, followed by its arguments. The function is called on every read, so it should be fast.
+
+## Combining Conditions
+
+All these conditions can be combined. The item expires as soon as at least one of them is no longer met:
+
+```php
+$dp->expire = '1 day';
+$dp->files[] = __DIR__ . '/categories.neon';
+$dp->constants[] = 'APP_VERSION';
+```
+
+## Tags
+
+Waiting for expiration is a compromise. It is better to delete an item exactly when the data it was made from changes. **Tags** let you do that. They are arbitrary strings you attach to an item:
+
+```php
+$html = $cache->load("article/$id", function (Dependencies $dp) use ($id) {
+	$dp->tags = ["article/$id", "comments/$id"];
+	return renderArticle($id);
+});
+```
+
+In the administration, right after saving an edited article to the database, you delete everything tagged with it:
+
+```php
+$cache->clean(tags: ["article/$id"]);
+```
+
+The same goes for adding a comment, this time with the tag `comments/$id`. Notice that the code deleting the items does not need to know their keys, or even how many there are. The article may sit in the cache as a whole page, as a preview on the homepage and in the RSS feed; one call removes them all.
+
+Tags work across namespaces: `clean(tags: [...])` deletes the matching items in every namespace of the storage, not just in the namespace of `$cache`.
+
+`FileStorage`, `MemcachedStorage` and `Psr16Storage` need a [journal](storages.md#journal) for tags; the other storages keep them themselves.
+
+## Priority
+
+Each item can be given a priority, a number saying how important it is. When the cache grows too big, you can then delete the less important items first. Let's say previews of old articles are less valuable than the homepage:
+
+```php
+$dp->priority = 10;
+```
+
+This deletes every item with a priority of 50 or less:
+
+```php
+$cache->clean(priority: 50);
+```
+
+Items without a priority are never deleted this way.
+
+`FileStorage`, `MemcachedStorage` and `Psr16Storage` need a [journal](storages.md#journal) for priorities, `RedisStorage` and `MemoryStorage` keep them themselves, and `SQLiteStorage` does not support them.
+
+## Deleting Items
+
+The method `clean()` deletes items by conditions, which you pass as named arguments:
+
+| Argument | Deletes |
+| --- | --- |
+| `tags: [...]` | items with any of the tags |
+| `priority: 50` | items with a priority of 50 or less |
+| `namespaces: [...]` | all items in the listed namespaces, including the namespaces derived from them |
+| `all: true` | everything in the namespace of this cache, including the namespaces derived from it |
+
+The conditions can be combined, and an item matching any of them is deleted:
+
+```php
+$cache->clean(tags: ["article/$id"], priority: 50);
+```
+
+Let's take a closer look at `all`. It deletes the whole namespace of the cache together with the namespaces created from it by `derive()`, and leaves other namespaces untouched. Only a cache created without a namespace, `new Cache($storage)`, deletes the entire storage this way.
+
+The conditions can also be written as an array with `Cache::*` keys, such as `$cache->clean([Cache::Tags => ["article/$id"]])`. Just like with dependencies, an unknown key or a value of a wrong type throws an exception.
+
+Calling `clean()` without any condition throws an exception too, because it is not clear what it should delete. Removing items that have already expired is a matter of the storage: call `$storage->clean([])`. Most storages do it on their own anyway, see [Storages](storages.md).
+
+To delete a single item, use `$cache->remove("article/$id")`.
+
+## What Each Storage Supports
+
+Not every storage can honor every kind of dependency. A storage that cannot honor one throws `Nette\NotSupportedException` instead of silently ignoring it, so you find out right away, not from stale data. `SQLiteStorage`, for example, does not support priorities or dependencies on files. The only exception is `MemoryStorage`, which ignores what it cannot do. The complete overview is in the table on the page [Storages](storages.md#choosing-a-storage).
+
+## Bulk Reading and Writing
+
+The homepage of the blog shows previews of ten articles. Reading them from the cache one by one means ten round trips to the storage. The method `bulkLoad()` reads them all at once: you pass it the array `$ids` with their IDs as keys, and it returns an array of values indexed by those keys:
+
+```php
+$previews = $cache->bulkLoad($ids, function ($id, Dependencies $dp) {
+	$dp->tags = ["article/$id"];
+	return renderPreview($id); // renders a short preview of the article
+});
+```
+
+The generator is called only for the previews that are missing, and it receives the key followed by the dependencies. Without a generator, `bulkLoad($ids)` returns `null` for the missing items.
+
+The method `bulkSave()` stores several items at once, all with the same dependencies:
+
+```php
+$cache->bulkSave([
+	"preview/$id1" => $preview1,
+	"preview/$id2" => $preview2,
+], new Dependencies(expire: '1 hour'));
+```

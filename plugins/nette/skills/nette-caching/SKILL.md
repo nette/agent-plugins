@@ -111,5 +111,7 @@ concurrent requests for a cold key block until the first has generated it. Swapp
 
 The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
-- [Caching](../../docs/caching/index.md) – dependencies, journal, storages, `{cache}`
+- [Caching](../../docs/caching/index.md) – overview, namespaces, memoization, `{cache}`
+- [Expiration and Invalidation](../../docs/caching/expiration.md) – dependencies, tags, priority, bulk operations
+- [Storages](../../docs/caching/storages.md) – choosing and configuring a storage, the journal, PSR-16
 - [Caching Upgrading](../../docs/caching/upgrading.md) – renamed constants and interfaces

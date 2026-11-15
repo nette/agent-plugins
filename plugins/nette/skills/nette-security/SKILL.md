@@ -174,7 +174,8 @@ public function getGuestIdentity(): ?IIdentity { return new SimpleIdentity('gues
 The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
 - [Authentication](../../docs/security/authentication.md) – login, identity, storage, IdentityHandler
-- [Authorization](../../docs/security/authorization.md) – roles, resources, Permission ACL
+- [Authorization](../../docs/security/authorization.md) – roles, `isAllowed()`, authorizators
+- [ACL](../../docs/security/acl.md) – roles, resources and rules of `Permission`
 - [Password Hashing](../../docs/security/passwords.md) – the Passwords service
 - [Security Configuration](../../docs/security/configuration.md) – the `security:` section
 - [Vulnerability Protection](../../docs/nette/vulnerability-protection.md) – XSS, CSRF and what Nette does against them

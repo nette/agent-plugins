@@ -215,4 +215,4 @@ vendor/bin/neon-lint <path>
 The full Nette documentation for this topic is bundled with the plugin. Read a page when you need details beyond this skill:
 
 - [NEON Format](../../docs/neon/format.md) – the complete syntax
-- [Nette NEON](../../docs/neon/index.md) – `Neon::encode()`, `Neon::decode()`, the linter
+- [NEON for PHP](../../docs/neon/php.md) – `Neon::encode()`, `Neon::decode()`, the linter
