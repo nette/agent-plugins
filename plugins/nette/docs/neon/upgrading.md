@@ -5,7 +5,7 @@
 `Neon::decode()`, `decodeFile()` and `encode()` work as before and give the same values. What changed:
 
 - the minimum required PHP version is 8.4, and the `mbstring` extension is required
-- the syntax tree is new: `Neon::parse()` gives a lossless `DocumentNode` you can [edit](https://doc.nette.org/en/neon/editing); the classes `Nette\Neon\Decoder` and `Nette\Neon\Node\*` and the old `Traverser` are gone, the nodes are now in `Nette\Neon\Nodes`, and a node cannot be serialized
+- the syntax tree is new: `Neon::parse()` gives a lossless `DocumentNode` you can [edit](editing.md); the classes `Nette\Neon\Decoder` and `Nette\Neon\Node\*` and the old `Traverser` are gone, the nodes are now in `Nette\Neon\Nodes`, and a node cannot be serialized
 - `encode()` throws `Nette\Neon\Exception` for a string that is not valid UTF-8, where 3.4 replaced the invalid bytes and triggered a warning, and for a resource, a closure or a structure that contains itself
 - the constants `Neon::BLOCK` and `Neon::CHAIN` trigger `E_USER_DEPRECATED`; pass `true` as the second argument of `encode()` and use `Neon::Chain`
 - `decode()` accepts a byte order mark at the start of the input, as `decodeFile()` does

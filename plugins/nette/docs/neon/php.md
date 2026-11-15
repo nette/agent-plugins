@@ -14,7 +14,7 @@ Contents:
 The package `nette/neon` reads and writes NEON in PHP. With it you:
 
 - decode a configuration file into PHP values and encode values back to NEON
-- [edit a file](https://doc.nette.org/en/neon/editing) while every comment and space you did not touch stays where it was
+- [edit a file](editing.md) while every comment and space you did not touch stays where it was
 - give some values a meaning of your own, such as constants or parameters
 - check files with `neon-lint` in your editor, in CI or after an AI agent
 
@@ -111,7 +111,7 @@ The column counts characters, not bytes. When you show the error your own way, f
 
 ## Your Own Values: Evaluator
 
-`Neon::decode()` turns the [syntax tree](https://doc.nette.org/en/neon/editing#toc-the-tree) into values with the class `Nette\Neon\Evaluator`. A subclass of it can give some values a meaning of their own. This one turns the names of PHP constants into their values:
+`Neon::decode()` turns the [syntax tree](editing.md#the-tree) into values with the class `Nette\Neon\Evaluator`. A subclass of it can give some values a meaning of their own. This one turns the names of PHP constants into their values:
 
 ```php
 use Nette\Neon\Evaluator;
@@ -165,5 +165,5 @@ That makes it a handy check for AI agents: when an agent runs it after every cha
 ## What's Next
 
 - [NEON Format](format.md) – the syntax of the format
-- [Editing Files](https://doc.nette.org/en/neon/editing) – changing a file while keeping its formatting, and the syntax tree
+- [Editing Files](editing.md) – changing a file while keeping its formatting, and the syntax tree
 - [Upgrading](upgrading.md) – what changed in version 4.0
